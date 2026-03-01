@@ -1,0 +1,762 @@
+{
+  "_meta": {
+    "description": "Lexical Band II - Israeli English Curriculum 2020 - Complete Vocabulary",
+    "source": "Ministry of Education, State of Israel",
+    "grades": [7, 8, 9],
+    "total_words": 773,
+    "schema_version": "2.0",
+    "note": "Complete Band II vocabulary for receptive and productive use"
+  },
+  "words": [
+    {
+      "id": "a1b2c3d4-0001-4000-8000-000000000001",
+      "word": "ability",
+      "band": "Band II",
+      "grade_level": [8, 9],
+      "type": "productive",
+      "translations": { "hebrew": "יכולת, כשרון", "arabic": "قدرة، موهبة" },
+      "ipa": "/əˈbɪləti/",
+      "example_sentences": {
+        "english": "She has the ability to solve complex problems.",
+        "hebrew": "יש לה את היכולת לפתור בעיות מורכבות.",
+        "arabic": "لديها القدرة على حل المشاكل المعقدة."
+      },
+      "category": "nouns"
+    },
+    {
+      "id": "a1b2c3d4-0002-4000-8000-000000000002",
+      "word": "able",
+      "band": "Band II",
+      "grade_level": [7, 8],
+      "type": "productive",
+      "translations": { "hebrew": "מסוגל", "arabic": "قادر" },
+      "ipa": "/ˈeɪbl/",
+      "example_sentences": {
+        "english": "Will you be able to come to the meeting tomorrow?",
+        "hebrew": "האם תוכל להגיע לפגישה מחר?",
+        "arabic": "هل ستتمكن من الحضور إلى الاجتماع غدًا؟"
+      },
+      "category": "adjectives"
+    },
+    {
+      "id": "a1b2c3d4-0003-4000-8000-000000000003",
+      "word": "absent",
+      "band": "Band II",
+      "grade_level": [7, 8],
+      "type": "productive",
+      "translations": { "hebrew": "נעדר", "arabic": "غائب" },
+      "ipa": "/ˈæbsənt/",
+      "example_sentences": {
+        "english": "Three students were absent from class today.",
+        "hebrew": "שלושה תלמידים נעדרו היום מהשיעור.",
+        "arabic": "غاب ثلاثة طلاب عن الصف اليوم."
+      },
+      "category": "adjectives"
+    },
+    {
+      "id": "a1b2c3d4-0004-4000-8000-000000000004",
+      "word": "absolutely",
+      "band": "Band II",
+      "grade_level": [8, 9],
+      "type": "productive",
+      "translations": { "hebrew": "בהחלט, לחלוטין", "arabic": "بشكل مطلق، بالتأكيد" },
+      "ipa": "/ˌæbsəˈluːtli/",
+      "example_sentences": {
+        "english": "I absolutely agree with your opinion.",
+        "hebrew": "אני מסכים לחלוטין עם דעתך.",
+        "arabic": "أوافق تمامًا على رأيك."
+      },
+      "category": "adverbs"
+    },
+    {
+      "id": "a1b2c3d4-0005-4000-8000-000000000005",
+      "word": "accept",
+      "band": "Band II",
+      "grade_level": [7, 8],
+      "type": "productive",
+      "translations": { "hebrew": "לקבל, להסכים", "arabic": "يقبل، يوافق" },
+      "ipa": "/əkˈsept/",
+      "example_sentences": {
+        "english": "I accept your invitation to the party.",
+        "hebrew": "אני מקבל את ההזמנה שלך למסיבה.",
+        "arabic": "أقبل دعوتك للحفلة."
+      },
+      "category": "verbs"
+    },
+    {
+      "id": "a1b2c3d4-0006-4000-8000-000000000006",
+      "word": "by accident",
+      "band": "Band II",
+      "grade_level": [8, 9],
+      "type": "productive",
+      "translations": { "hebrew": "במקרה, בטעות", "arabic": "بالصدفة، عن طريق الخطأ" },
+      "ipa": "/baɪ ˈæksɪdənt/",
+      "example_sentences": {
+        "english": "I found your book by accident.",
+        "hebrew": "מצאתי את הספר שלך במקרה.",
+        "arabic": "وجدت كتابك بالصدفة."
+      },
+      "category": "phrases"
+    },
+    {
+      "id": "a1b2c3d4-0007-4000-8000-000000000007",
+      "word": "according to",
+      "band": "Band II",
+      "grade_level": [8, 9],
+      "type": "receptive",
+      "translations": { "hebrew": "לפי, על פי", "arabic": "وفقًا لـ" },
+      "ipa": "/əˈkɔːdɪŋ tuː/",
+      "example_sentences": {
+        "english": "According to the news, it will rain tomorrow.",
+        "hebrew": "לפי החדשות, ירד גשם מחר.",
+        "arabic": "وفقًا للأخبار، ستمطر غدًا."
+      },
+      "category": "phrases"
+    },
+    {
+      "id": "a1b2c3d4-0008-4000-8000-000000000008",
+      "word": "account",
+      "band": "Band II",
+      "grade_level": [8, 9],
+      "type": "productive",
+      "translations": { "hebrew": "חשבון", "arabic": "حساب" },
+      "ipa": "/əˈkaʊnt/",
+      "example_sentences": {
+        "english": "I need to open a bank account.",
+        "hebrew": "אני צריך לפתוח חשבון בנק.",
+        "arabic": "أحتاج إلى فتح حساب بنكي."
+      },
+      "category": "nouns"
+    },
+    {
+      "id": "a1b2c3d4-0009-4000-8000-000000000009",
+      "word": "take into account",
+      "band": "Band II",
+      "grade_level": [9],
+      "type": "receptive",
+      "translations": { "hebrew": "לקחת בחשבון", "arabic": "يأخذ بعين الاعتبار" },
+      "ipa": "/teɪk ˈɪntuː əˈkaʊnt/",
+      "example_sentences": {
+        "english": "We must take into account everyone's opinion.",
+        "hebrew": "עלינו לקחת בחשבון את דעתו של כל אחד.",
+        "arabic": "يجب أن نأخذ بعين الاعتبار رأي الجميع."
+      },
+      "category": "phrases"
+    },
+    {
+      "id": "a1b2c3d4-0010-4000-8000-000000000010",
+      "word": "act",
+      "band": "Band II",
+      "grade_level": [7, 8],
+      "type": "productive",
+      "translations": { "hebrew": "לשחק, לפעול", "arabic": "يمثل، يتصرف" },
+      "ipa": "/ækt/",
+      "example_sentences": {
+        "english": "My dog is acting strangely today.",
+        "hebrew": "הכלב שלי מתנהג בצורה מוזרה היום.",
+        "arabic": "كلبي يتصرف بشكل غريب اليوم."
+      },
+      "category": "verbs"
+    },
+    {
+      "id": "a1b2c3d4-0011-4000-8000-000000000011",
+      "word": "active",
+      "band": "Band II",
+      "grade_level": [7, 8],
+      "type": "productive",
+      "translations": { "hebrew": "פעיל", "arabic": "نشيط" },
+      "ipa": "/ˈæktɪv/",
+      "example_sentences": {
+        "english": "She is very active in sports.",
+        "hebrew": "היא פעילה מאוד בספורט.",
+        "arabic": "إنها نشيطة جدًا في الرياضة."
+      },
+      "category": "adjectives"
+    },
+    {
+      "id": "a1b2c3d4-0012-4000-8000-000000000012",
+      "word": "activity",
+      "band": "Band II",
+      "grade_level": [7, 8],
+      "type": "productive",
+      "translations": { "hebrew": "פעילות", "arabic": "نشاط" },
+      "ipa": "/ækˈtɪvəti/",
+      "example_sentences": {
+        "english": "What activities do you do after school?",
+        "hebrew": "אילו פעילויות אתה עושה אחרי בית הספר?",
+        "arabic": "ما هي الأنشطة التي تمارسها بعد المدرسة؟"
+      },
+      "category": "nouns"
+    },
+    {
+      "id": "a1b2c3d4-0013-4000-8000-000000000013",
+      "word": "actually",
+      "band": "Band II",
+      "grade_level": [7, 8],
+      "type": "productive",
+      "translations": { "hebrew": "בעצם, בפועל", "arabic": "في الواقع" },
+      "ipa": "/ˈæktʃuəli/",
+      "example_sentences": {
+        "english": "Actually, I don't know the answer.",
+        "hebrew": "בעצם, אני לא יודע את התשובה.",
+        "arabic": "في الواقع، لا أعرف الإجابة."
+      },
+      "category": "adverbs"
+    },
+    {
+      "id": "a1b2c3d4-0014-4000-8000-000000000014",
+      "word": "add",
+      "band": "Band II",
+      "grade_level": [7, 8],
+      "type": "productive",
+      "translations": { "hebrew": "להוסיף", "arabic": "يضيف" },
+      "ipa": "/æd/",
+      "example_sentences": {
+        "english": "Please add your name to the list.",
+        "hebrew": "אנא הוסף את שמך לרשימה.",
+        "arabic": "يرجى إضافة اسمك إلى القائمة."
+      },
+      "category": "verbs"
+    },
+    {
+      "id": "a1b2c3d4-0015-4000-8000-000000000015",
+      "word": "in addition (to)",
+      "band": "Band II",
+      "grade_level": [8, 9],
+      "type": "receptive",
+      "translations": { "hebrew": "בנוסף ל", "arabic": "بالإضافة إلى" },
+      "ipa": "/ɪn əˈdɪʃn tuː/",
+      "example_sentences": {
+        "english": "In addition to English, she speaks French.",
+        "hebrew": "בנוסף לאנגלית, היא מדברת צרפתית.",
+        "arabic": "بالإضافة إلى الإنجليزية، هي تتحدث الفرنسية."
+      },
+      "category": "phrases"
+    },
+    {
+      "id": "a1b2c3d4-0016-4000-8000-000000000016",
+      "word": "admit",
+      "band": "Band II",
+      "grade_level": [8, 9],
+      "type": "productive",
+      "translations": { "hebrew": "להודות", "arabic": "يعترف" },
+      "ipa": "/ədˈmɪt/",
+      "example_sentences": {
+        "english": "He admitted that he made a mistake.",
+        "hebrew": "הוא הודה שעשה טעות.",
+        "arabic": "اعترف بأنه ارتكب خطأ."
+      },
+      "category": "verbs"
+    },
+    {
+      "id": "a1b2c3d4-0017-4000-8000-000000000017",
+      "word": "adult",
+      "band": "Band II",
+      "grade_level": [7, 8],
+      "type": "productive",
+      "translations": { "hebrew": "מבוגר", "arabic": "بالغ" },
+      "ipa": "/ˈædʌlt/",
+      "example_sentences": {
+        "english": "Adults sometimes forget how hard school can be.",
+        "hebrew": "מבוגרים לפעמים שוכחים כמה קשה יכול להיות בית ספר.",
+        "arabic": "ينسى البالغون أحيانًا مدى صعوبة المدرسة."
+      },
+      "category": "nouns"
+    },
+    {
+      "id": "a1b2c3d4-0018-4000-8000-000000000018",
+      "word": "advantage",
+      "band": "Band II",
+      "grade_level": [8, 9],
+      "type": "productive",
+      "translations": { "hebrew": "יתרון", "arabic": "ميزة" },
+      "ipa": "/ədˈvɑːntɪdʒ/",
+      "example_sentences": {
+        "english": "One advantage of living in a city is public transport.",
+        "hebrew": "יתרון אחד של חיים בעיר הוא תחבורה ציבורית.",
+        "arabic": "إحدى مزايا العيش في المدينة هي النقل العام."
+      },
+      "category": "nouns"
+    },
+    {
+      "id": "a1b2c3d4-0019-4000-8000-000000000019",
+      "word": "advertise",
+      "band": "Band II",
+      "grade_level": [8, 9],
+      "type": "receptive",
+      "translations": { "hebrew": "לפרסם", "arabic": " يعلن" },
+      "ipa": "/ˈædvətaɪz/",
+      "example_sentences": {
+        "english": "Companies advertise their products on social media.",
+        "hebrew": "חברות מפרסמות את המוצרים שלהן ברשתות חברתיות.",
+        "arabic": "الشركات تعلن عن منتجاتها على وسائل التواصل الاجتماعي."
+      },
+      "category": "verbs"
+    },
+    {
+      "id": "a1b2c3d4-0020-4000-8000-000000000020",
+      "word": "advertisement",
+      "band": "Band II",
+      "grade_level": [8, 9],
+      "type": "receptive",
+      "translations": { "hebrew": "פרסומת", "arabic": "إعلان" },
+      "ipa": "/ədˈvɜːtɪsmənt/",
+      "example_sentences": {
+        "english": "I saw an advertisement for a new phone.",
+        "hebrew": "ראיתי פרסומת לטלפון חדש.",
+        "arabic": "رأيت إعلانًا عن هاتف جديد."
+      },
+      "category": "nouns"
+    },
+    {
+      "id": "a1b2c3d4-0021-4000-8000-000000000021",
+      "word": "advice",
+      "band": "Band II",
+      "grade_level": [7, 8],
+      "type": "productive",
+      "translations": { "hebrew": "עצה", "arabic": "نصيحة" },
+      "ipa": "/ədˈvaɪs/",
+      "example_sentences": {
+        "english": "Can you give me some advice about learning English?",
+        "hebrew": "האם אתה יכול לתת לי עצה לגבי לימוד אנגלית?",
+        "arabic": "هل يمكنك إعطائي بعض النصائح حول تعلم الإنجليزية؟"
+      },
+      "category": "nouns"
+    },
+    {
+      "id": "a1b2c3d4-0022-4000-8000-000000000022",
+      "word": "advise",
+      "band": "Band II",
+      "grade_level": [8, 9],
+      "type": "productive",
+      "translations": { "hebrew": "לייעץ", "arabic": "ينصح" },
+      "ipa": "/ədˈvaɪz/",
+      "example_sentences": {
+        "english": "The doctor advised me to rest.",
+        "hebrew": "הרופא יעץ לי לנוח.",
+        "arabic": "نصحني الطبيب بالراحة."
+      },
+      "category": "verbs"
+    },
+    {
+      "id": "a1b2c3d4-0023-4000-8000-000000000023",
+      "word": "afford",
+      "band": "Band II",
+      "grade_level": [8, 9],
+      "type": "productive",
+      "translations": { "hebrew": "להרשות לעצמו", "arabic": "يتحمل تكلفة" },
+      "ipa": "/əˈfɔːd/",
+      "example_sentences": {
+        "english": "I can't afford to buy a new car.",
+        "hebrew": "אני לא יכול להרשות לעצמי לקנות מכונית חדשה.",
+        "arabic": "لا أستطيع تحمل تكلفة شراء سيارة جديدة."
+      },
+      "category": "verbs"
+    },
+    {
+      "id": "a1b2c3d4-0024-4000-8000-000000000024",
+      "word": "after all",
+      "band": "Band II",
+      "grade_level": [8, 9],
+      "type": "receptive",
+      "translations": { "hebrew": "בסופו של דבר", "arabic": "في نهاية المطاف" },
+      "ipa": "/ˈɑːftər ɔːl/",
+      "example_sentences": {
+        "english": "After all, we are all human beings.",
+        "hebrew": "בסופו של דבר, כולנו בני אדם.",
+        "arabic": "في نهاية المطاف، نحن جميعًا بشر."
+      },
+      "category": "phrases"
+    },
+    {
+      "id": "a1b2c3d4-0025-4000-8000-000000000025",
+      "word": "against",
+      "band": "Band II",
+      "grade_level": [7, 8],
+      "type": "productive",
+      "translations": { "hebrew": "נגד", "arabic": "ضد" },
+      "ipa": "/əˈɡeɪnst/",
+      "example_sentences": {
+        "english": "I am against violence in schools.",
+        "hebrew": "אני נגד אלימות בבתי ספר.",
+        "arabic": "أنا ضد العنف في المدارس."
+      },
+      "category": "prepositions"
+    },
+    {
+      "id": "a1b2c3d4-0026-4000-8000-000000000026",
+      "word": "ahead (of)",
+      "band": "Band II",
+      "grade_level": [8, 9],
+      "type": "productive",
+      "translations": { "hebrew": "לפני, קדימה", "arabic": "أمام، قبل" },
+      "ipa": "/əˈhed ɒv/",
+      "example_sentences": {
+        "english": "Go ahead of me, I'll catch up.",
+        "hebrew": "לך לפניי, אני אשיג אותך.",
+        "arabic": "اذهب أمامي، سألحق بك."
+      },
+      "category": "phrases"
+    },
+    {
+      "id": "a1b2c3d4-0027-4000-8000-000000000027",
+      "word": "aim",
+      "band": "Band II",
+      "grade_level": [8, 9],
+      "type": "productive",
+      "translations": { "hebrew": "לכוון, מטרה", "arabic": "يهدف، هدف" },
+      "ipa": "/eɪm/",
+      "example_sentences": {
+        "english": "We aim to finish the project by Friday.",
+        "hebrew": "אנחנו שואפים לסיים את הפרויקט עד יום שישי.",
+        "arabic": "نهدف إلى إنهاء المشروع بحلول يوم الجمعة."
+      },
+      "category": "verbs"
+    },
+    {
+      "id": "a1b2c3d4-0028-4000-8000-000000000028",
+      "word": "air",
+      "band": "Band II",
+      "grade_level": [7, 8],
+      "type": "productive",
+      "translations": { "hebrew": "אוויר", "arabic": "هواء" },
+      "ipa": "/eə(r)/",
+      "example_sentences": {
+        "english": "The air in the mountains is very fresh.",
+        "hebrew": "האוויר בהרים טרי מאוד.",
+        "arabic": "الهواء في الجبال منعش جدًا."
+      },
+      "category": "nouns"
+    },
+    {
+      "id": "a1b2c3d4-0029-4000-8000-000000000029",
+      "word": "alive",
+      "band": "Band II",
+      "grade_level": [7, 8],
+      "type": "productive",
+      "translations": { "hebrew": "חי", "arabic": "حي" },
+      "ipa": "/əˈlaɪv/",
+      "example_sentences": {
+        "english": "It's amazing that the tradition is still alive.",
+        "hebrew": "זה מדהים שהמסורת עוד חיה.",
+        "arabic": "من المذهل أن التقاليد لا تزال حية."
+      },
+      "category": "adjectives"
+    },
+    {
+      "id": "a1b2c3d4-0030-4000-8000-000000000030",
+      "word": "along",
+      "band": "Band II",
+      "grade_level": [7, 8],
+      "type": "productive",
+      "translations": { "hebrew": "לאורך", "arabic": "على طول" },
+      "ipa": "/əˈlɒŋ/",
+      "example_sentences": {
+        "english": "We walked along the beach.",
+        "hebrew": "הלכנו לאורך החוף.",
+        "arabic": "مشينا على طول الشاطئ."
+      },
+      "category": "prepositions"
+    },
+    {
+      "id": "a1b2c3d4-0031-4000-8000-000000000031",
+      "word": "along with",
+      "band": "Band II",
+      "grade_level": [8, 9],
+      "type": "receptive",
+      "translations": { "hebrew": "יחד עם", "arabic": "مع، بالإضافة إلى" },
+      "ipa": "/əˈlɒŋ wɪð/",
+      "example_sentences": {
+        "english": "She came along with her brother.",
+        "hebrew": "היא באה יחד עם אחיה.",
+        "arabic": "جاءت مع أخيها."
+      },
+      "category": "phrases"
+    },
+    {
+      "id": "a1b2c3d4-0032-4000-8000-000000000032",
+      "word": "alphabet",
+      "band": "Band II",
+      "grade_level": [7, 8],
+      "type": "productive",
+      "translations": { "hebrew": "אלפבית", "arabic": "أبجدية" },
+      "ipa": "/ˈælfəbet/",
+      "example_sentences": {
+        "english": "The English alphabet has 26 letters.",
+        "hebrew": "באלפבית האנגלי יש 26 אותיות.",
+        "arabic": "الأبجدية الإنجليزية تحتوي على 26 حرفًا."
+      },
+      "category": "nouns"
+    },
+    {
+      "id": "a1b2c3d4-0033-4000-8000-000000000033",
+      "word": "alternative",
+      "band": "Band II",
+      "grade_level": [9],
+      "type": "receptive",
+      "translations": { "hebrew": "חלופה, אלטרנטיבי", "arabic": "بديل" },
+      "ipa": "/ɔːlˈtɜːnətɪv/",
+      "example_sentences": {
+        "english": "We need to find an alternative solution.",
+        "hebrew": "אנחנו צריכים למצוא פתרון חלופי.",
+        "arabic": "نحتاج إلى إيجاد حل بديل."
+      },
+      "category": "nouns"
+    },
+    {
+      "id": "a1b2c3d4-0034-4000-8000-000000000034",
+      "word": "although",
+      "band": "Band II",
+      "grade_level": [8, 9],
+      "type": "productive",
+      "translations": { "hebrew": "למרות ש", "arabic": "رغم أن" },
+      "ipa": "/ɔːlˈðəʊ/",
+      "example_sentences": {
+        "english": "Although it was raining, we went to the park.",
+        "hebrew": "למרות שירד גשם, הלכנו לפארק.",
+        "arabic": "رغم أن الطقس كان ممطرًا، ذهبنا إلى الحديقة."
+      },
+      "category": "conjunctions"
+    },
+    {
+      "id": "a1b2c3d4-0035-4000-8000-000000000035",
+      "word": "altogether",
+      "band": "Band II",
+      "grade_level": [8, 9],
+      "type": "receptive",
+      "translations": { "hebrew": "בסך הכל", "arabic": "بشكل كلي، في المجمل" },
+      "ipa": "/ˌɔːltəˈɡeðə(r)/",
+      "example_sentences": {
+        "english": "Altogether, there were 30 students in the class.",
+        "hebrew": "בסך הכל, היו 30 תלמידים בכיתה.",
+        "arabic": "في المجمل، كان هناك 30 طالبًا في الفصل."
+      },
+      "category": "adverbs"
+    },
+    {
+      "id": "a1b2c3d4-0036-4000-8000-000000000036",
+      "word": "among",
+      "band": "Band II",
+      "grade_level": [8, 9],
+      "type": "productive",
+      "translations": { "hebrew": "בין", "arabic": "بين" },
+      "ipa": "/əˈmʌŋ/",
+      "example_sentences": {
+        "english": "She is popular among her classmates.",
+        "hebrew": "היא פופולרית בין חבריה לכיתה.",
+        "arabic": "هي محبوبة بين زملائها في الصف."
+      },
+      "category": "prepositions"
+    },
+    {
+      "id": "a1b2c3d4-0037-4000-8000-000000000037",
+      "word": "amount",
+      "band": "Band II",
+      "grade_level": [8, 9],
+      "type": "productive",
+      "translations": { "hebrew": "כמות", "arabic": "كمية" },
+      "ipa": "/əˈmaʊnt/",
+      "example_sentences": {
+        "english": "A large amount of water was wasted.",
+        "hebrew": "כמות גדולה של מים בוזבזה.",
+        "arabic": "تم إهدار كمية كبيرة من المياه."
+      },
+      "category": "nouns"
+    },
+    {
+      "id": "a1b2c3d4-0038-4000-8000-000000000038",
+      "word": "announcement",
+      "band": "Band II",
+      "grade_level": [8, 9],
+      "type": "productive",
+      "translations": { "hebrew": "הכרזה, הודעה", "arabic": "إعلان" },
+      "ipa": "/əˈnaʊnsmənt/",
+      "example_sentences": {
+        "english": "The teacher made an announcement about the exam.",
+        "hebrew": "המורה פרסמה הודעה על הבחינה.",
+        "arabic": "أعلن المعلم عن الامتحان."
+      },
+      "category": "nouns"
+    },
+    {
+      "id": "a1b2c3d4-0039-4000-8000-000000000039",
+      "word": "apart from",
+      "band": "Band II",
+      "grade_level": [8, 9],
+      "type": "receptive",
+      "translations": { "hebrew": "מלבד", "arabic": "بصرف النظر عن، باستثناء" },
+      "ipa": "/əˈpɑːt frəm/",
+      "example_sentences": {
+        "english": "Apart from English, what languages do you speak?",
+        "hebrew": "מלבד אנגלית, באילו שפות אתה מדבר?",
+        "arabic": "باستثناء الإنجليزية، ما هي اللغات التي تتحدثها؟"
+      },
+      "category": "phrases"
+    },
+    {
+      "id": "a1b2c3d4-0040-4000-8000-000000000040",
+      "word": "apologize",
+      "band": "Band II",
+      "grade_level": [7, 8],
+      "type": "productive",
+      "translations": { "hebrew": "להתנצל", "arabic": "يعتذر" },
+      "ipa": "/əˈpɒlədʒaɪz/",
+      "example_sentences": {
+        "english": "I apologize for being late.",
+        "hebrew": "אני מתנצל על האיחור.",
+        "arabic": "أعتذر عن التأخر."
+      },
+      "category": "verbs"
+    },
+    {
+      "id": "a1b2c3d4-0041-4000-8000-000000000041",
+      "word": "appearance",
+      "band": "Band II",
+      "grade_level": [9],
+      "type": "receptive",
+      "translations": { "hebrew": "מראה, הופעה", "arabic": "مظهر" },
+      "ipa": "/əˈpɪərəns/",
+      "example_sentences": {
+        "english": "Don't judge people by their appearance.",
+        "hebrew": "אל תשפוט אנשים לפי המראה שלהם.",
+        "arabic": "لا تحكم على الناس من خلال مظهرهم."
+      },
+      "category": "nouns"
+    },
+    {
+      "id": "a1b2c3d4-0042-4000-8000-000000000042",
+      "word": "Arab",
+      "band": "Band II",
+      "grade_level": [7, 8],
+      "type": "productive",
+      "translations": { "hebrew": "ערבי", "arabic": "عربي" },
+      "ipa": "/ˈærəb/",
+      "example_sentences": {
+        "english": "Arab culture is rich and diverse.",
+        "hebrew": "התרבות הערבית עשירה ומגוונת.",
+        "arabic": "الثقافة العربية غنية ومتنوعة."
+      },
+      "category": "nouns"
+    },
+    {
+      "id": "a1b2c3d4-0043-4000-8000-000000000043",
+      "word": "area",
+      "band": "Band II",
+      "grade_level": [7, 8],
+      "type": "productive",
+      "translations": { "hebrew": "אזור, שטח", "arabic": "منطقة" },
+      "ipa": "/ˈeəriə/",
+      "example_sentences": {
+        "english": "This area is known for its beautiful beaches.",
+        "hebrew": "אזור זה ידוע בחופים היפים שלו.",
+        "arabic": "هذه المنطقة معروفة بشواطئها الجميلة."
+      },
+      "category": "nouns"
+    },
+    {
+      "id": "a1b2c3d4-0044-4000-8000-000000000044",
+      "word": "argue",
+      "band": "Band II",
+      "grade_level": [8, 9],
+      "type": "productive",
+      "translations": { "hebrew": "להתווכח", "arabic": "يجادل" },
+      "ipa": "/ˈɑːɡjuː/",
+      "example_sentences": {
+        "english": "Don't argue with your parents.",
+        "hebrew": "אל תתווכח עם ההורים שלך.",
+        "arabic": "لا تجادل والديك."
+      },
+      "category": "verbs"
+    },
+    {
+      "id": "a1b2c3d4-0045-4000-8000-000000000045",
+      "word": "argument",
+      "band": "Band II",
+      "grade_level": [8, 9],
+      "type": "productive",
+      "translations": { "hebrew": "ויכוח", "arabic": "جدال" },
+      "ipa": "/ˈɑːɡjumənt/",
+      "example_sentences": {
+        "english": "They had a loud argument about politics.",
+        "hebrew": "היה להם ויכוח רועש על פוליטיקה.",
+        "arabic": "كان بينهم جدال صاخب حول السياسة."
+      },
+      "category": "nouns"
+    },
+    {
+      "id": "a1b2c3d4-0046-4000-8000-000000000046",
+      "word": "army",
+      "band": "Band II",
+      "grade_level": [8, 9],
+      "type": "productive",
+      "translations": { "hebrew": "צבא", "arabic": "جيش" },
+      "ipa": "/ˈɑːmi/",
+      "example_sentences": {
+        "english": "In Israel, young people join the army after high school.",
+        "hebrew": "בישראל, צעירים מתגייסים לצבא אחרי התיכון.",
+        "arabic": "في إسرائيل، ينضم الشباب إلى الجيش بعد المدرسة الثانوية."
+      },
+      "category": "nouns"
+    },
+    {
+      "id": "a1b2c3d4-0047-4000-8000-000000000047",
+      "word": "around",
+      "band": "Band II",
+      "grade_level": [7, 8],
+      "type": "productive",
+      "translations": { "hebrew": "מסביב, בערך", "arabic": "حول، حوالي" },
+      "ipa": "/əˈraʊnd/",
+      "example_sentences": {
+        "english": "There are around 50 students in our grade.",
+        "hebrew": "יש בערך 50 תלמידים בשכבה שלנו.",
+        "arabic": "هناك حوالي 50 طالبًا في صفنا."
+      },
+      "category": "prepositions"
+    },
+    {
+      "id": "a1b2c3d4-0048-4000-8000-000000000048",
+      "word": "arrange",
+      "band": "Band II",
+      "grade_level": [8, 9],
+      "type": "productive",
+      "translations": { "hebrew": "לארגן", "arabic": "يرتب" },
+      "ipa": "/əˈreɪndʒ/",
+      "example_sentences": {
+        "english": "I need to arrange a meeting with my teacher.",
+        "hebrew": "אני צריך לארגן פגישה עם המורה שלי.",
+        "arabic": "أحتاج لترتيب اجتماع مع معلمي."
+      },
+      "category": "verbs"
+    },
+    {
+      "id": "a1b2c3d4-0049-4000-8000-000000000049",
+      "word": "arrangement",
+      "band": "Band II",
+      "grade_level": [9],
+      "type": "receptive",
+      "translations": { "hebrew": "סידור, הסדר", "arabic": "ترتيب" },
+      "ipa": "/əˈreɪndʒmənt/",
+      "example_sentences": {
+        "english": "We made an arrangement to meet at 5 o'clock.",
+        "hebrew": "עשינו סידור להיפגש בשעה 5.",
+        "arabic": "اتفقنا على الاجتماع في الساعة الخامسة."
+      },
+      "category": "nouns"
+    },
+    {
+      "id": "a1b2c3d4-0050-4000-8000-000000000050",
+      "word": "arrive (at)",
+      "band": "Band II",
+      "grade_level": [7, 8],
+      "type": "productive",
+      "translations": { "hebrew": "להגיע", "arabic": "يصل" },
+      "ipa": "/əˈraɪv/",
+      "example_sentences": {
+        "english": "We arrived at the station just in time.",
+        "hebrew": "הגענו לתחנה בדיוק בזמן.",
+        "arabic": "وصلنا إلى المحطة في الوقت المحدد."
+      },
+      "category": "verbs"
+    }
+  ]
+}

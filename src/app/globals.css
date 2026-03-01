@@ -3,6 +3,13 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+
+  /* Font size variables for accessibility */
+  --font-size-sm: 0.875rem;
+  --font-size-base: 1rem;
+  --font-size-lg: 1.125rem;
+  --font-size-xl: 1.25rem;
+  --font-size-2xl: 1.5rem;
 }
 
 @theme inline {
@@ -19,8 +26,82 @@
   }
 }
 
+/* RTL Support */
+[dir="rtl"] {
+  direction: rtl;
+}
+
+[dir="rtl"] .rtl\:flex-row-reverse {
+  flex-direction: row-reverse;
+}
+
+[dir="rtl"] .rtl\:space-x-reverse > :not([hidden]) ~ :not([hidden]) {
+  --tw-space-x-reverse: 1;
+}
+
+/* Language-specific font families */
+[lang="he"] body {
+  font-family: var(--font-heebo), var(--font-geist-sans), sans-serif;
+}
+
+[lang="ar"] body {
+  font-family: var(--font-cairo), var(--font-geist-sans), sans-serif;
+}
+
+[lang="en"] body {
+  font-family: var(--font-geist-sans), sans-serif;
+}
+
+/* Accessibility: High Contrast Mode */
+.high-contrast {
+  --background: #000000 !important;
+  --foreground: #ffffff !important;
+}
+
+.high-contrast * {
+  border-color: #ffff00 !important;
+}
+
+.high-contrast a,
+.high-contrast button {
+  outline: 2px solid #ffff00 !important;
+}
+
+.high-contrast .bg-blue-600,
+.high-contrast .bg-blue-700 {
+  background-color: #ffff00 !important;
+  color: #000000 !important;
+}
+
+/* Accessibility: Reduced Motion */
+.reduce-motion *,
+.reduce-motion *::before,
+.reduce-motion *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+}
+
+/* Base styles */
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+}
+
+/* Mobile-first adjustments */
+@media (max-width: 640px) {
+  body {
+    font-size: var(--font-size-base);
+  }
+}
+
+/* Focus visible for keyboard navigation */
+*:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
+}
+
+.high-contrast *:focus-visible {
+  outline-color: #ffff00 !important;
+  outline-width: 3px !important;
 }
