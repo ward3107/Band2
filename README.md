@@ -1,36 +1,89 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Vocab Band II - Israeli English Curriculum Learning Platform
+
+A comprehensive web-based vocabulary learning platform designed for Israeli students in grades 7-9, following the national English curriculum. The platform supports both Hebrew and Arabic translations and provides separate interfaces for teachers and students.
+
+## Features
+
+### For Students
+- **Interactive Flashcards** - Learn vocabulary with flip animations and text-to-speech pronunciation
+- **Quiz Mode** - Test knowledge with multiple-choice questions and instant feedback
+- **Assignment System** - Complete teacher-assigned vocabulary assignments with progress tracking
+- **Gamification** - Earn points and achievements as you learn
+- **Accessibility** - Full support for RTL languages (Hebrew/Arabic), text-to-speech, and customizable UI
+
+### For Teachers
+- **Class Management** - Create and manage multiple student classes
+- **Assignment Creation** - Design vocabulary assignments from the curriculum word bank
+- **Progress Tracking** - Monitor student performance and completion rates
+- **Results Dashboard** - View detailed analytics and student results
+
+## Tech Stack
+
+- **Framework**: Next.js 15 with App Router
+- **Language**: TypeScript
+- **Styling**: Tailwind CSS
+- **Database**: Supabase (PostgreSQL)
+- **Authentication**: Supabase Auth
+- **Fonts**: Geist, Geist Mono, Heebo (Hebrew), Cairo (Arabic)
 
 ## Getting Started
 
-First, run the development server:
+### Prerequisites
 
+- Node.js 18+ installed
+- Supabase project with the following tables:
+  - `profiles` (id, email, full_name, role)
+  - `classes` (id, teacher_id, name, grade_level)
+  - `class_members` (class_id, student_id)
+  - `assignments` (id, teacher_id, class_id, words, due_date)
+  - `submissions` (id, assignment_id, student_id, status, score, answers)
+  - `vocabulary` (word, translations, level, unit)
+
+### Installation
+
+1. Clone the repository:
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+git clone https://github.com/ward3107/Band2.git
+cd Band2
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+2. Install dependencies:
+```bash
+npm install
+```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+3. Set up environment variables:
+Create a `.env.local` file with:
+```
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+4. Run the development server:
+```bash
+npm run dev
+```
 
-## Learn More
+5. Open [http://localhost:3000](http://localhost:3000) in your browser
 
-To learn more about Next.js, take a look at the following resources:
+## Project Structure
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```
+src/
+├── app/                    # Next.js app router pages
+│   ├── login/             # Main login page
+│   ├── teacher/           # Teacher dashboard and pages
+│   └── student/           # Student portal
+├── components/            # Reusable React components
+├── contexts/              # React context providers
+├── lib/                   # Utility functions and configurations
+└── styles/                # Global styles
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## License
 
-## Deploy on Vercel
+Copyright © 2025 Vocab Band II. All rights reserved.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+This software is proprietary and confidential. Unauthorized copying, distribution, or use of this software is strictly prohibited.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+For licensing inquiries, please contact the repository owner.
