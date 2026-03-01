@@ -5,6 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import FlashcardMode from '@/components/FlashcardMode';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface Assignment {
   id: string;
@@ -34,6 +35,7 @@ interface VocabularyWord {
 export default function AssignmentPage({ params }: { params: Promise<{ id: string }> }) {
   const { user, profile, loading: authLoading } = useAuth();
   const router = useRouter();
+  const { t } = useLanguage();
   const [assignment, setAssignment] = useState<Assignment | null>(null);
   const [progress, setProgress] = useState<Progress | null>(null);
   const [words, setWords] = useState<VocabularyWord[]>([]);
@@ -148,7 +150,7 @@ export default function AssignmentPage({ params }: { params: Promise<{ id: strin
   if (authLoading || loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="text-gray-600 dark:text-gray-400">Loading assignment...</div>
+        <div className="text-gray-600 dark:text-gray-400">{t('loading')}...</div>
       </div>
     );
   }
@@ -156,7 +158,7 @@ export default function AssignmentPage({ params }: { params: Promise<{ id: strin
   if (!assignment) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="text-gray-600 dark:text-gray-400">Assignment not found</div>
+        <div className="text-gray-600 dark:text-gray-400">{t('errorOccurred')}</div>
       </div>
     );
   }
@@ -193,9 +195,9 @@ export default function AssignmentPage({ params }: { params: Promise<{ id: strin
 
   const getStatusLabel = (status: string) => {
     switch (status) {
-      case 'completed': return 'Completed';
-      case 'in_progress': return 'In Progress';
-      default: return 'Not Started';
+      case 'completed': return t('assignmentCompleted');
+      case 'in_progress': return t('assignmentInProgress');
+      default: return t('assignmentNotStarted');
     }
   };
 
@@ -209,14 +211,14 @@ export default function AssignmentPage({ params }: { params: Promise<{ id: strin
               onClick={() => router.back()}
               className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
             >
-              ← Back
+              ← {t('back')}
             </button>
             <div className="flex-1">
               <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
                 {assignment.title}
               </h1>
               <p className="text-gray-600 dark:text-gray-400 text-sm">
-                {words.length} words • Due {new Date(assignment.deadline).toLocaleDateString()}
+                {words.length} {t('words')} • {t('due')} {new Date(assignment.deadline).toLocaleDateString()}
               </p>
             </div>
             <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(progress?.status || 'not_started')}`}>
@@ -232,10 +234,10 @@ export default function AssignmentPage({ params }: { params: Promise<{ id: strin
         <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm mb-6">
           <div className="flex items-center justify-between mb-3">
             <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-              Your Progress
+              {t('yourProgress')}
             </span>
             <span className="text-sm text-gray-600 dark:text-gray-400">
-              {progress?.words_learned || 0} / {words.length} words
+              {progress?.words_learned || 0} / {words.length} {t('words')}
             </span>
           </div>
           <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3">
@@ -257,7 +259,7 @@ export default function AssignmentPage({ params }: { params: Promise<{ id: strin
         {/* Study Modes */}
         <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm mb-6">
           <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-            Choose Study Mode
+            {t('chooseStudyMode')}
           </h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <button
@@ -268,9 +270,9 @@ export default function AssignmentPage({ params }: { params: Promise<{ id: strin
               className="group bg-gradient-to-br from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white rounded-xl p-6 text-left transition-all hover:scale-[1.02] active:scale-[0.98] shadow-md hover:shadow-xl"
             >
               <div className="text-4xl mb-3">🎴</div>
-              <h4 className="text-xl font-bold mb-2">Flashcards</h4>
+              <h4 className="text-xl font-bold mb-2">{t('flashcardsMode')}</h4>
               <p className="text-blue-100 text-sm">
-                Flip cards to learn each word. Mark as known or unknown to track progress.
+                {t('flashcardsDescription')}
               </p>
             </button>
 
@@ -282,9 +284,9 @@ export default function AssignmentPage({ params }: { params: Promise<{ id: strin
               className="group bg-gradient-to-br from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white rounded-xl p-6 text-left transition-all hover:scale-[1.02] active:scale-[0.98] shadow-md hover:shadow-xl"
             >
               <div className="text-4xl mb-3">🧠</div>
-              <h4 className="text-xl font-bold mb-2">Quiz Mode</h4>
+              <h4 className="text-xl font-bold mb-2">{t('quizMode')}</h4>
               <p className="text-purple-100 text-sm">
-                Test your knowledge with multiple choice questions.
+                {t('quizModeDescription')}
               </p>
             </button>
           </div>
@@ -293,7 +295,7 @@ export default function AssignmentPage({ params }: { params: Promise<{ id: strin
         {/* Word List */}
         <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm">
           <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-            Words in This Assignment ({words.length})
+            {t('totalWords')} ({words.length})
           </h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {words.map((word) => (

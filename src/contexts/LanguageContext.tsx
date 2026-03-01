@@ -1,15 +1,15 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { translations, Language } from '@/lib/translations';
 
-export type Language = 'en' | 'he' | 'ar';
 export type Direction = 'ltr' | 'rtl';
 
 interface LanguageContextType {
   language: Language;
   direction: Direction;
   setLanguage: (lang: Language) => void;
-  t: (key: string) => string;
+  t: (key: string, params?: Record<string, string | number>) => string;
 }
 
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
@@ -19,49 +19,6 @@ const languageDirection: Record<Language, Direction> = {
   en: 'ltr',
   he: 'rtl',
   ar: 'rtl',
-};
-
-// Basic translations (can be expanded)
-const translations: Record<Language, Record<string, string>> = {
-  en: {
-    appTitle: 'Vocabulary Band II',
-    home: 'Home',
-    words: 'Words',
-    practice: 'Practice',
-    settings: 'Settings',
-    accessibility: 'Accessibility',
-    fontSize: 'Font Size',
-    audioSpeed: 'Audio Speed',
-    highContrast: 'High Contrast',
-    reduceMotion: 'Reduce Motion',
-    reset: 'Reset',
-  },
-  he: {
-    appTitle: 'אוצר מילים - רמה II',
-    home: 'בית',
-    words: 'מילים',
-    practice: 'תרגול',
-    settings: 'הגדרות',
-    accessibility: 'נגישות',
-    fontSize: 'גודל פונט',
-    audioSpeed: 'מהירות אודיו',
-    highContrast: 'ניגודיות גבוהה',
-    reduceMotion: 'הפחת תנועה',
-    reset: 'איפוס',
-  },
-  ar: {
-    appTitle: 'المفردات - المستوى الثاني',
-    home: 'الرئيسية',
-    words: 'الكلمات',
-    practice: 'تمرين',
-    settings: 'الإعدادات',
-    accessibility: 'إمكانية الوصول',
-    fontSize: 'حجم الخط',
-    audioSpeed: 'سرعة الصوت',
-    highContrast: 'تباين عالي',
-    reduceMotion: 'تقليل الحركة',
-    reset: 'إعادة تعيين',
-  },
 };
 
 export function LanguageProvider({ children }: { children: ReactNode }) {
@@ -91,8 +48,18 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
     setLanguage(lang);
   };
 
-  const t = (key: string): string => {
-    return translations[language][key] || key;
+  // Translation function with parameter support
+  const t = (key: string, params?: Record<string, string | number>): string => {
+    let text = translations[language][key] || translations.en[key] || key;
+
+    // Replace parameters in the text (e.g., {count}, {name})
+    if (params) {
+      Object.entries(params).forEach(([param, value]) => {
+        text = text.replace(new RegExp(`\\{${param}\\}`, 'g'), String(value));
+      });
+    }
+
+    return text;
   };
 
   return (

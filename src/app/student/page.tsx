@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface Class {
   id: string;
@@ -27,6 +28,7 @@ interface Assignment {
 export default function StudentDashboardPage() {
   const { user, profile, loading: authLoading } = useAuth();
   const router = useRouter();
+  const { t } = useLanguage();
   const [classes, setClasses] = useState<Class[]>([]);
   const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [loading, setLoading] = useState(true);
@@ -164,9 +166,9 @@ export default function StudentDashboardPage() {
 
   const getStatusLabel = (status: string) => {
     switch (status) {
-      case 'completed': return 'Completed';
-      case 'in_progress': return 'In Progress';
-      default: return 'Not Started';
+      case 'completed': return t('assignmentCompleted');
+      case 'in_progress': return t('assignmentInProgress');
+      default: return t('assignmentNotStarted');
     }
   };
 
@@ -190,10 +192,10 @@ export default function StudentDashboardPage() {
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-                Student Dashboard
+                {t('studentDashboard')}
               </h1>
               <p className="text-gray-600 dark:text-gray-400">
-                Welcome, {profile?.full_name || 'Student'}
+                {t('welcome')}, {profile?.full_name || t('roleStudent')}
               </p>
             </div>
             <div className="flex gap-4">
@@ -201,13 +203,13 @@ export default function StudentDashboardPage() {
                 href="/"
                 className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
               >
-                Practice Mode
+                {t('practiceMode')}
               </a>
               <a
                 href="/student/join-class"
                 className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium"
               >
-                + Join Class
+                {t('joinClass')}
               </a>
             </div>
           </div>
@@ -218,18 +220,18 @@ export default function StudentDashboardPage() {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* My Classes */}
         <section className="mb-8">
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">My Classes</h2>
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">{t('myClasses')}</h2>
           {classes.length === 0 ? (
             <div className="bg-white dark:bg-gray-800 rounded-xl p-8 text-center">
               <div className="text-4xl mb-2">📚</div>
               <p className="text-gray-600 dark:text-gray-400 mb-4">
-                You haven't joined any classes yet.
+                {t('noClasses')}
               </p>
               <a
                 href="/student/join-class"
                 className="inline-block px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium"
               >
-                Join Your First Class
+                {t('joinYourFirstClass')}
               </a>
             </div>
           ) : (
@@ -241,11 +243,11 @@ export default function StudentDashboardPage() {
                   </h3>
                   {cls.grade_level && (
                     <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
-                      Grade {cls.grade_level}
+                      {t('grade')} {cls.grade_level}
                     </p>
                   )}
                   <p className="text-sm text-gray-500 dark:text-gray-500 font-mono">
-                    Code: {cls.class_code}
+                    {t('classCode')}: {cls.class_code}
                   </p>
                 </div>
               ))}
@@ -255,14 +257,14 @@ export default function StudentDashboardPage() {
 
         {/* My Assignments */}
         <section>
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">My Assignments</h2>
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">{t('myAssignments')}</h2>
           {assignments.length === 0 ? (
             <div className="bg-white dark:bg-gray-800 rounded-xl p-8 text-center">
               <div className="text-4xl mb-2">📋</div>
               <p className="text-gray-600 dark:text-gray-400">
                 {classes.length === 0
-                  ? 'Join a class first to see assignments.'
-                  : 'No assignments yet. Check back soon!'}
+                  ? t('joinClassFirst')
+                  : t('noAssignments')}
               </p>
             </div>
           ) : (
@@ -283,7 +285,7 @@ export default function StudentDashboardPage() {
                         </span>
                         {isOverdue(assignment.deadline) && assignment.status !== 'completed' && (
                           <span className="px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300">
-                            Overdue
+                            {t('assignmentOverdue')}
                           </span>
                         )}
                       </div>
@@ -293,17 +295,17 @@ export default function StudentDashboardPage() {
                         </p>
                       )}
                       <p className="text-sm text-gray-500 dark:text-gray-500">
-                        {assignment.class_name} • {assignment.words_learned}/{assignment.total_words} words
+                        {assignment.class_name} • {assignment.words_learned}/{assignment.total_words} {t('words')}
                       </p>
                       <p className={`text-sm ${isOverdue(assignment.deadline) && assignment.status !== 'completed' ? 'text-red-600 dark:text-red-400 font-medium' : 'text-gray-500 dark:text-gray-500'}`}>
-                        Due: {new Date(assignment.deadline).toLocaleDateString()}
+                        {t('due')}: {new Date(assignment.deadline).toLocaleDateString()}
                       </p>
                     </div>
                     <a
                       href={`/student/assignments/${assignment.id}`}
                       className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium"
                     >
-                      {assignment.status === 'completed' ? 'Review' : 'Start'}
+                      {assignment.status === 'completed' ? t('reviewAssignment') : t('startAssignment')}
                     </a>
                   </div>
                 </div>

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 
@@ -14,6 +14,20 @@ export default function LoginPage() {
   const [fullName, setFullName] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  // Prevent scrolling on login page
+  useEffect(() => {
+    document.body.style.overflow = 'hidden';
+    document.documentElement.style.overflow = 'hidden';
+    document.body.style.height = '100vh';
+    document.documentElement.style.height = '100vh';
+    return () => {
+      document.body.style.overflow = '';
+      document.documentElement.style.overflow = '';
+      document.body.style.height = '';
+      document.documentElement.style.height = '';
+    };
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -70,7 +84,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-600 to-purple-700 flex items-center justify-center p-4">
+    <div className="h-screen bg-gradient-to-br from-blue-600 to-purple-700 flex items-center justify-center p-4 overflow-hidden">
       <div className="max-w-md w-full">
         {/* Logo */}
         <div className="text-center mb-8">
@@ -146,6 +160,7 @@ export default function LoginPage() {
                 className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 placeholder={role === 'teacher' ? 'teacher@school.il' : 'student@email.com'}
                 required
+                autoComplete="username"
               />
             </div>
 
@@ -161,6 +176,7 @@ export default function LoginPage() {
                 placeholder="••••••••"
                 required
                 minLength={6}
+                autoComplete={isLogin ? "current-password" : "new-password"}
               />
             </div>
 

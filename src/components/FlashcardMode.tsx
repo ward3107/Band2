@@ -6,6 +6,7 @@ import { useProgress } from '@/contexts/ProgressContext';
 import { useAccessibility } from '@/contexts/AccessibilityContext';
 import { useVoice } from '@/contexts/VoiceContext';
 import { useDifficultWords } from '@/contexts/DifficultWordsContext';
+import VoiceSelector from '@/components/VoiceSelector';
 
 interface FlashcardModeProps {
   words: Array<{
@@ -20,7 +21,7 @@ interface FlashcardModeProps {
 }
 
 export default function FlashcardMode({ words, onClose, onComplete }: FlashcardModeProps) {
-  const { language } = useLanguage();
+  const { language, t } = useLanguage();
   const { settings } = useAccessibility();
   const { markWordReviewed, getWordStatus } = useProgress();
   const { speak } = useVoice();
@@ -78,6 +79,16 @@ export default function FlashcardMode({ words, onClose, onComplete }: FlashcardM
     speak(currentWord.word, 'en-US', settings.audioSpeed);
   };
 
+  const getStatusLabel = (status: string) => {
+    switch (status) {
+      case 'new': return t('statusNew');
+      case 'learning': return t('statusLearning');
+      case 'review': return t('statusReview');
+      case 'mastered': return t('statusMastered');
+      default: return status;
+    }
+  };
+
   const status = getWordStatus(currentWord.id);
 
   if (currentIndex >= words.length) {
@@ -86,16 +97,16 @@ export default function FlashcardMode({ words, onClose, onComplete }: FlashcardM
         <div className="bg-white dark:bg-gray-800 rounded-2xl p-8 max-w-md w-full text-center">
           <div className="text-6xl mb-4">🎉</div>
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
-            Session Complete!
+            {t('sessionComplete')}
           </h2>
           <p className="text-gray-600 dark:text-gray-400 mb-6">
-            You reviewed {words.length} words. Keep practicing daily to master your vocabulary!
+            {t('sessionCompleteMessage', { count: words.length })}
           </p>
           <button
             onClick={onClose}
             className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg"
           >
-            Continue
+            {t('continue')}
           </button>
         </div>
       </div>
@@ -107,23 +118,27 @@ export default function FlashcardMode({ words, onClose, onComplete }: FlashcardM
       {/* Header */}
       <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-md shadow-sm">
         <div className="max-w-lg mx-auto px-4 py-4">
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center justify-between gap-2">
             <button
               onClick={onClose}
               className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+              aria-label={t('close')}
             >
               ✕
             </button>
-            <span className="text-sm font-medium text-gray-600 dark:text-gray-400">
-              {currentIndex + 1} / {words.length}
-            </span>
-            <div className={`px-2 py-1 rounded-full text-xs font-medium ${
-              status === 'new' ? 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200' :
-              status === 'learning' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200' :
-              status === 'review' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200' :
-              'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
-            }`}>
-              {status}
+            <div className="flex items-center gap-2">
+              <VoiceSelector />
+              <span className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                {currentIndex + 1} / {words.length}
+              </span>
+              <div className={`px-2 py-1 rounded-full text-xs font-medium ${
+                status === 'new' ? 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200' :
+                status === 'learning' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200' :
+                status === 'review' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200' :
+                'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+              }`}>
+                {getStatusLabel(status)}
+              </div>
             </div>
           </div>
 
@@ -182,7 +197,7 @@ export default function FlashcardMode({ words, onClose, onComplete }: FlashcardM
                   {currentWord.ipa}
                 </p>
                 <p className="text-sm text-gray-400 dark:text-gray-500">
-                  {flipped ? '' : 'Tap to reveal translation'}
+                  {flipped ? '' : t('tapToReveal')}
                 </p>
               </div>
 
@@ -199,7 +214,7 @@ export default function FlashcardMode({ words, onClose, onComplete }: FlashcardM
                   {getTranslation()}
                 </p>
                 <div className="bg-white dark:bg-gray-800 rounded-lg p-4 w-full">
-                  <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">Example:</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">{t('example')}</p>
                   <p className="text-gray-700 dark:text-gray-300 text-center">
                     {getExample()}
                   </p>
@@ -219,7 +234,7 @@ export default function FlashcardMode({ words, onClose, onComplete }: FlashcardM
                   : 'bg-gray-200 dark:bg-gray-700 text-gray-400 cursor-not-allowed'
               }`}
             >
-              Still Learning
+              {t('stillLearning')}
             </button>
             <button
               onClick={() => handleSwipe(true)}
@@ -230,7 +245,7 @@ export default function FlashcardMode({ words, onClose, onComplete }: FlashcardM
                   : 'bg-gray-200 dark:bg-gray-700 text-gray-400 cursor-not-allowed'
               }`}
             >
-              Got It!
+              {t('gotIt')}
             </button>
           </div>
         </div>

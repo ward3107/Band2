@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono, Heebo, Cairo } from "next/font/google";
 import "./globals.css";
 import { AccessibilityProvider } from "@/contexts/AccessibilityContext";
@@ -9,7 +9,6 @@ import { GamificationProvider } from "@/contexts/GamificationContext";
 import { DifficultWordsProvider } from "@/contexts/DifficultWordsContext";
 import { AuthProvider } from "@/contexts/AuthContext";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
-import VoiceSelector from "@/components/VoiceSelector";
 
 // Font families for different languages
 const geistSans = Geist({
@@ -40,7 +39,12 @@ export const metadata: Metadata = {
   title: "Vocabulary Band II - Israeli English Curriculum",
   description: "Learn English vocabulary for grades 7-9 with translations in Hebrew and Arabic",
   manifest: "/manifest.json",
-  viewport: "width=device-width, initial-scale=1, maximum-scale=5",
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 5,
   themeColor: "#2563eb",
 };
 
@@ -67,17 +71,16 @@ export default function RootLayout({
                     <DifficultWordsProvider>
             <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
               {/* Header */}
-              <header className="sticky top-0 z-40 bg-white/80 dark:bg-gray-900/80 backdrop-blur-md shadow-sm">
+              <header className="sticky top-0 z-40 bg-white/80 dark:bg-gray-900/80 backdrop-blur-md shadow-sm overflow-hidden">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                  <div className="flex items-center justify-between h-16">
-                    <div className="flex items-center gap-2">
-                      <span className="text-2xl">📚</span>
-                      <h1 className="text-xl font-bold text-gray-900 dark:text-white">
+                  <div className="flex items-center justify-between h-16 min-w-0">
+                    <div className="flex items-center gap-2 min-w-0 flex-1">
+                      <span className="text-2xl shrink-0">📚</span>
+                      <h1 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white truncate">
                         Vocab Band II
                       </h1>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <VoiceSelector />
+                    <div className="shrink-0 ml-2">
                       <LanguageSwitcher />
                     </div>
                   </div>
