@@ -86,9 +86,9 @@ export default function HomePage() {
   };
 
   return (
-    <div className="h-screen bg-gradient-to-br from-blue-600 to-purple-700 flex items-center justify-center p-4 overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-blue-600 to-purple-700 flex items-center justify-center p-4 py-8">
       {/* Two Equal Cards Side by Side */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 w-full max-w-5xl min-w-0">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 w-full max-w-5xl">
         {/* Left Card - Logo, Title & Role Selector */}
         <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-8 flex flex-col">
           {/* Logo & Title */}
