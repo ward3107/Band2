@@ -24,6 +24,7 @@ export interface Profile {
   avatar_url: string | null;
   created_at: string;
   last_login: string | null;
+  is_admin?: boolean;
 }
 
 export interface Class {

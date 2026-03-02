@@ -30,12 +30,12 @@ export async function GET(request: Request) {
       console.log('Session created for user:', user?.email)
 
       if (user) {
-        // Try to get profile, but don't fail if it doesn't exist
+        // Try to get profile
         const { data: profile, error: profileError } = await supabase
           .from('profiles')
           .select('role')
           .eq('id', user.id)
-          .maybeSingle() // Use maybeSingle to avoid error if not found
+          .maybeSingle()
 
         console.log('Profile check:', { hasProfile: !!profile, hasRole: !!profile?.role, role: profile?.role, profileError })
 
@@ -44,6 +44,36 @@ export async function GET(request: Request) {
         if (profile?.role) {
           // User has a role, redirect appropriately
           redirectUrl = profile.role === 'teacher' ? '/teacher/dashboard' : '/student'
+        } else {
+          // New user - check if email is in approved teachers list
+          if (user.email) {
+            const { data: approvedTeacher } = await supabase
+              .from('approved_teachers')
+              .select('full_name')
+              .eq('email', user.email)
+              .maybeSingle()
+
+            console.log('Approved teacher check:', { isApproved: !!approvedTeacher, name: approvedTeacher?.full_name })
+
+            if (approvedTeacher) {
+              // Approved teacher - auto-create profile and redirect to teacher dashboard
+              const { error: insertError } = await supabase
+                .from('profiles')
+                .insert({
+                  id: user.id,
+                  email: user.email,
+                  full_name: approvedTeacher.full_name || user.user_metadata?.full_name || user.email?.split('@')[0],
+                  role: 'teacher',
+                  is_admin: false,
+                  created_at: new Date().toISOString()
+                })
+
+              if (!insertError) {
+                redirectUrl = '/teacher/dashboard'
+                console.log('Auto-created teacher profile for:', user.email)
+              }
+            }
+          }
         }
 
         // Create response with session info for client to pick up

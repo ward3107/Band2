@@ -11,6 +11,7 @@ export default function TeacherDashboardPage() {
   const [classes, setClasses] = useState<Class[]>([]);
   const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
     // Don't redirect while auth is loading
@@ -31,6 +32,15 @@ export default function TeacherDashboardPage() {
 
   const loadData = async () => {
     if (!profile) return;
+
+    // Check if user is admin
+    const { data: profileData } = await supabase
+      .from('profiles')
+      .select('is_admin')
+      .eq('id', profile.id)
+      .single();
+
+    setIsAdmin(profileData?.is_admin || false);
 
     // Load classes
     const { data: classesData } = await supabase
@@ -87,6 +97,14 @@ export default function TeacherDashboardPage() {
               </div>
             </div>
             <div className="flex items-center gap-4">
+              {isAdmin && (
+                <a
+                  href="/admin/teachers"
+                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-medium"
+                >
+                  Admin Panel
+                </a>
+              )}
               <a
                 href="/"
                 className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
