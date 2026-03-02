@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { supabase, Profile, getCurrentProfile, signIn, signUp, signOut } from '@/lib/supabase';
+import { supabase, Profile, getCurrentProfile, signIn, signUp, signOut, signInWithGoogle } from '@/lib/supabase';
 import { User } from '@supabase/supabase-js';
 
 interface AuthContextType {
@@ -9,6 +9,7 @@ interface AuthContextType {
   profile: Profile | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<any>;
+  signInWithGoogle: () => Promise<any>;
   signUp: (email: string, password: string, fullName: string, role: 'teacher' | 'student') => Promise<any>;
   signOut: () => Promise<any>;
   refreshProfile: () => Promise<void>;
@@ -67,6 +68,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return result;
   };
 
+  const handleSignInWithGoogle = async () => {
+    const result = await signInWithGoogle();
+    return result;
+  };
+
   const handleSignUp = async (email: string, password: string, fullName: string, role: 'teacher' | 'student') => {
     return await signUp(email, password, fullName, role);
   };
@@ -90,6 +96,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         profile,
         loading,
         signIn: handleSignIn,
+        signInWithGoogle: handleSignInWithGoogle,
         signUp: handleSignUp,
         signOut: handleSignOut,
         refreshProfile,
