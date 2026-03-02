@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint src/**/*.{js,ts,tsx}",
+    "lint:fix": "eslint src/**/*.{js,ts,tsx} --fix"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.98.0",
@@ -22,6 +23,8 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.1.6",
+    "eslint-plugin-no-unsanitized": "^4.1.5",
+    "eslint-plugin-security": "^4.0.0",
     "tailwindcss": "^4",
     "typescript": "^5"
   }
