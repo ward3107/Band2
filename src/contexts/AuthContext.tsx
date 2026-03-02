@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { supabase, Profile, getCurrentProfile, signIn, signUp, signOut, signInWithGoogle } from '@/lib/supabase';
-import { User } from '@supabase/supabase-js';
+import { User, Session } from '@supabase/supabase-js';
 
 interface AuthContextType {
   user: User | null;
@@ -13,6 +13,7 @@ interface AuthContextType {
   signUp: (email: string, password: string, fullName: string, role: 'teacher' | 'student') => Promise<any>;
   signOut: () => Promise<any>;
   refreshProfile: () => Promise<void>;
+  setSession: (session: Session | null) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -23,15 +24,46 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // Check for session from OAuth callback in cookie
+    const checkOAuthSession = () => {
+      const sessionCookie = document.cookie
+        .split('; ')
+        .find(row => row.startsWith('supabase-session='));
+
+      if (sessionCookie) {
+        try {
+          const sessionData = JSON.parse(
+            decodeURIComponent(sessionCookie.split('=')[1])
+          );
+          // Set session in Supabase client
+          if (sessionData.access_token) {
+            supabase.auth.setSession({
+              access_token: sessionData.access_token,
+              refresh_token: sessionData.refresh_token,
+            });
+            // Clear the cookie
+            document.cookie = 'supabase-session=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+          }
+        } catch (e) {
+          console.error('Failed to parse session cookie:', e);
+        }
+      }
+    };
+
     // Check active sessions and set the user
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    const initAuth = async () => {
+      checkOAuthSession();
+
+      const { data: { session } } = await supabase.auth.getSession();
       setUser(session?.user ?? null);
       if (session?.user) {
-        loadProfile(session.user.id);
+        await loadProfile(session.user.id);
       } else {
         setLoading(false);
       }
-    });
+    };
+
+    initAuth();
 
     // Listen for changes on auth state
     const {
@@ -50,13 +82,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const loadProfile = async (userId: string) => {
-    const { data } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', userId)
-      .single();
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .maybeSingle(); // Use maybeSingle to avoid error if not found
 
-    setProfile(data);
+      if (error) {
+        console.error('Failed to load profile:', error);
+      }
+      setProfile(data);
+    } catch (e) {
+      console.error('Error loading profile:', e);
+      setProfile(null);
+    }
     setLoading(false);
   };
 
@@ -89,6 +129,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const setSession = (session: Session | null) => {
+    if (session) {
+      setUser(session.user);
+      if (session.user) {
+        loadProfile(session.user.id);
+      }
+    }
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -100,6 +149,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         signUp: handleSignUp,
         signOut: handleSignOut,
         refreshProfile,
+        setSession,
       }}
     >
       {children}

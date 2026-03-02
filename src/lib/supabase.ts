@@ -3,7 +3,18 @@ import { createClient } from '@supabase/supabase-js';
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    persistSession: true,
+    storage: window.localStorage,
+    storageKey: 'sb-pthhxqufzgbyzuucnfni-auth-token',
+  },
+  global: {
+    headers: {
+      'apikey': supabaseAnonKey,
+    },
+  },
+});
 
 // Database types
 export interface Profile {
@@ -120,10 +131,13 @@ export async function signOut() {
 }
 
 export async function signInWithGoogle() {
+  // Use current origin for redirect (works for both localhost and production)
+  const redirectUrl = `${window.location.origin}/auth/callback`;
+
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: 'google',
     options: {
-      redirectTo: `${window.location.origin}/auth/callback`,
+      redirectTo: redirectUrl,
       queryParams: {
         access_type: 'offline',
         prompt: 'consent',
