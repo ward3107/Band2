@@ -120,7 +120,7 @@ export default function AssignmentPage({ params }: { params: Promise<{ id: strin
       // Create new progress record
       await supabase.from('student_assignment_progress').insert({
         student_id: user!.id,
-        assignment_id: params.id,
+        assignment_id: resolvedParams.id,
         status,
         words_learned: wordsLearned,
         last_activity: new Date().toISOString(),
