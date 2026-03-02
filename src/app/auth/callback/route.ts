@@ -13,6 +13,30 @@ export async function GET(request: Request) {
     await supabase.auth.exchangeCodeForSession(code)
   }
 
-  // URL to redirect to after sign in process completes
-  return NextResponse.redirect(new URL('/student', requestUrl.origin))
+  // Check if user has a complete profile with role
+  const supabase = createClient(supabaseUrl, supabaseAnonKey)
+  const { data: { user } } = await supabase.auth.getUser()
+
+  if (user) {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single()
+
+    // If profile doesn't exist or has no role, redirect to complete profile
+    if (!profile || !profile.role) {
+      return NextResponse.redirect(new URL('/auth/complete-profile', requestUrl.origin))
+    }
+
+    // Redirect based on role
+    if (profile.role === 'teacher') {
+      return NextResponse.redirect(new URL('/teacher/dashboard', requestUrl.origin))
+    } else {
+      return NextResponse.redirect(new URL('/student', requestUrl.origin))
+    }
+  }
+
+  // Fallback to home
+  return NextResponse.redirect(new URL('/', requestUrl.origin))
 }
