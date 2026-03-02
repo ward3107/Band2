@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 
-interface DifficultWord {
+export interface DifficultWord {
   id: string;
   word: string;
   translations: { hebrew: string; arabic: string };
@@ -11,9 +11,16 @@ interface DifficultWord {
   attempts: number;
 }
 
+// Base word data for addMistake (without auto-generated fields)
+interface WordData {
+  id: string;
+  word: string;
+  translations: { hebrew: string; arabic: string };
+}
+
 interface DifficultWordsContextType {
   difficultWords: DifficultWord[];
-  addMistake: (wordData: DifficultWord) => void;
+  addMistake: (wordData: WordData) => void;
   removeDifficultWord: (wordId: string) => void;
   clearDifficultWords: () => void;
   markAsLearned: (wordId: string) => void;
@@ -42,7 +49,7 @@ export function DifficultWordsProvider({ children }: { children: ReactNode }) {
     localStorage.setItem('difficult-words', JSON.stringify(difficultWords));
   }, [difficultWords]);
 
-  const addMistake = (wordData: DifficultWord) => {
+  const addMistake = (wordData: WordData) => {
     setDifficultWords(prev => {
       const existing = prev.find(w => w.id === wordData.id);
 
