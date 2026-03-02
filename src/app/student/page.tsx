@@ -139,8 +139,8 @@ export default function StudentDashboardPage() {
 
         const classMap = new Map();
         assignmentClassesData?.forEach(ac => {
-          if (ac.classes) {
-            classMap.set(ac.assignment_id, (ac.classes as Class).name);
+          if (ac.classes && Array.isArray(ac.classes) && ac.classes.length > 0) {
+            classMap.set(ac.assignment_id, (ac.classes[0] as Class).name);
           }
         });
 
