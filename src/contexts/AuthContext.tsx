@@ -7,6 +7,7 @@ import { User, Session } from '@supabase/supabase-js';
 interface AuthContextType {
   user: User | null;
   profile: Profile | null;
+  session: Session | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<any>;
   signInWithGoogle: () => Promise<any>;
@@ -21,6 +22,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
+  const [session, setSessionState] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -55,6 +57,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       checkOAuthSession();
 
       const { data: { session } } = await supabase.auth.getSession();
+      setSessionState(session);
       setUser(session?.user ?? null);
       if (session?.user) {
         await loadProfile(session.user.id);
@@ -69,6 +72,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      setSessionState(session);
       setUser(session?.user ?? null);
       if (session?.user) {
         await loadProfile(session.user.id);
@@ -121,6 +125,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await signOut();
     setUser(null);
     setProfile(null);
+    setSessionState(null);
   };
 
   const refreshProfile = async () => {
@@ -143,6 +148,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       value={{
         user,
         profile,
+        session,
         loading,
         signIn: handleSignIn,
         signInWithGoogle: handleSignInWithGoogle,
