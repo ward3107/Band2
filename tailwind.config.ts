@@ -24,9 +24,5 @@ const config: Config = {
   plugins: [
     require('@tailwindcss/typography'),
   ],
-  // Enable RTL support
-  corePlugins: {
-    preflight: true,
-  },
 };
 export default config;
