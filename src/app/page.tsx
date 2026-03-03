@@ -17,6 +17,22 @@ export default function HomePage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
+  // Read OAuth error from URL params (set by /auth/callback on failure)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const urlError = params.get('error');
+    if (urlError) {
+      const messages: Record<string, string> = {
+        access_denied: 'Google sign-in was cancelled.',
+        session_failed: 'Failed to establish session. Please try again.',
+        callback_failed: 'Sign-in failed. Please try again.',
+      };
+      setError(messages[urlError] || 'Sign-in failed. Please try again.');
+      // Clean up URL without reload
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+  }, []);
+
   // Prevent scrolling on login page
   useEffect(() => {
     document.body.style.overflow = 'hidden';
@@ -219,8 +235,13 @@ export default function HomePage() {
           {/* Google Sign In Button */}
           <button
             onClick={async () => {
+              setError('');
               setLoading(true);
-              await signInWithGoogle();
+              const { error } = await signInWithGoogle();
+              if (error) {
+                setError(error.message || 'Failed to sign in with Google');
+                setLoading(false);
+              }
             }}
             disabled={loading}
             className="w-full flex items-center justify-center gap-3 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 font-semibold py-3 px-4 rounded-lg transition-colors"

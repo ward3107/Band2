@@ -202,8 +202,13 @@ export default function LoginPage() {
           {/* Google Sign In Button */}
           <button
             onClick={async () => {
+              setError('');
               setLoading(true);
-              await signInWithGoogle();
+              const { error } = await signInWithGoogle();
+              if (error) {
+                setError(error.message || 'Failed to sign in with Google');
+                setLoading(false);
+              }
             }}
             disabled={loading}
             className="w-full flex items-center justify-center gap-3 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 font-semibold py-3 px-4 rounded-lg transition-colors"
