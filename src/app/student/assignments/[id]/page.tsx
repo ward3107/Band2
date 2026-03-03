@@ -203,24 +203,26 @@ export default function AssignmentPage({ params }: { params: Promise<{ id: strin
       {/* Header */}
       <header className="bg-white dark:bg-gray-800 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center gap-4">
+          <div className="flex items-start gap-3">
             <button
               onClick={() => router.back()}
-              className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+              className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white shrink-0 mt-1"
             >
               ← {t('back')}
             </button>
-            <div className="flex-1">
-              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-                {assignment.title}
-              </h1>
+            <div className="flex-1 min-w-0">
+              <div className="flex flex-wrap items-center gap-2 mb-1">
+                <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
+                  {assignment.title}
+                </h1>
+                <span className={`px-2 py-1 rounded-full text-xs font-medium shrink-0 ${getStatusColor(progress?.status || 'not_started')}`}>
+                  {getStatusLabel(progress?.status || 'not_started')}
+                </span>
+              </div>
               <p className="text-gray-600 dark:text-gray-400 text-sm">
                 {words.length} {t('words')} • {t('due')} {new Date(assignment.deadline).toLocaleDateString()}
               </p>
             </div>
-            <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(progress?.status || 'not_started')}`}>
-              {getStatusLabel(progress?.status || 'not_started')}
-            </span>
           </div>
         </div>
       </header>

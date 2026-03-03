@@ -153,7 +153,7 @@ export default function FlashcardMode({ words, onClose, onComplete }: FlashcardM
       </div>
 
       {/* Flashcard */}
-      <div className="flex items-center justify-center min-h-[calc(100vh-140px)] p-4">
+      <div className="flex items-center justify-center min-h-[calc(100vh-140px)] p-3 sm:p-4">
         <div
           className={`w-full max-w-lg transition-all duration-300 ${
             direction === 'left' ? '-translate-x-full opacity-0' :
@@ -167,7 +167,7 @@ export default function FlashcardMode({ words, onClose, onComplete }: FlashcardM
             style={{ perspective: '1000px' }}
           >
             <div
-              className={`bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-8 min-h-[320px] transition-transform duration-500 ${
+              className={`bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-5 sm:p-8 min-h-[260px] sm:min-h-[320px] transition-transform duration-500 ${
                 flipped ? 'rotate-y-180' : ''
               }`}
               style={{
@@ -190,10 +190,10 @@ export default function FlashcardMode({ words, onClose, onComplete }: FlashcardM
                   </svg>
                 </button>
 
-                <h2 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">
+                <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-white mb-3 sm:mb-4 text-center">
                   {currentWord.word}
                 </h2>
-                <p className="text-lg text-gray-500 dark:text-gray-400 font-mono mb-6">
+                <p className="text-base sm:text-lg text-gray-500 dark:text-gray-400 font-mono mb-4 sm:mb-6">
                   {currentWord.ipa}
                 </p>
                 <p className="text-sm text-gray-400 dark:text-gray-500">
@@ -210,7 +210,7 @@ export default function FlashcardMode({ words, onClose, onComplete }: FlashcardM
                 transform: 'rotateY(180deg)'
               }}
               >
-                <p className="text-2xl font-semibold text-blue-900 dark:text-blue-100 mb-6 text-center">
+                <p className="text-xl sm:text-2xl font-semibold text-blue-900 dark:text-blue-100 mb-4 sm:mb-6 text-center">
                   {getTranslation()}
                 </p>
                 <div className="bg-white dark:bg-gray-800 rounded-lg p-4 w-full">

@@ -167,25 +167,25 @@ export default function StudentDashboardPage() {
       {/* Header */}
       <header className="bg-white dark:bg-gray-800 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+              <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
                 {t('studentDashboard')}
               </h1>
-              <p className="text-gray-600 dark:text-gray-400">
+              <p className="text-sm text-gray-600 dark:text-gray-400">
                 {t('welcome')}, {profile?.full_name || t('roleStudent')}
               </p>
             </div>
-            <div className="flex gap-4">
+            <div className="flex gap-2">
               <a
                 href="/"
-                className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+                className="px-3 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
               >
                 {t('practiceMode')}
               </a>
               <a
                 href="/student/join-class"
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium"
+                className="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium"
               >
                 {t('joinClass')}
               </a>
@@ -252,9 +252,9 @@ export default function StudentDashboardPage() {
                   key={assignment.id}
                   className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow"
                 >
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-2">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex flex-wrap items-center gap-2 mb-2">
                         <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
                           {assignment.title}
                         </h3>
@@ -281,7 +281,7 @@ export default function StudentDashboardPage() {
                     </div>
                     <a
                       href={`/student/assignments/${assignment.id}`}
-                      className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium"
+                      className="w-full sm:w-auto sm:ml-4 text-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium shrink-0"
                     >
                       {assignment.status === 'completed' ? t('reviewAssignment') : t('startAssignment')}
                     </a>

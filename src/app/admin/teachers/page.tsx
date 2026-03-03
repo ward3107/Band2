@@ -150,21 +150,21 @@ export default function AdminTeachersPage() {
       {/* Header */}
       <header className="bg-white dark:bg-gray-800 shadow-sm">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <span className="text-3xl">🔐</span>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-3">
+              <span className="text-3xl shrink-0">🔐</span>
               <div>
-                <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+                <h1 className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-white">
                   Admin - Approved Teachers
                 </h1>
-                <p className="text-gray-600 dark:text-gray-400">
+                <p className="text-sm text-gray-600 dark:text-gray-400">
                   Add teacher emails to approve them
                 </p>
               </div>
             </div>
             <button
               onClick={() => router.push('/teacher/dashboard')}
-              className="px-4 py-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 rounded-lg text-gray-700 dark:text-gray-300 font-medium"
+              className="px-3 py-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 rounded-lg text-sm text-gray-700 dark:text-gray-300 font-medium self-start sm:self-auto"
             >
               Back to Dashboard
             </button>
@@ -231,14 +231,14 @@ export default function AdminTeachersPage() {
           ) : (
             <div className="space-y-3">
               {approvedTeachers.map((teacher) => (
-                <div key={teacher.id} className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
-                  <div>
-                    <div className="font-medium text-gray-900 dark:text-white">{teacher.full_name}</div>
-                    <div className="text-sm text-gray-600 dark:text-gray-400">{teacher.email}</div>
+                <div key={teacher.id} className="flex items-center justify-between gap-3 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                  <div className="min-w-0">
+                    <div className="font-medium text-gray-900 dark:text-white truncate">{teacher.full_name}</div>
+                    <div className="text-sm text-gray-600 dark:text-gray-400 truncate">{teacher.email}</div>
                   </div>
                   <button
                     onClick={() => removeTeacher(teacher.id)}
-                    className="px-3 py-1 text-sm text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
+                    className="px-3 py-1 text-sm text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 shrink-0"
                   >
                     Remove
                   </button>

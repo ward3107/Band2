@@ -202,53 +202,57 @@ export default function CreateAssignmentPage() {
       {/* Header */}
       <header className="bg-white dark:bg-gray-800 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-3">
               <button
                 onClick={() => router.back()}
-                className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+                className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white shrink-0"
               >
                 ← Back
               </button>
-              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+              <h1 className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-white">
                 Create Assignment
               </h1>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1 sm:gap-2">
               <button
                 onClick={() => step !== 'details' && setStep('details')}
-                className={`px-3 py-1 rounded-full text-sm font-medium ${
+                className={`px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm font-medium ${
                   step === 'details' ? 'bg-indigo-600 text-white' : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
                 }`}
               >
-                1. Details
+                <span className="sm:hidden">1</span>
+                <span className="hidden sm:inline">1. Details</span>
               </button>
               <button
                 onClick={() => step === 'details' && title.trim() && setStep('words')}
                 disabled={step === 'details' && !title.trim()}
-                className={`px-3 py-1 rounded-full text-sm font-medium ${
+                className={`px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm font-medium ${
                   step === 'words' ? 'bg-indigo-600 text-white' : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
                 } ${step === 'details' && !title.trim() ? 'opacity-50 cursor-not-allowed' : ''}`}
               >
-                2. Words
+                <span className="sm:hidden">2</span>
+                <span className="hidden sm:inline">2. Words</span>
               </button>
               <button
                 onClick={() => step === 'words' && selectedWords.size > 0 && setStep('classes')}
                 disabled={step === 'words' && selectedWords.size === 0}
-                className={`px-3 py-1 rounded-full text-sm font-medium ${
+                className={`px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm font-medium ${
                   step === 'classes' ? 'bg-indigo-600 text-white' : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
                 } ${step === 'words' && selectedWords.size === 0 ? 'opacity-50 cursor-not-allowed' : ''}`}
               >
-                3. Classes
+                <span className="sm:hidden">3</span>
+                <span className="hidden sm:inline">3. Classes</span>
               </button>
               <button
                 onClick={() => step === 'classes' && selectedClasses.size > 0 && setStep('review')}
                 disabled={step === 'classes' && selectedClasses.size === 0}
-                className={`px-3 py-1 rounded-full text-sm font-medium ${
+                className={`px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm font-medium ${
                   step === 'review' ? 'bg-indigo-600 text-white' : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
                 } ${step === 'classes' && selectedClasses.size === 0 ? 'opacity-50 cursor-not-allowed' : ''}`}
               >
-                4. Review
+                <span className="sm:hidden">4</span>
+                <span className="hidden sm:inline">4. Review</span>
               </button>
             </div>
           </div>
