@@ -15,7 +15,7 @@ interface SignUpResult {
 }
 
 interface SignInWithGoogleResult {
-  data: { provider: string; url: string } | null;
+  data: { provider: string; url: string | null };
   error: AuthError | null;
 }
 

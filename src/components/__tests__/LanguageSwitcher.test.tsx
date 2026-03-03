@@ -58,8 +58,8 @@ describe('LanguageSwitcher', () => {
     renderSwitcher();
     await user.click(screen.getByRole('button', { name: /select language/i }));
     await user.click(screen.getByText('עברית'));
-    // Re-open to verify
-    await user.click(screen.getByRole('button', { name: /select language/i }));
+    // Re-open to verify (aria-label is now in Hebrew after language switch)
+    await user.click(screen.getByRole('button', { name: /select language|בחר שפה/i }));
     const hebrewButton = screen.getByRole('button', { name: /עברית/i });
     expect(hebrewButton).toHaveTextContent('✓');
   });
