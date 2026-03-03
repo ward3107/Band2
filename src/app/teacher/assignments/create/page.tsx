@@ -1,9 +1,9 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import { supabase, Class, Assignment } from '@/lib/supabase';
+import { useRoleGuard } from '@/hooks/useRoleGuard';
 
 interface VocabularyWord {
   id: string;
@@ -15,7 +15,9 @@ interface VocabularyWord {
 }
 
 export default function CreateAssignmentPage() {
-  const { profile, loading: authLoading } = useAuth();
+  const { profile, loading: guardLoading } = useRoleGuard('teacher', {
+    loginRedirect: '/teacher/login',
+  });
   const router = useRouter();
 
   const [title, setTitle] = useState('');
@@ -33,15 +35,10 @@ export default function CreateAssignmentPage() {
   const [step, setStep] = useState<'details' | 'words' | 'classes' | 'review'>('details');
 
   useEffect(() => {
-    // Don't redirect while auth is loading
-    if (authLoading) return;
-
-    if (!profile || profile.role !== 'teacher') {
-      router.push('/teacher/login');
-      return;
+    if (!guardLoading && profile?.role === 'teacher') {
+      loadData();
     }
-    loadData();
-  }, [profile, authLoading]);
+  }, [guardLoading, profile]);
 
   const loadData = async () => {
     try {

@@ -1,9 +1,9 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
+import { useRoleGuard } from '@/hooks/useRoleGuard';
 
 interface ApprovedTeacher {
   id: string;
@@ -13,7 +13,9 @@ interface ApprovedTeacher {
 }
 
 export default function AdminTeachersPage() {
-  const { profile, session, loading: authLoading } = useAuth();
+  const { profile, session, loading: guardLoading } = useRoleGuard('teacher', {
+    loginRedirect: '/teacher/login',
+  });
   const router = useRouter();
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -28,20 +30,10 @@ export default function AdminTeachersPage() {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    if (authLoading) return;
-
-    if (!profile) {
-      router.push('/teacher/login');
-      return;
+    if (!guardLoading && profile?.role === 'teacher') {
+      checkAdminAndLoad();
     }
-
-    if (profile?.role !== 'teacher') {
-      router.push('/');
-      return;
-    }
-
-    checkAdminAndLoad();
-  }, [profile, authLoading]);
+  }, [guardLoading, profile]);
 
   const checkAdminAndLoad = async () => {
     if (!profile) return;
@@ -143,7 +135,7 @@ export default function AdminTeachersPage() {
     }
   };
 
-  if (loading || authLoading) {
+  if (loading || guardLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-gray-600">Loading...</div>

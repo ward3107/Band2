@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, use } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
+import { useRoleGuard } from '@/hooks/useRoleGuard';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import FlashcardMode from '@/components/FlashcardMode';
@@ -34,7 +34,11 @@ interface VocabularyWord {
 }
 
 export default function AssignmentPage({ params }: { params: Promise<{ id: string }> }) {
-  const { user, profile, loading: authLoading } = useAuth();
+  const resolvedParams = use(params);
+  const { user, profile, loading: guardLoading } = useRoleGuard('student', {
+    loginRedirect: '/login?redirect=/student/assignments/' + resolvedParams.id,
+    unauthorizedRedirect: '/teacher/dashboard',
+  });
   const router = useRouter();
   const { t } = useLanguage();
   const [assignment, setAssignment] = useState<Assignment | null>(null);
@@ -42,21 +46,12 @@ export default function AssignmentPage({ params }: { params: Promise<{ id: strin
   const [words, setWords] = useState<VocabularyWord[]>([]);
   const [loading, setLoading] = useState(true);
   const [mode, setMode] = useState<'overview' | 'flashcards' | 'quiz'>('overview');
-  const resolvedParams = use(params);
 
   useEffect(() => {
-    if (!authLoading && !user) {
-      router.push('/login?redirect=/student/assignments/' + resolvedParams.id);
-      return;
-    }
-    if (user && profile && profile.role !== 'student') {
-      router.push('/teacher/dashboard');
-      return;
-    }
-    if (user && profile && profile.role === 'student') {
+    if (user && profile?.role === 'student') {
       loadData();
     }
-  }, [user, profile, authLoading, resolvedParams.id]);
+  }, [user, profile]);
 
   const loadData = async () => {
     try {
@@ -149,7 +144,7 @@ export default function AssignmentPage({ params }: { params: Promise<{ id: strin
     setMode('overview');
   };
 
-  if (authLoading || loading) {
+  if (guardLoading || loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-gray-600 dark:text-gray-400">{t('loading')}...</div>

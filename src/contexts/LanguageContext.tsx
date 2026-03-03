@@ -34,13 +34,15 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
     setMounted(true);
   }, []);
 
-  // Apply direction to document
+  // Apply direction to document and persist preference
   useEffect(() => {
     if (mounted) {
       const dir = languageDirection[language];
       document.documentElement.dir = dir;
       document.documentElement.lang = language;
       localStorage.setItem('language', language);
+      // Also write a cookie so the server can render the correct lang attribute
+      document.cookie = `language=${language};path=/;max-age=${60 * 60 * 24 * 365};SameSite=Lax`;
     }
   }, [language, mounted]);
 

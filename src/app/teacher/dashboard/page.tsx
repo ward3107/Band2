@@ -1,12 +1,14 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import { supabase, Class, Assignment } from '@/lib/supabase';
+import { useRoleGuard } from '@/hooks/useRoleGuard';
 
 export default function TeacherDashboardPage() {
-  const { profile, signOut, loading: authLoading } = useAuth();
+  const { profile, signOut, loading: guardLoading } = useRoleGuard('teacher', {
+    loginRedirect: '/teacher/login',
+  });
   const router = useRouter();
   const [classes, setClasses] = useState<Class[]>([]);
   const [assignments, setAssignments] = useState<Assignment[]>([]);
@@ -14,21 +16,10 @@ export default function TeacherDashboardPage() {
   const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
-    // Don't redirect while auth is loading
-    if (authLoading) return;
-
-    if (!profile) {
-      router.push('/teacher/login');
-      return;
+    if (!guardLoading && profile?.role === 'teacher') {
+      loadData();
     }
-
-    if (profile?.role !== 'teacher') {
-      router.push('/');
-      return;
-    }
-
-    loadData();
-  }, [profile, authLoading]);
+  }, [guardLoading, profile]);
 
   const loadData = async () => {
     if (!profile) return;
@@ -71,7 +62,7 @@ export default function TeacherDashboardPage() {
     router.push('/teacher/assignments/create');
   };
 
-  if (loading || authLoading) {
+  if (loading || guardLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-gray-600">Loading...</div>

@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
+import { useRoleGuard } from '@/hooks/useRoleGuard';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -26,7 +26,10 @@ interface Assignment {
 }
 
 export default function StudentDashboardPage() {
-  const { user, profile, loading: authLoading } = useAuth();
+  const { user, profile, loading: guardLoading } = useRoleGuard('student', {
+    loginRedirect: '/login?redirect=/student',
+    unauthorizedRedirect: '/student/join-class',
+  });
   const router = useRouter();
   const { t } = useLanguage();
   const [classes, setClasses] = useState<Class[]>([]);
@@ -34,22 +37,10 @@ export default function StudentDashboardPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!authLoading && !user) {
-      router.push('/login?redirect=/student');
-      return;
-    }
-    // Wait for profile to load
-    if (user && !profile) {
-      return; // Just wait, don't redirect
-    }
-    if (user && profile && profile.role !== 'student') {
-      router.push('/student/join-class');
-      return;
-    }
-    if (user && profile && profile.role === 'student') {
+    if (user && profile?.role === 'student') {
       loadData();
     }
-  }, [user, profile, authLoading]);
+  }, [user, profile]);
 
   const loadData = async () => {
     let enrolledClasses: Class[] = [];
@@ -74,7 +65,7 @@ export default function StudentDashboardPage() {
 
       setClasses(enrolledClasses);
     } catch (err) {
-      console.error('Error loading classes:', err);
+      void err;
     }
 
     // Load assignments from enrolled classes
@@ -163,7 +154,7 @@ export default function StudentDashboardPage() {
     return new Date(deadline) < new Date();
   };
 
-  if (authLoading || loading) {
+  if (guardLoading || loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-gray-600">Loading...</div>
