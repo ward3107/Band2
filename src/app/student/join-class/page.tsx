@@ -55,13 +55,13 @@ export default function JoinClassPage() {
 
     try {
       // Find class by code
-      const { data: classData, error: classError } = await supabase
+      const { data: classData } = await supabase
         .from('classes')
         .select('*')
         .eq('class_code', classCode.toUpperCase().trim())
-        .single();
+        .maybeSingle();
 
-      if (classError || !classData) {
+      if (!classData) {
         setError('Invalid class code. Please check and try again.');
         setLoading(false);
         return;
@@ -70,10 +70,10 @@ export default function JoinClassPage() {
       // Check if already enrolled
       const { data: existingEnrollment } = await supabase
         .from('class_enrollments')
-        .select('*')
+        .select('id')
         .eq('class_id', classData.id)
         .eq('student_id', user.id)
-        .single();
+        .maybeSingle();
 
       if (existingEnrollment) {
         setError('You are already enrolled in this class.');
