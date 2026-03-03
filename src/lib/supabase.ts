@@ -131,7 +131,6 @@ export async function signOut() {
 }
 
 export async function signInWithGoogle() {
-  // Use current origin for redirect (works for both localhost and production)
   const redirectUrl = `${window.location.origin}/auth/callback`;
 
   const { data, error } = await supabase.auth.signInWithOAuth({
