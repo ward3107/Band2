@@ -12,7 +12,15 @@ export default function OAuthCallbackPage() {
   useEffect(() => {
     const handleCallback = async () => {
       try {
-        // Get session from browser storage (Supabase sets it automatically)
+        // Surface any OAuth-level error Supabase puts in the URL
+        const params = new URLSearchParams(window.location.search);
+        const oauthError = params.get('error');
+        if (oauthError) {
+          router.push(`/?error=${encodeURIComponent(params.get('error_description') ?? oauthError)}`);
+          return;
+        }
+
+        // Get the session that Supabase JS exchanged from the ?code= param
         const { data: { session } } = await supabase.auth.getSession();
 
         if (!session) {
@@ -20,7 +28,7 @@ export default function OAuthCallbackPage() {
           return;
         }
 
-        // Get user's profile
+        // Look up existing profile
         const { data: profile } = await supabase
           .from('profiles')
           .select('role')
@@ -32,7 +40,7 @@ export default function OAuthCallbackPage() {
         if (profile?.role) {
           redirectUrl = profile.role === 'teacher' ? '/teacher/dashboard' : '/student';
         } else {
-          // Check if approved teacher
+          // No profile yet — check if this is an approved teacher
           const { data: approvedTeacher } = await supabase
             .from('approved_teachers')
             .select('full_name')
@@ -40,7 +48,7 @@ export default function OAuthCallbackPage() {
             .maybeSingle();
 
           if (approvedTeacher) {
-            await supabase
+            const { error: insertError } = await supabase
               .from('profiles')
               .insert({
                 id: session.user.id,
@@ -48,9 +56,24 @@ export default function OAuthCallbackPage() {
                 full_name: approvedTeacher.full_name || session.user.user_metadata?.full_name || session.user.email?.split('@')[0],
                 role: 'teacher',
                 is_admin: false,
-                created_at: new Date().toISOString()
+                created_at: new Date().toISOString(),
               });
-            redirectUrl = '/teacher/dashboard';
+
+            if (!insertError) {
+              redirectUrl = '/teacher/dashboard';
+            } else {
+              // Insert failed (e.g. row already exists with a different state).
+              // Re-fetch the profile to see what role they actually have.
+              const { data: existingProfile } = await supabase
+                .from('profiles')
+                .select('role')
+                .eq('id', session.user.id)
+                .maybeSingle();
+
+              redirectUrl = existingProfile?.role === 'teacher'
+                ? '/teacher/dashboard'
+                : '/auth/complete-profile';
+            }
           }
         }
 

@@ -25,6 +25,7 @@ export function useRoleGuard(
   const router = useRouter();
 
   useEffect(() => {
+    // Wait until auth has fully resolved (profile query included)
     if (authLoading) return;
 
     if (!user) {
@@ -32,17 +33,20 @@ export function useRoleGuard(
       return;
     }
 
-    // Profile hasn't loaded yet — wait
-    if (!profile) return;
+    // Auth is done: if profile is still null the user has no row in the DB yet
+    // (e.g. first OAuth login before completing profile setup).
+    if (!profile) {
+      router.push('/auth/complete-profile');
+      return;
+    }
 
     if (profile.role !== requiredRole) {
       router.push(options?.unauthorizedRedirect ?? '/');
     }
   }, [user, profile, authLoading, requiredRole, options?.loginRedirect, options?.unauthorizedRedirect, router]);
 
-  // Considered "loading" until auth resolves AND, if a user is logged in,
-  // until their profile has also arrived.
-  const loading = authLoading || (!!user && !profile);
-
-  return { ...auth, loading };
+  // `loading` reflects auth resolution only — authLoading becomes false only
+  // after the profile query completes, so there is no race condition to guard
+  // against with an extra `!!user && !profile` check.
+  return { ...auth, loading: authLoading };
 }
