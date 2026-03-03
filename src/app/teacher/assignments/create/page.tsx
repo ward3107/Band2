@@ -1,9 +1,9 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import { supabase, Class, Assignment } from '@/lib/supabase';
+import { useRoleGuard } from '@/hooks/useRoleGuard';
 
 interface VocabularyWord {
   id: string;
@@ -15,7 +15,9 @@ interface VocabularyWord {
 }
 
 export default function CreateAssignmentPage() {
-  const { profile, loading: authLoading } = useAuth();
+  const { profile, loading: guardLoading } = useRoleGuard('teacher', {
+    loginRedirect: '/teacher/login',
+  });
   const router = useRouter();
 
   const [title, setTitle] = useState('');
@@ -33,25 +35,17 @@ export default function CreateAssignmentPage() {
   const [step, setStep] = useState<'details' | 'words' | 'classes' | 'review'>('details');
 
   useEffect(() => {
-    // Don't redirect while auth is loading
-    if (authLoading) return;
-
-    if (!profile || profile.role !== 'teacher') {
-      router.push('/teacher/login');
-      return;
+    if (!guardLoading && profile?.role === 'teacher') {
+      loadData();
     }
-    loadData();
-  }, [profile, authLoading]);
+  }, [guardLoading, profile]);
 
   const loadData = async () => {
     try {
       // Load vocabulary words
-      console.log('Loading vocabulary.json...');
       const vocabResponse = await fetch('/vocabulary.json');
-      console.log('vocabulary.json response status:', vocabResponse.status);
+      if (!vocabResponse.ok) throw new Error(`Failed to load vocabulary: HTTP ${vocabResponse.status}`);
       const vocabData = await vocabResponse.json();
-      console.log('vocabulary.json data keys:', Object.keys(vocabData));
-      console.log('Number of words:', vocabData.words?.length || 0);
       setAllWords(vocabData.words || []);
 
       // Load classes
@@ -61,7 +55,6 @@ export default function CreateAssignmentPage() {
         .eq('teacher_id', profile!.id);
 
       setClasses(classesData || []);
-      console.log('Classes loaded:', classesData?.length || 0);
     } catch (err) {
       console.error('Error loading data:', err);
     }
@@ -138,7 +131,6 @@ export default function CreateAssignmentPage() {
         .single();
 
       if (assignmentError) {
-        console.error('Assignment creation error:', assignmentError);
         throw new Error(assignmentError.message || assignmentError.details || 'Failed to create assignment');
       }
 
@@ -154,7 +146,6 @@ export default function CreateAssignmentPage() {
         .insert(classLinks);
 
       if (linkError) {
-        console.error('Class linking error:', linkError);
         throw new Error(linkError.message || linkError.details || 'Failed to link assignment to classes');
       }
 
@@ -178,21 +169,13 @@ export default function CreateAssignmentPage() {
 
       // Success! Redirect to dashboard
       router.push('/teacher/dashboard');
-    } catch (err: any) {
-      console.error('Error saving assignment:', err);
-      console.error('Error type:', typeof err);
-      console.error('Error keys:', err ? Object.keys(err) : 'no error object');
-
+    } catch (err: unknown) {
       // Handle Supabase error objects properly
       let errorMessage = 'Failed to save assignment';
-      if (err) {
-        if (typeof err === 'string') {
-          errorMessage = err;
-        } else if (err?.message) {
-          errorMessage = err.message;
-        } else if (err?.details) {
-          errorMessage = err.details;
-        }
+      if (typeof err === 'string') {
+        errorMessage = err;
+      } else if (err instanceof Error) {
+        errorMessage = err.message;
       }
       setError(errorMessage);
     } finally {

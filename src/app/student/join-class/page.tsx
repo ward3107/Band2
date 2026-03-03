@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
@@ -13,12 +13,12 @@ export default function JoinClassPage() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
 
-  // Redirect if not authenticated
-  useState(() => {
+  // Redirect unauthenticated users to the student login
+  useEffect(() => {
     if (!authLoading && !user) {
-      router.push('/teacher/login?redirect=/student/join-class');
+      router.push('/login?redirect=/student/join-class');
     }
-  });
+  }, [user, authLoading, router]);
 
   // Show loading while auth is loading
   if (authLoading || !user) {
@@ -100,8 +100,8 @@ export default function JoinClassPage() {
         router.push('/student');
       }, 2000);
 
-    } catch (err: any) {
-      setError(err?.message || 'An error occurred. Please try again.');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'An error occurred. Please try again.');
       setLoading(false);
     }
   };

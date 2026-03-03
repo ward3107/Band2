@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { cookies } from "next/headers";
 import { Geist, Geist_Mono, Heebo, Cairo } from "next/font/google";
 import "./globals.css";
 import { AccessibilityProvider } from "@/contexts/AccessibilityContext";
@@ -48,13 +49,18 @@ export const viewport: Viewport = {
   themeColor: "#2563eb",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const cookieStore = await cookies();
+  const langCookie = cookieStore.get('language')?.value ?? 'en';
+  const lang = (['en', 'he', 'ar'] as const).includes(langCookie as 'en' | 'he' | 'ar') ? langCookie : 'en';
+  const dir = lang === 'en' ? 'ltr' : 'rtl';
+
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang={lang} dir={dir} suppressHydrationWarning>
       <head>
         <link rel="icon" href="/favicon.ico" />
       </head>

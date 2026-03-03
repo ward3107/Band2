@@ -25,8 +25,8 @@ const eslintConfig = defineConfig([
       "no-unsanitized": noUnsanitized,
     },
     rules: {
-      "no-unsanitized/method": "warn",
-      "no-unsanitized/property": "warn",
+      "no-unsanitized/method": "error",
+      "no-unsanitized/property": "error",
     },
   },
 

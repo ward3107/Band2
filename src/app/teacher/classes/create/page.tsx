@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
+import { useState } from 'react';
+import { useRoleGuard } from '@/hooks/useRoleGuard';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 
@@ -16,22 +16,16 @@ function generateClassCode(): string {
 }
 
 export default function CreateClassPage() {
-  const { profile, loading: authLoading } = useAuth();
+  const { profile, loading: guardLoading } = useRoleGuard('teacher', {
+    loginRedirect: '/teacher/login',
+  });
   const router = useRouter();
   const [className, setClassName] = useState('');
   const [gradeLevel, setGradeLevel] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  // Redirect if not authenticated
-  useEffect(() => {
-    if (!authLoading && !profile) {
-      router.push('/teacher/login');
-    }
-  }, [profile, authLoading]);
-
-  // Show loading while auth is loading
-  if (authLoading || !profile) {
+  if (guardLoading || !profile) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-gray-600">Loading...</div>
@@ -86,8 +80,8 @@ export default function CreateClassPage() {
 
       // Redirect to dashboard
       router.push('/teacher/dashboard');
-    } catch (err: any) {
-      setError(err?.message || 'An error occurred. Please try again.');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'An error occurred. Please try again.');
       setLoading(false);
     }
   };

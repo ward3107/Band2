@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, use } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
+import { useRoleGuard } from '@/hooks/useRoleGuard';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 
@@ -28,22 +28,20 @@ interface Assignment {
 }
 
 export default function AssignmentResultsPage({ params }: { params: Promise<{ id: string }> }) {
-  const { profile, loading: authLoading } = useAuth();
+  const resolvedParams = use(params);
+  const { profile, loading: guardLoading } = useRoleGuard('teacher', {
+    loginRedirect: '/teacher/login',
+  });
   const router = useRouter();
   const [assignment, setAssignment] = useState<Assignment | null>(null);
   const [students, setStudents] = useState<StudentProgress[]>([]);
   const [loading, setLoading] = useState(true);
-  const resolvedParams = use(params);
 
   useEffect(() => {
-    if (!authLoading && (!profile || profile.role !== 'teacher')) {
-      router.push('/teacher/login');
-      return;
-    }
     if (profile?.role === 'teacher') {
       loadData();
     }
-  }, [profile, authLoading, resolvedParams.id]);
+  }, [profile]);
 
   const loadData = async () => {
     // Load assignment details
@@ -99,7 +97,7 @@ export default function AssignmentResultsPage({ params }: { params: Promise<{ id
     return Math.round(scores.reduce((a, b) => a + b, 0) / scores.length);
   };
 
-  if (authLoading || loading) {
+  if (guardLoading || loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-gray-600">Loading...</div>

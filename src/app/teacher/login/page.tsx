@@ -44,7 +44,7 @@ export default function TeacherLoginPage() {
           const { data: profile } = await supabase
             .from('profiles')
             .select('role')
-            .eq('id', result.data.user?.id)
+            .eq('id', result.data?.user?.id)
             .single();
 
           if (profile?.role === 'teacher') {

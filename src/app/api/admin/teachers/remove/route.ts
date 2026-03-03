@@ -1,61 +1,32 @@
-import { createClient } from '@supabase/supabase-js';
 import { NextRequest, NextResponse } from 'next/server';
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+import { verifyAdminAuth } from '@/lib/admin-auth';
+import { checkRateLimit } from '@/lib/rate-limit';
 
 export async function DELETE(request: NextRequest) {
-  try {
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
-
-    // Verify admin access
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader?.startsWith('Bearer ')) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const token = authHeader.substring(7);
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
-    }
-
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role, is_admin')
-      .eq('id', user.id)
-      .single();
-
-    if (!profile || profile.role !== 'teacher' || !profile.is_admin) {
-      return NextResponse.json({ error: 'Forbidden: Admin access required' }, { status: 403 });
-    }
-
-    // Get teacher ID from query params
-    const { searchParams } = new URL(request.url);
-    const id = searchParams.get('id');
-
-    if (!id) {
-      return NextResponse.json({ error: 'Teacher ID required' }, { status: 400 });
-    }
-
-    // Delete from approved_teachers
-    const { error } = await supabase
-      .from('approved_teachers')
-      .delete()
-      .eq('id', id);
-
-    if (error) {
-      return NextResponse.json({ error: 'Failed to remove teacher' }, { status: 500 });
-    }
-
-    return NextResponse.json({ success: true });
-
-  } catch (error) {
-    console.error('Remove teacher error:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+  const ip = request.headers.get('x-forwarded-for') ?? 'unknown';
+  if (!checkRateLimit(`remove-teacher:${ip}`, { maxRequests: 20, windowMs: 60_000 })) {
+    return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
   }
+
+  const auth = await verifyAdminAuth(request);
+  if (auth.errorResponse) return auth.errorResponse;
+  const { supabaseAdmin } = auth;
+
+  const { searchParams } = new URL(request.url);
+  const id = searchParams.get('id');
+
+  if (!id) {
+    return NextResponse.json({ error: 'Teacher ID required' }, { status: 400 });
+  }
+
+  const { error } = await supabaseAdmin
+    .from('approved_teachers')
+    .delete()
+    .eq('id', id);
+
+  if (error) {
+    return NextResponse.json({ error: 'Failed to remove teacher' }, { status: 500 });
+  }
+
+  return NextResponse.json({ success: true });
 }

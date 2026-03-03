@@ -2,17 +2,32 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { supabase, Profile, getCurrentProfile, signIn, signUp, signOut, signInWithGoogle } from '@/lib/supabase';
-import { User, Session } from '@supabase/supabase-js';
+import { User, Session, AuthError } from '@supabase/supabase-js';
+
+interface SignInResult {
+  data: { user: User | null; session: Session | null } | null;
+  error: string | null;
+}
+
+interface SignUpResult {
+  data: { user: User | null; session: Session | null } | null;
+  error: string | null;
+}
+
+interface SignInWithGoogleResult {
+  data: { provider: string; url: string | null };
+  error: AuthError | null;
+}
 
 interface AuthContextType {
   user: User | null;
   profile: Profile | null;
   session: Session | null;
   loading: boolean;
-  signIn: (email: string, password: string) => Promise<any>;
-  signInWithGoogle: () => Promise<any>;
-  signUp: (email: string, password: string, fullName: string, role: 'teacher' | 'student') => Promise<any>;
-  signOut: () => Promise<any>;
+  signIn: (email: string, password: string) => Promise<SignInResult>;
+  signInWithGoogle: () => Promise<SignInWithGoogleResult>;
+  signUp: (email: string, password: string, fullName: string, role: 'teacher' | 'student') => Promise<SignUpResult>;
+  signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
   setSession: (session: Session | null) => void;
 }
@@ -26,36 +41,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Check for session from OAuth callback in cookie
-    const checkOAuthSession = () => {
-      const sessionCookie = document.cookie
-        .split('; ')
-        .find(row => row.startsWith('supabase-session='));
-
-      if (sessionCookie) {
-        try {
-          const sessionData = JSON.parse(
-            decodeURIComponent(sessionCookie.split('=')[1])
-          );
-          // Set session in Supabase client
-          if (sessionData.access_token) {
-            supabase.auth.setSession({
-              access_token: sessionData.access_token,
-              refresh_token: sessionData.refresh_token,
-            });
-            // Clear the cookie
-            document.cookie = 'supabase-session=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
-          }
-        } catch (e) {
-          console.error('Failed to parse session cookie:', e);
-        }
-      }
-    };
-
     // Check active sessions and set the user
     const initAuth = async () => {
-      checkOAuthSession();
-
       const { data: { session } } = await supabase.auth.getSession();
       setSessionState(session);
       setUser(session?.user ?? null);
@@ -93,12 +80,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         .eq('id', userId)
         .maybeSingle(); // Use maybeSingle to avoid error if not found
 
-      if (error) {
-        console.error('Failed to load profile:', error);
-      }
-      setProfile(data);
-    } catch (e) {
-      console.error('Error loading profile:', e);
+      setProfile(error ? null : data);
+    } catch {
       setProfile(null);
     }
     setLoading(false);

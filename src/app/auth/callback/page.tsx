@@ -57,46 +57,74 @@ export default function OAuthCallbackPage() {
 
     const handleCallback = async () => {
       try {
-        // Check for OAuth error params in the URL (e.g., user denied access)
+        // Surface any OAuth-level error Supabase puts in the URL
         const params = new URLSearchParams(window.location.search);
         const oauthError = params.get('error');
-        const errorDescription = params.get('error_description');
-
         if (oauthError) {
-          console.error('OAuth error from provider:', oauthError, errorDescription);
-          router.push(`/?error=${encodeURIComponent(oauthError)}`);
+          router.push(`/?error=${encodeURIComponent(params.get('error_description') ?? oauthError)}`);
           return;
         }
 
-        // Get session from browser storage (Supabase handles PKCE code exchange automatically)
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        // Get the session that Supabase JS exchanged from the ?code= param
+        const { data: { session } } = await supabase.auth.getSession();
 
-        if (sessionError) {
-          console.error('Session error:', sessionError.message);
-          router.push('/?error=session_failed');
+        if (!session) {
+          router.push('/');
           return;
         }
 
-        if (session) {
-          await handleSessionRedirect(session);
-          return;
-        }
+        // Look up existing profile
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', session.user.id)
+          .maybeSingle();
 
-        // Fallback: wait for auth state change event (handles async PKCE code exchange)
-        console.log('No immediate session, waiting for auth state change...');
-        const { data: { subscription } } = supabase.auth.onAuthStateChange(
-          async (event, newSession) => {
-            subscription.unsubscribe();
-            if (newSession) {
-              await handleSessionRedirect(newSession);
+        let redirectUrl = '/auth/complete-profile';
+
+        if (profile?.role) {
+          redirectUrl = profile.role === 'teacher' ? '/teacher/dashboard' : '/student';
+        } else {
+          // No profile yet — check if this is an approved teacher
+          const { data: approvedTeacher } = await supabase
+            .from('approved_teachers')
+            .select('full_name')
+            .eq('email', session.user.email)
+            .maybeSingle();
+
+          if (approvedTeacher) {
+            const { error: insertError } = await supabase
+              .from('profiles')
+              .insert({
+                id: session.user.id,
+                email: session.user.email,
+                full_name: approvedTeacher.full_name || session.user.user_metadata?.full_name || session.user.email?.split('@')[0],
+                role: 'teacher',
+                is_admin: false,
+                created_at: new Date().toISOString(),
+              });
+
+            if (!insertError) {
+              redirectUrl = '/teacher/dashboard';
             } else {
-              console.error('No session after OAuth callback');
-              router.push('/');
+              // Insert failed (e.g. row already exists with a different state).
+              // Re-fetch the profile to see what role they actually have.
+              const { data: existingProfile } = await supabase
+                .from('profiles')
+                .select('role')
+                .eq('id', session.user.id)
+                .maybeSingle();
+
+              redirectUrl = existingProfile?.role === 'teacher'
+                ? '/teacher/dashboard'
+                : '/auth/complete-profile';
             }
           }
-        );
-      } catch (err) {
-        console.error('Callback error:', err);
+        }
+
+        await refreshProfile();
+        router.push(redirectUrl);
+      } catch {
         router.push('/?error=callback_failed');
       }
     };
