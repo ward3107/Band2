@@ -5,6 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import FlashcardMode from '@/components/FlashcardMode';
+import QuizMode from '@/components/QuizMode';
 import { useLanguage } from '@/contexts/LanguageContext';
 
 interface Assignment {
@@ -99,6 +100,7 @@ export default function AssignmentPage({ params }: { params: Promise<{ id: strin
 
       // Load all vocabulary and filter to assignment words
       const response = await fetch('/vocabulary.json');
+      if (!response.ok) throw new Error(`Failed to load vocabulary: HTTP ${response.status}`);
       const data = await response.json();
       const allWords = data.words || [];
 
@@ -108,8 +110,8 @@ export default function AssignmentPage({ params }: { params: Promise<{ id: strin
         : allWords.slice(0, assignmentWithWords.total_words || 10); // Show first N words as fallback
 
       setWords(assignmentWords);
-    } catch (err) {
-      console.error('Error loading assignment:', err);
+    } catch {
+      // errors handled by null assignment check below
     } finally {
       setLoading(false);
     }
@@ -174,10 +176,10 @@ export default function AssignmentPage({ params }: { params: Promise<{ id: strin
     );
   }
 
-  // Quiz mode (using same flashcard for now)
+  // Quiz mode
   if (mode === 'quiz') {
     return (
-      <FlashcardMode
+      <QuizMode
         words={words}
         onClose={() => setMode('overview')}
         onComplete={handleLearningComplete}

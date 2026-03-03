@@ -149,7 +149,7 @@ export default function TeacherDashboardPage() {
               <div className="text-4xl">👨‍🎓</div>
               <div>
                 <div className="text-3xl font-bold text-gray-900 dark:text-white">
-                  {classes.reduce((sum, c) => sum + (c as any).student_count || 0, 0)}
+                  {classes.reduce((sum, c) => sum + ((c as Class & { student_count?: number }).student_count ?? 0), 0)}
                 </div>
                 <div className="text-gray-600 dark:text-gray-400">Total Students</div>
               </div>

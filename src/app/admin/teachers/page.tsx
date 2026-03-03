@@ -74,8 +74,8 @@ export default function AdminTeachersPage() {
         const data = await response.json();
         setApprovedTeachers(data.approved || []);
       }
-    } catch (err) {
-      console.error('Failed to load teachers:', err);
+    } catch {
+      // silently fall through; table will show empty
     } finally {
       setLoading(false);
     }
@@ -138,8 +138,8 @@ export default function AdminTeachersPage() {
       if (response.ok) {
         await loadApprovedTeachers();
       }
-    } catch (err) {
-      console.error('Failed to remove teacher:', err);
+    } catch {
+      // removal failure handled by UI not refreshing
     }
   };
 

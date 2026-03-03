@@ -55,81 +55,68 @@ export default function StudentDashboardPage() {
     let enrolledClasses: Class[] = [];
 
     try {
-      console.log('Loading data for student:', user!.id);
-
-      // Load enrolled classes - get class_ids first
-      const { data: enrollments, error: enrollmentsError } = await supabase
+      // Load enrolled classes
+      const { data: enrollments } = await supabase
         .from('class_enrollments')
         .select('class_id')
         .eq('student_id', user!.id);
 
-      console.log('Enrollments:', enrollments);
-      console.log('EnrollmentsError:', enrollmentsError);
-      console.log('EnrollmentsError message:', enrollmentsError?.message);
-
       if (enrollments && enrollments.length > 0) {
         const classIds = enrollments.map(e => e.class_id);
-        console.log('Class IDs:', classIds);
 
-        // Fetch the classes separately
         const { data: classesData } = await supabase
           .from('classes')
           .select('*')
           .in('id', classIds);
 
-        console.log('Classes data:', classesData);
-
         enrolledClasses = (classesData || []) as Class[];
       }
 
-      console.log('Final enrolled classes:', enrolledClasses);
       setClasses(enrolledClasses);
     } catch (err) {
-      console.error('Error loading data:', err);
+      console.error('Error loading classes:', err);
     }
 
     // Load assignments from enrolled classes
     if (enrolledClasses.length > 0) {
       const classIds = enrolledClasses.map(c => c.id);
-      console.log('Loading assignments for class IDs:', classIds);
 
       // Get assignment_ids for these classes
-      const { data: assignmentLinks, error: linksError } = await supabase
+      const { data: assignmentLinks } = await supabase
         .from('assignment_classes')
         .select('assignment_id')
         .in('class_id', classIds);
 
-      console.log('Assignment links:', assignmentLinks, 'Error:', linksError);
-
       const assignmentIds = assignmentLinks?.map(link => link.assignment_id) || [];
-      console.log('Assignment IDs:', assignmentIds);
 
       if (assignmentIds.length > 0) {
-        // Get assignments with progress
+        // Get assignments
         const { data: assignmentsData } = await supabase
           .from('assignments')
           .select('*')
           .in('id', assignmentIds)
           .order('deadline', { ascending: true });
 
-        // Get progress for each assignment
-        const assignmentsWithProgress = await Promise.all(
-          (assignmentsData || []).map(async (assignment) => {
-            const { data: progress } = await supabase
-              .from('student_assignment_progress')
-              .select('*')
-              .eq('student_id', user!.id)
-              .eq('assignment_id', assignment.id)
-              .single();
+        // Batch-load all progress in a single query instead of N+1
+        const { data: allProgress } = await supabase
+          .from('student_assignment_progress')
+          .select('*')
+          .eq('student_id', user!.id)
+          .in('assignment_id', assignmentIds);
 
-            return {
-              ...assignment,
-              status: progress?.status || 'not_started',
-              words_learned: progress?.words_learned || 0,
-              quiz_score: progress?.quiz_score,
-            } as Assignment;
-          })
+        const progressMap = new Map(
+          (allProgress || []).map(p => [p.assignment_id, p])
         );
+
+        const assignmentsWithProgress = (assignmentsData || []).map((assignment) => {
+          const progress = progressMap.get(assignment.id);
+          return {
+            ...assignment,
+            status: progress?.status || 'not_started',
+            words_learned: progress?.words_learned || 0,
+            quiz_score: progress?.quiz_score,
+          } as Assignment;
+        });
 
         // Add class name to each assignment
         const { data: assignmentClassesData } = await supabase

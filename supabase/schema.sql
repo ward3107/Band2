@@ -251,6 +251,35 @@ CREATE POLICY "Users can view assignment stories" ON public.assignment_stories
   );
 
 -- ============================================
+-- ADMIN COLUMNS & TABLES
+-- ============================================
+
+-- Add is_admin column to profiles (idempotent)
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS is_admin BOOLEAN DEFAULT FALSE;
+
+-- Approved teachers allowlist (used during Google OAuth sign-up)
+CREATE TABLE IF NOT EXISTS public.approved_teachers (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  email TEXT UNIQUE NOT NULL,
+  full_name TEXT,
+  added_by UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_approved_teachers_email ON public.approved_teachers(email);
+
+ALTER TABLE public.approved_teachers ENABLE ROW LEVEL SECURITY;
+
+-- Only admins can read/write the approved teachers list
+CREATE POLICY "Admins can manage approved teachers" ON public.approved_teachers
+  FOR ALL USING (
+    EXISTS (
+      SELECT 1 FROM public.profiles
+      WHERE id = auth.uid() AND is_admin = TRUE
+    )
+  );
+
+-- ============================================
 -- STORAGE BUCKETS (optional, for avatars)
 -- ============================================
 -- Insert storage bucket policies if you want to store avatars

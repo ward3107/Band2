@@ -16,12 +16,9 @@ export default function OAuthCallbackPage() {
         const { data: { session } } = await supabase.auth.getSession();
 
         if (!session) {
-          console.error('No session after OAuth');
           router.push('/');
           return;
         }
-
-        console.log('Session found for:', session.user?.email);
 
         // Get user's profile
         const { data: profile } = await supabase
@@ -29,8 +26,6 @@ export default function OAuthCallbackPage() {
           .select('role')
           .eq('id', session.user.id)
           .maybeSingle();
-
-        console.log('Profile:', profile);
 
         let redirectUrl = '/auth/complete-profile';
 
@@ -59,11 +54,9 @@ export default function OAuthCallbackPage() {
           }
         }
 
-        console.log('Redirecting to:', redirectUrl);
         await refreshProfile();
         router.push(redirectUrl);
-      } catch (err) {
-        console.error('Callback error:', err);
+      } catch {
         router.push('/?error=callback_failed');
       }
     };
