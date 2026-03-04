@@ -1,12 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { checkRateLimit } from '@/lib/rate-limit';
+
+const STUDENT_DOMAIN = 'student.band2.app';
 
 export async function POST(request: NextRequest) {
-  const authHeader = request.headers.get('Authorization');
-  if (!authHeader?.startsWith('Bearer ')) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const ip = request.headers.get('x-forwarded-for') ?? 'unknown';
+  // 10 join attempts per IP per 10 minutes
+  if (!checkRateLimit(`student-join:${ip}`, { maxRequests: 10, windowMs: 10 * 60_000 })) {
+    return NextResponse.json(
+      { error: 'Too many attempts. Please wait a few minutes and try again.' },
+      { status: 429 }
+    );
   }
-  const accessToken = authHeader.slice(7);
 
   let body: { classCode?: string; displayName?: string };
   try {
@@ -24,18 +30,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Name must be at least 2 characters' }, { status: 400 });
   }
 
-  // Verify the bearer token and get the user identity
-  const anonClient = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    { global: { headers: { Authorization: `Bearer ${accessToken}` } } }
-  );
-  const { data: { user }, error: userError } = await anonClient.auth.getUser();
-  if (userError || !user) {
-    return NextResponse.json({ error: 'Invalid session' }, { status: 401 });
-  }
-
-  // Use service role to bypass RLS for privileged operations
   const admin = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!
@@ -55,40 +49,67 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // Create or update the student profile (guest email prevents unique constraint issues)
-  const { error: profileError } = await admin
-    .from('profiles')
-    .upsert(
-      {
-        id: user.id,
-        email: `guest_${user.id}@anonymous.local`,
-        full_name: displayName.trim(),
-        role: 'student',
-      },
-      { onConflict: 'id' }
+  // Generate a unique anonymous email + random password for this student
+  const uniqueId = crypto.randomUUID().replace(/-/g, '').slice(0, 12);
+  const email = `s_${uniqueId}@${STUDENT_DOMAIN}`;
+  const password = crypto.randomUUID();
+
+  // Create the auth user (email_confirm: true skips email verification)
+  const { data: newUser, error: createError } = await admin.auth.admin.createUser({
+    email,
+    password,
+    email_confirm: true,
+    user_metadata: { display_name: displayName.trim() },
+  });
+
+  if (createError || !newUser.user) {
+    return NextResponse.json(
+      { error: 'Failed to create student account. Please try again.' },
+      { status: 500 }
     );
+  }
+
+  const userId = newUser.user.id;
+
+  // Create the student profile
+  const { error: profileError } = await admin.from('profiles').insert({
+    id: userId,
+    email,
+    full_name: displayName.trim(),
+    role: 'student',
+  });
 
   if (profileError) {
+    await admin.auth.admin.deleteUser(userId); // roll back
     return NextResponse.json({ error: 'Failed to create student profile' }, { status: 500 });
   }
 
-  // Check for existing enrollment (idempotent)
-  const { data: existing } = await admin
+  // Enroll in the class
+  const { error: enrollError } = await admin
     .from('class_enrollments')
-    .select('id')
-    .eq('class_id', classData.id)
-    .eq('student_id', user.id)
-    .maybeSingle();
+    .insert({ class_id: classData.id, student_id: userId });
 
-  if (!existing) {
-    const { error: enrollError } = await admin
-      .from('class_enrollments')
-      .insert({ class_id: classData.id, student_id: user.id });
-
-    if (enrollError) {
-      return NextResponse.json({ error: 'Failed to enroll in class' }, { status: 500 });
-    }
+  if (enrollError) {
+    await admin.auth.admin.deleteUser(userId); // roll back
+    return NextResponse.json({ error: 'Failed to enroll in class' }, { status: 500 });
   }
 
-  return NextResponse.json({ success: true, className: classData.name });
+  // Sign in to produce a real session the client can use
+  const { data: signInData, error: signInError } = await admin.auth.signInWithPassword({
+    email,
+    password,
+  });
+
+  if (signInError || !signInData.session) {
+    return NextResponse.json({ error: 'Account created but could not sign in. Please try again.' }, { status: 500 });
+  }
+
+  return NextResponse.json({
+    success: true,
+    className: classData.name,
+    session: {
+      access_token: signInData.session.access_token,
+      refresh_token: signInData.session.refresh_token,
+    },
+  });
 }
