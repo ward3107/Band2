@@ -6,13 +6,6 @@ const STUDENT_DOMAIN = 'student.band2.app';
 
 export async function POST(request: NextRequest) {
   const ip = request.headers.get('x-forwarded-for') ?? 'unknown';
-  // 10 join attempts per IP per 10 minutes
-  if (!checkRateLimit(`student-join:${ip}`, { maxRequests: 10, windowMs: 10 * 60_000 })) {
-    return NextResponse.json(
-      { error: 'Too many attempts. Please wait a few minutes and try again.' },
-      { status: 429 }
-    );
-  }
 
   let body: { classCode?: string; displayName?: string };
   try {
@@ -28,6 +21,21 @@ export async function POST(request: NextRequest) {
   }
   if (!displayName || displayName.trim().length < 2) {
     return NextResponse.json({ error: 'Name must be at least 2 characters' }, { status: 400 });
+  }
+
+  // Rate limit by class code — allows a full classroom (60/hour per class)
+  if (!checkRateLimit(`student-join-class:${classCode}`, { maxRequests: 60, windowMs: 60 * 60_000 })) {
+    return NextResponse.json(
+      { error: 'This class has reached the join limit. Try again in an hour.' },
+      { status: 429 }
+    );
+  }
+  // Rate limit by IP — blocks automated abuse but doesn't block shared school WiFi
+  if (!checkRateLimit(`student-join-ip:${ip}`, { maxRequests: 20, windowMs: 10 * 60_000 })) {
+    return NextResponse.json(
+      { error: 'Too many attempts. Please wait a few minutes and try again.' },
+      { status: 429 }
+    );
   }
 
   const admin = createClient(
@@ -49,10 +57,14 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // Generate a unique anonymous email + random password for this student
-  const uniqueId = crypto.randomUUID().replace(/-/g, '').slice(0, 12);
-  const email = `s_${uniqueId}@${STUDENT_DOMAIN}`;
-  const password = crypto.randomUUID();
+  // Generate an 8-char personal student code (no confusable characters)
+  // The code serves as both the email identifier and the password so students
+  // can log back in on a new device just by entering the code.
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let studentCode = '';
+  for (let i = 0; i < 8; i++) studentCode += chars[Math.floor(Math.random() * chars.length)];
+  const email = `s_${studentCode.toLowerCase()}@${STUDENT_DOMAIN}`;
+  const password = studentCode;
 
   // Create the auth user (email_confirm: true skips email verification)
   const { data: newUser, error: createError } = await admin.auth.admin.createUser({
@@ -77,6 +89,7 @@ export async function POST(request: NextRequest) {
     email,
     full_name: displayName.trim(),
     role: 'student',
+    student_code: studentCode,
   });
 
   if (profileError) {
@@ -94,12 +107,12 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Failed to enroll in class' }, { status: 500 });
   }
 
-  // Return credentials so the client can call signInWithPassword() directly.
-  // This avoids the setSession() lock contention that occurs when the page
-  // reloads immediately after acquiring the Supabase auth token lock.
+  // Return credentials so the client can call signInWithPassword() directly,
+  // and the personal studentCode so the UI can show it to the student.
   return NextResponse.json({
     success: true,
     className: classData.name,
+    studentCode,
     credentials: { email, password },
   });
 }
