@@ -131,12 +131,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const setSession = (session: Session | null) => {
+  const setSession = async (session: Session | null) => {
+    setSessionState(session);
     if (session) {
       setUser(session.user);
       if (session.user) {
-        loadProfile(session.user.id);
+        await loadProfile(session.user.id);
       }
+    } else {
+      setUser(null);
+      setProfile(null);
+      setLoading(false);
     }
   };
 

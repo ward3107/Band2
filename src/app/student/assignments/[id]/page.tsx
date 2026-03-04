@@ -112,35 +112,49 @@ export default function AssignmentPage({ params }: { params: Promise<{ id: strin
     }
   };
 
-  const updateProgress = async (status: 'in_progress' | 'completed', wordsLearned: number) => {
-    if (!progress) {
-      // Create new progress record
-      await supabase.from('student_assignment_progress').insert({
-        student_id: user!.id,
-        assignment_id: resolvedParams.id,
+  const updateProgress = async (status: 'in_progress' | 'completed', wordsLearned: number, quizScore?: number | null) => {
+    try {
+      if (!progress) {
+        // Create new progress record
+        const { error } = await supabase.from('student_assignment_progress').insert({
+          student_id: user!.id,
+          assignment_id: resolvedParams.id,
+          status,
+          words_learned: wordsLearned,
+          ...(quizScore !== undefined ? { quiz_score: quizScore } : {}),
+          last_activity: new Date().toISOString(),
+        });
+        if (error) console.error('Failed to create progress:', error);
+      } else {
+        // Update existing progress
+        const { error } = await supabase
+          .from('student_assignment_progress')
+          .update({
+            status,
+            words_learned: Math.max(progress.words_learned, wordsLearned),
+            ...(quizScore !== undefined ? { quiz_score: quizScore } : {}),
+            last_activity: new Date().toISOString(),
+            ...(status === 'completed' ? { completed_at: new Date().toISOString() } : {}),
+          })
+          .eq('student_id', user!.id)
+          .eq('assignment_id', resolvedParams.id);
+        if (error) console.error('Failed to update progress:', error);
+      }
+      setProgress((prev) => ({
+        ...prev,
         status,
         words_learned: wordsLearned,
-        last_activity: new Date().toISOString(),
-      });
-    } else {
-      // Update existing progress
-      await supabase
-        .from('student_assignment_progress')
-        .update({
-          status,
-          words_learned: Math.max(progress.words_learned, wordsLearned),
-          last_activity: new Date().toISOString(),
-          ...(status === 'completed' ? { completed_at: new Date().toISOString() } : {}),
-        })
-        .eq('student_id', user!.id)
-        .eq('assignment_id', resolvedParams.id);
+        ...(quizScore !== undefined ? { quiz_score: quizScore } : {}),
+      } as Progress));
+    } catch (err) {
+      console.error('Failed to save progress:', err);
     }
-    setProgress((prev) => ({ ...prev, status, words_learned: wordsLearned } as Progress));
   };
 
   const handleLearningComplete = (wordsStudied: number, correct: number) => {
     const newStatus = wordsStudied >= words.length ? 'completed' : 'in_progress';
-    updateProgress(newStatus, wordsStudied);
+    const quizScore = wordsStudied > 0 ? Math.round((correct / wordsStudied) * 100) : null;
+    updateProgress(newStatus, wordsStudied, quizScore);
     setMode('overview');
   };
 
@@ -242,7 +256,7 @@ export default function AssignmentPage({ params }: { params: Promise<{ id: strin
           <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3">
             <div
               className="bg-blue-600 h-3 rounded-full transition-all"
-              style={{ width: `${((progress?.words_learned || 0) / words.length) * 100}%` }}
+              style={{ width: `${words.length > 0 ? ((progress?.words_learned || 0) / words.length) * 100 : 0}%` }}
             />
           </div>
         </div>
