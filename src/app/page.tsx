@@ -66,7 +66,8 @@ export default function HomePage() {
         access_token: json.session.access_token,
         refresh_token: json.session.refresh_token,
       });
-      router.push('/student');
+      // Full navigation so AuthContext re-initialises with the persisted session
+      window.location.href = '/student';
     } catch {
       setError('An unexpected error occurred. Please try again.');
       setLoading(false);
