@@ -94,22 +94,12 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Failed to enroll in class' }, { status: 500 });
   }
 
-  // Sign in to produce a real session the client can use
-  const { data: signInData, error: signInError } = await admin.auth.signInWithPassword({
-    email,
-    password,
-  });
-
-  if (signInError || !signInData.session) {
-    return NextResponse.json({ error: 'Account created but could not sign in. Please try again.' }, { status: 500 });
-  }
-
+  // Return credentials so the client can call signInWithPassword() directly.
+  // This avoids the setSession() lock contention that occurs when the page
+  // reloads immediately after acquiring the Supabase auth token lock.
   return NextResponse.json({
     success: true,
     className: classData.name,
-    session: {
-      access_token: signInData.session.access_token,
-      refresh_token: signInData.session.refresh_token,
-    },
+    credentials: { email, password },
   });
 }
