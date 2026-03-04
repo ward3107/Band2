@@ -1,30 +1,15 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
-import { supabase } from '@/lib/supabase';
 
 export default function TeacherLoginPage() {
-  const { signInWithGoogle } = useAuth();
+  const { signIn, signInWithGoogle } = useAuth();
   const router = useRouter();
   const [teacherCode, setTeacherCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-
-  // Prevent scrolling on login page
-  useEffect(() => {
-    document.body.style.overflow = 'hidden';
-    document.documentElement.style.overflow = 'hidden';
-    document.body.style.height = '100vh';
-    document.documentElement.style.height = '100vh';
-    return () => {
-      document.body.style.overflow = '';
-      document.documentElement.style.overflow = '';
-      document.body.style.height = '';
-      document.documentElement.style.height = '';
-    };
-  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -39,44 +24,21 @@ export default function TeacherLoginPage() {
     }
 
     try {
-      const response = await fetch('/api/teacher/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code }),
-      });
-
-      if (response.status === 429) {
-        setError('Too many login attempts. Please try again in 15 minutes.');
-        return;
-      }
-
-      const data = await response.json();
-
-      if (!response.ok || !data.session) {
+      const result = await signIn(`${code}@teacher.band2.app`, code);
+      if (result.error) {
         setError('Invalid teacher code. Please check your code and try again.');
-        return;
+      } else {
+        router.push('/teacher/dashboard');
       }
-
-      const { error: sessionError } = await supabase.auth.setSession({
-        access_token: data.session.access_token,
-        refresh_token: data.session.refresh_token,
-      });
-
-      if (sessionError) {
-        setError('Failed to sign in. Please try again.');
-        return;
-      }
-
-      router.push('/teacher/dashboard');
-    } catch {
-      setError('An error occurred. Please try again.');
+    } catch (err: any) {
+      setError(err?.message || 'An error occurred. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="h-screen bg-gradient-to-br from-indigo-600 to-purple-700 flex items-center justify-center p-4 overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-indigo-600 to-purple-700 flex items-center justify-center p-4">
       <div className="max-w-md w-full">
         {/* Logo */}
         <div className="text-center mb-8">
