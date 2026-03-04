@@ -266,10 +266,10 @@ export default function AssignmentPage({ params }: { params: Promise<{ id: strin
                 updateProgress('in_progress', progress?.words_learned || 0);
                 setMode('flashcards');
               }}
-              className="group bg-gradient-to-br from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white rounded-xl p-6 text-left transition-all hover:scale-[1.02] active:scale-[0.98] shadow-md hover:shadow-xl"
+              className="group bg-gradient-to-br from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white rounded-xl p-4 sm:p-6 text-left transition-all hover:scale-[1.02] active:scale-[0.98] shadow-md hover:shadow-xl"
             >
               <div className="text-4xl mb-3">🎴</div>
-              <h4 className="text-xl font-bold mb-2">{t('flashcardsMode')}</h4>
+              <h4 className="text-base sm:text-xl font-bold mb-2">{t('flashcardsMode')}</h4>
               <p className="text-blue-100 text-sm">
                 {t('flashcardsDescription')}
               </p>
@@ -280,10 +280,10 @@ export default function AssignmentPage({ params }: { params: Promise<{ id: strin
                 updateProgress('in_progress', progress?.words_learned || 0);
                 setMode('quiz');
               }}
-              className="group bg-gradient-to-br from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white rounded-xl p-6 text-left transition-all hover:scale-[1.02] active:scale-[0.98] shadow-md hover:shadow-xl"
+              className="group bg-gradient-to-br from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white rounded-xl p-4 sm:p-6 text-left transition-all hover:scale-[1.02] active:scale-[0.98] shadow-md hover:shadow-xl"
             >
               <div className="text-4xl mb-3">🧠</div>
-              <h4 className="text-xl font-bold mb-2">{t('quizMode')}</h4>
+              <h4 className="text-base sm:text-xl font-bold mb-2">{t('quizMode')}</h4>
               <p className="text-purple-100 text-sm">
                 {t('quizModeDescription')}
               </p>

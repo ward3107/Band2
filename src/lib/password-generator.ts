@@ -43,6 +43,19 @@ export function generatePIN(digits: number = 6): string {
 }
 
 /**
+ * Generate a unique 6-character teacher login code (uppercase letters + numbers)
+ * Excludes visually similar characters (I, O, 0, 1)
+ */
+export function generateTeacherCode(): string {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let code = '';
+  for (let i = 0; i < 6; i++) {
+    code += chars[crypto.randomInt(chars.length)];
+  }
+  return code;
+}
+
+/**
  * Parse CSV/Excel data for teacher import
  * Expected format: name,email or just email
  */

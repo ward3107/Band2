@@ -73,7 +73,8 @@ export default function CreateClassPage() {
         });
 
       if (createError) {
-        setError(createError.message || 'Failed to create class');
+        console.error('Create class error:', createError);
+        setError(`Failed to create class: ${createError.message} (code: ${createError.code})`);
         setLoading(false);
         return;
       }

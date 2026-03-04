@@ -77,13 +77,13 @@ export default function CompleteProfilePage() {
       <div className="max-w-md w-full">
         {/* Logo */}
         <div className="text-center mb-8">
-          <div className="text-6xl mb-2">📚</div>
-          <h1 className="text-3xl font-bold text-white">Vocab Band II</h1>
+          <div className="text-4xl sm:text-6xl mb-2">📚</div>
+          <h1 className="text-2xl sm:text-3xl font-bold text-white">Vocab Band II</h1>
           <p className="text-blue-200">Welcome, Student!</p>
         </div>
 
         {/* Form Card */}
-        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-8">
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-5 sm:p-8">
           <div className="text-center mb-6">
             <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-2xl font-bold">
               {user.email?.[0].toUpperCase()}
@@ -103,7 +103,7 @@ export default function CompleteProfilePage() {
           )}
 
           <div className="text-center py-6">
-            <div className="text-5xl mb-4">🎓</div>
+            <div className="text-4xl sm:text-5xl mb-4">🎓</div>
             <p className="text-gray-700 dark:text-gray-300 mb-6">
               You're ready to start learning vocabulary!
             </p>

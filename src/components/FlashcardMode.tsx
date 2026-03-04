@@ -94,7 +94,7 @@ export default function FlashcardMode({ words, onClose, onComplete }: FlashcardM
   if (currentIndex >= words.length) {
     return (
       <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-        <div className="bg-white dark:bg-gray-800 rounded-2xl p-8 max-w-md w-full text-center">
+        <div className="bg-white dark:bg-gray-800 rounded-2xl p-5 sm:p-8 max-w-md w-full text-center">
           <div className="text-6xl mb-4">🎉</div>
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
             {t('sessionComplete')}
@@ -176,14 +176,14 @@ export default function FlashcardMode({ words, onClose, onComplete }: FlashcardM
               }}
             >
               {/* Front */}
-              <div className={`absolute inset-0 p-8 flex flex-col items-center justify-center rounded-2xl ${
+              <div className={`absolute inset-0 p-5 sm:p-8 flex flex-col items-center justify-center rounded-2xl ${
                 flipped ? 'backface-hidden' : ''
               }`}
               style={{ backfaceVisibility: 'hidden' }}
               >
                 <button
                   onClick={(e) => { e.stopPropagation(); speakWord(); }}
-                  className="absolute top-4 right-4 text-blue-600 dark:text-blue-400 hover:scale-110 transition-transform"
+                  className="absolute top-2 right-2 text-blue-600 dark:text-blue-400 hover:scale-110 transition-transform min-w-[44px] min-h-[44px] flex items-center justify-center"
                 >
                   <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
@@ -202,7 +202,7 @@ export default function FlashcardMode({ words, onClose, onComplete }: FlashcardM
               </div>
 
               {/* Back */}
-              <div className={`absolute inset-0 p-8 flex flex-col items-center justify-center rounded-2xl bg-blue-50 dark:bg-blue-900/30 ${
+              <div className={`absolute inset-0 p-5 sm:p-8 flex flex-col items-center justify-center rounded-2xl bg-blue-50 dark:bg-blue-900/30 ${
                 flipped ? '' : 'backface-hidden'
               }`}
               style={{
@@ -224,11 +224,11 @@ export default function FlashcardMode({ words, onClose, onComplete }: FlashcardM
           </div>
 
           {/* Action Buttons */}
-          <div className="flex gap-4 mt-6">
+          <div className="flex gap-2 sm:gap-4 mt-4 sm:mt-6">
             <button
               onClick={() => handleSwipe(false)}
               disabled={!flipped}
-              className={`flex-1 py-4 rounded-xl font-semibold text-lg transition-all ${
+              className={`flex-1 py-3 sm:py-4 rounded-xl font-semibold text-base sm:text-lg transition-all ${
                 flipped
                   ? 'bg-red-500 hover:bg-red-600 text-white'
                   : 'bg-gray-200 dark:bg-gray-700 text-gray-400 cursor-not-allowed'
@@ -239,7 +239,7 @@ export default function FlashcardMode({ words, onClose, onComplete }: FlashcardM
             <button
               onClick={() => handleSwipe(true)}
               disabled={!flipped}
-              className={`flex-1 py-4 rounded-xl font-semibold text-lg transition-all ${
+              className={`flex-1 py-3 sm:py-4 rounded-xl font-semibold text-base sm:text-lg transition-all ${
                 flipped
                   ? 'bg-green-500 hover:bg-green-600 text-white'
                   : 'bg-gray-200 dark:bg-gray-700 text-gray-400 cursor-not-allowed'

@@ -118,7 +118,7 @@ export default function QuizMode({ words, onClose, onComplete }: QuizModeProps) 
   if (!quizStarted) {
     return (
       <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-        <div className="bg-white dark:bg-gray-800 rounded-2xl p-8 max-w-md w-full text-center">
+        <div className="bg-white dark:bg-gray-800 rounded-2xl p-5 sm:p-8 max-w-md w-full text-center">
           <div className="text-6xl mb-4">🧠</div>
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
             Quiz Time!
@@ -155,7 +155,7 @@ export default function QuizMode({ words, onClose, onComplete }: QuizModeProps) 
 
     return (
       <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-        <div className="bg-white dark:bg-gray-800 rounded-2xl p-8 max-w-md w-full text-center">
+        <div className="bg-white dark:bg-gray-800 rounded-2xl p-5 sm:p-8 max-w-md w-full text-center">
           <div className="text-6xl mb-4">
             {perfect ? '🏆' : percentage >= 80 ? '⭐' : percentage >= 60 ? '👍' : '💪'}
           </div>
@@ -216,7 +216,7 @@ export default function QuizMode({ words, onClose, onComplete }: QuizModeProps) 
       <div className="flex items-center justify-center min-h-[calc(100vh-140px)] p-4">
         <div className="w-full max-w-lg">
           {/* Question */}
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-8 mb-6 text-center">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-5 sm:p-8 mb-6 text-center">
             <button
               onClick={speakWord}
               className="mb-4 text-blue-600 dark:text-blue-400 hover:scale-110 transition-transform inline-block"
@@ -228,13 +228,13 @@ export default function QuizMode({ words, onClose, onComplete }: QuizModeProps) 
             <p className="text-gray-500 dark:text-gray-400 mb-2">
               What is the translation of:
             </p>
-            <h2 className="text-4xl font-bold text-gray-900 dark:text-white">
+            <h2 className="text-2xl sm:text-4xl font-bold text-gray-900 dark:text-white">
               {currentQuestion.word}
             </h2>
           </div>
 
           {/* Options */}
-          <div className="space-y-3">
+          <div className="space-y-2 sm:space-y-3">
             {currentQuestion.options.map((option, index) => {
               let buttonClass = 'bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700';
 
