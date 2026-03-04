@@ -88,12 +88,13 @@ export default function HomePage() {
         if (result.error) {
           setError(result.error);
         } else {
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('role')
-            .eq('id', result.data?.user?.id)
-            .single();
-          router.push(profile?.role === 'teacher' ? '/teacher/dashboard' : '/student');
+          // Profile is already loaded by handleSignIn in AuthContext — use it directly
+          const userRole = result.profile?.role;
+          if (userRole === 'teacher') {
+            router.push('/teacher/dashboard');
+          } else {
+            router.push('/student');
+          }
         }
       } else {
         if (!fullName.trim()) { setError(t('nameRequired')); setLoading(false); return; }
