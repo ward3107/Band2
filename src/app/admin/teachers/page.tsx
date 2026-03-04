@@ -74,16 +74,10 @@ export default function AdminTeachersPage() {
     }
   }, [guardLoading, profile]);
 
-  const checkAdminAndLoad = async () => {
+  const checkAdminAndLoad = () => {
     if (!profile) return;
 
-    const { data: profileData } = await supabase
-      .from('profiles')
-      .select('is_admin')
-      .eq('id', profile.id)
-      .single();
-
-    if (!profileData?.is_admin) {
+    if (!profile.is_admin) {
       router.push('/teacher/dashboard');
       return;
     }
@@ -94,7 +88,10 @@ export default function AdminTeachersPage() {
 
   const loadTeachers = async () => {
     const token = session?.access_token;
-    if (!token) return;
+    if (!token) {
+      setLoading(false);
+      return;
+    }
 
     try {
       const response = await fetch('/api/admin/teachers/bulk-create', {
