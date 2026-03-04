@@ -42,19 +42,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Supabase v2 fires INITIAL_SESSION immediately on subscribe, so this
-    // single listener handles both "restore existing session" and live changes.
-    // No need for a separate getSession() call which would double-fetch the profile.
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event, session) => {
+    // initAuth uses getSession() for a reliable, fast local-storage read on
+    // every page load / hard-refresh — no network call needed.
+    const initAuth = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
       setSessionState(session);
       setUser(session?.user ?? null);
       if (session?.user) {
-        // TOKEN_REFRESHED doesn't change the profile — skip the extra DB round-trip
-        if (event !== 'TOKEN_REFRESHED') {
-          await loadProfile(session.user.id);
-        }
+        await loadProfile(session.user.id);
+      } else {
+        setLoading(false);
+      }
+    };
+
+    initAuth();
+
+    // onAuthStateChange handles live auth events (sign-in, sign-out, token
+    // refresh). INITIAL_SESSION is skipped here because initAuth already
+    // handled it — this prevents the double loadProfile() call.
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === 'INITIAL_SESSION') return;
+
+      setSessionState(session);
+      setUser(session?.user ?? null);
+      if (session?.user) {
+        await loadProfile(session.user.id);
       } else {
         setProfile(null);
         setLoading(false);
