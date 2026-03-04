@@ -20,10 +20,13 @@ interface CodeTeacher {
 }
 
 function downloadCSV(teachers: { full_name: string; code: string }[]) {
-  const loginUrl = `${window.location.origin}/teacher/login`;
   const rows = [
-    ['Name', 'Code', 'Login URL'],
-    ...teachers.map((t) => [`"${t.full_name}"`, t.code, loginUrl]),
+    ['Name', 'Code', 'Login URL (with code pre-filled)'],
+    ...teachers.map((t) => [
+      `"${t.full_name}"`,
+      t.code,
+      `${window.location.origin}/teacher/login?code=${t.code}`,
+    ]),
   ];
   const csv = rows.map((r) => r.join(',')).join('\n');
   const blob = new Blob([csv], { type: 'text/csv' });
@@ -36,8 +39,9 @@ function downloadCSV(teachers: { full_name: string; code: string }[]) {
 }
 
 function sendViaWhatsApp(name: string, code: string) {
-  const loginUrl = `${window.location.origin}/teacher/login`;
-  const message = `Hi! Here are your Vocab Band II teacher login details:\n\nName: ${name}\nCode: ${code}\n\nLogin at: ${loginUrl}`;
+  // Include ?code= in the URL so the teacher just taps the link and the code is pre-filled
+  const loginUrl = `${window.location.origin}/teacher/login?code=${code}`;
+  const message = `Hi ${name}! 👩‍🏫\n\nYour Vocab Band II teacher login code is: *${code}*\n\nTap this link to sign in — your code will be filled in automatically:\n${loginUrl}`;
   window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank');
 }
 

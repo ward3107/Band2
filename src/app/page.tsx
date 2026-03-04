@@ -294,12 +294,41 @@ export default function HomePage() {
             </div>
 
           ) : studentView === 'join' ? (
-            /* ── Student: JOIN with class code (primary view) ── */
+            /* ── Student: primary view — returning login + join form ── */
             <>
-              <div className="flex items-center gap-3 mb-5">
-                <span className="text-4xl">🎓</span>
+              {/* Returning student: always-visible personal code sign-in */}
+              <div className="mb-5 p-4 bg-blue-50 dark:bg-blue-900/20 border-2 border-blue-200 dark:border-blue-700 rounded-2xl">
+                <p className="text-sm font-semibold text-blue-800 dark:text-blue-200 mb-2">🔑 Already joined before? Enter your personal code</p>
+                <form onSubmit={handleReturningStudentSubmit} className="flex gap-2">
+                  <input
+                    type="text"
+                    value={returningCode}
+                    onChange={(e) => setReturningCode(e.target.value.toUpperCase())}
+                    className="flex-1 min-w-0 px-3 py-2.5 rounded-xl border-2 border-blue-300 dark:border-blue-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-center text-lg font-mono tracking-[0.15em] focus:border-blue-500 focus:outline-none"
+                    placeholder="AB3X7QKP"
+                    maxLength={8}
+                    autoComplete="off"
+                    autoCapitalize="characters"
+                  />
+                  <button
+                    type="submit"
+                    disabled={loading || returningCode.length < 6}
+                    className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 dark:disabled:bg-gray-600 disabled:cursor-not-allowed text-white font-semibold rounded-xl transition-colors text-sm whitespace-nowrap"
+                  >
+                    {loading ? '...' : 'Sign In →'}
+                  </button>
+                </form>
+              </div>
+
+              <div className="relative mb-4">
+                <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-gray-200 dark:border-gray-600"></div></div>
+                <div className="relative flex justify-center text-xs"><span className="px-2 bg-white dark:bg-gray-800 text-gray-400">or join a new class</span></div>
+              </div>
+
+              <div className="flex items-center gap-3 mb-4">
+                <span className="text-3xl">🎓</span>
                 <div>
-                  <h2 className="text-xl font-bold text-gray-900 dark:text-white">Join Your Class</h2>
+                  <h2 className="text-lg font-bold text-gray-900 dark:text-white">Join Your Class</h2>
                   <p className="text-xs text-gray-500 dark:text-gray-400">No account needed</p>
                 </div>
               </div>
@@ -347,16 +376,6 @@ export default function HomePage() {
                   {loading ? 'Joining...' : 'Join Class →'}
                 </button>
               </form>
-
-              <div className="mt-5 text-center text-sm text-gray-400">
-                Already have an account?{' '}
-                <button
-                  onClick={() => { setStudentView('signin'); setError(''); }}
-                  className="text-blue-600 dark:text-blue-400 hover:underline font-medium"
-                >
-                  Sign in
-                </button>
-              </div>
             </>
 
           ) : (

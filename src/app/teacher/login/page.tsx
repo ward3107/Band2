@@ -1,15 +1,22 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 
-export default function TeacherLoginPage() {
+function TeacherLoginForm() {
   const { signIn, signInWithGoogle } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [teacherCode, setTeacherCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  // Pre-fill code from URL param — when admin sends WhatsApp with ?code=XXX link
+  useEffect(() => {
+    const codeParam = searchParams.get('code');
+    if (codeParam) setTeacherCode(codeParam.toUpperCase());
+  }, [searchParams]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -136,5 +143,17 @@ export default function TeacherLoginPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function TeacherLoginPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gradient-to-br from-indigo-600 to-purple-700 flex items-center justify-center">
+        <div className="text-white text-lg">Loading...</div>
+      </div>
+    }>
+      <TeacherLoginForm />
+    </Suspense>
   );
 }

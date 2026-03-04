@@ -135,55 +135,49 @@ function JoinForm() {
         <p className="text-green-200 text-sm">Join your class — no account needed</p>
       </div>
 
-      {/* Card */}
+      {/* Returning student card — shown first, always visible */}
+      <div className="bg-blue-600 rounded-2xl shadow-2xl p-5 mb-3">
+        <h2 className="text-base font-bold text-white mb-3">🔑 Already joined before? Sign in with your personal code</h2>
+
+        {error && showReturning && (
+          <div className="mb-3 p-3 bg-red-100 border border-red-400 rounded-lg">
+            <p className="text-red-700 text-sm">{error}</p>
+          </div>
+        )}
+
+        <form onSubmit={handleReturningSubmit} className="space-y-3">
+          <input
+            type="text"
+            value={returningCode}
+            onChange={(e) => { setReturningCode(e.target.value.toUpperCase()); setShowReturning(true); }}
+            className="w-full px-4 py-3 rounded-xl border-2 border-blue-400 bg-white text-gray-900 text-center text-2xl font-mono tracking-[0.2em] focus:border-blue-200 focus:outline-none transition-colors"
+            placeholder="AB3X7QKP"
+            maxLength={8}
+            autoComplete="off"
+            autoCapitalize="characters"
+          />
+          <button
+            type="submit"
+            disabled={loading || returningCode.length < 6}
+            className="w-full bg-white hover:bg-blue-50 disabled:bg-blue-400 disabled:text-blue-200 disabled:cursor-not-allowed text-blue-700 font-bold py-3 rounded-xl transition-colors"
+          >
+            {loading ? 'Signing in...' : 'Sign In with My Code →'}
+          </button>
+        </form>
+      </div>
+
+      {/* Join new class card */}
       <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-6 sm:p-8">
-        <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-1">Enter class details</h2>
+        <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-1">Join a new class</h2>
         <p className="text-sm text-gray-500 dark:text-gray-400 mb-5">
           Your teacher shared a code via WhatsApp
         </p>
 
-        {error && (
+        {error && !showReturning && (
           <div className="mb-4 p-3 bg-red-100 dark:bg-red-900/30 border border-red-400 dark:border-red-600 rounded-lg">
             <p className="text-red-700 dark:text-red-300 text-sm">{error}</p>
           </div>
         )}
-
-        {/* Returning student shortcut */}
-        <div className="mb-4">
-          <button
-            type="button"
-            onClick={() => { setShowReturning(!showReturning); setError(''); }}
-            className="w-full flex items-center justify-between p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-xl text-sm font-medium text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/40 transition-colors"
-          >
-            <span>🔑 Already joined before? Use your personal code</span>
-            <span>{showReturning ? '▲' : '▼'}</span>
-          </button>
-          {showReturning && (
-            <form onSubmit={handleReturningSubmit} className="mt-3 space-y-3">
-              <input
-                type="text"
-                value={returningCode}
-                onChange={(e) => setReturningCode(e.target.value.toUpperCase())}
-                className="w-full px-4 py-3 rounded-xl border-2 border-blue-300 dark:border-blue-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-center text-2xl font-mono tracking-[0.2em] focus:border-blue-500 focus:outline-none transition-colors"
-                placeholder="AB3X7QKP"
-                maxLength={8}
-                autoComplete="off"
-                autoCapitalize="characters"
-              />
-              <button
-                type="submit"
-                disabled={loading || returningCode.length < 6}
-                className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 dark:disabled:bg-gray-600 disabled:cursor-not-allowed text-white font-semibold py-2.5 rounded-xl transition-colors"
-              >
-                {loading ? 'Signing in...' : 'Sign In with Code →'}
-              </button>
-            </form>
-          )}
-          <div className="relative mt-4 mb-1">
-            <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-gray-200 dark:border-gray-600"></div></div>
-            <div className="relative flex justify-center text-xs"><span className="px-2 bg-white dark:bg-gray-800 text-gray-400">or join a new class</span></div>
-          </div>
-        </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Class code */}
@@ -238,12 +232,6 @@ function JoinForm() {
           </button>
         </form>
 
-        <div className="mt-5 text-center text-sm text-gray-400">
-          Already have an account?{' '}
-          <a href="/" className="text-green-600 dark:text-green-400 hover:underline font-medium">
-            Sign in
-          </a>
-        </div>
       </div>
     </div>
   );
@@ -251,7 +239,7 @@ function JoinForm() {
 
 export default function JoinPage() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-600 to-blue-700 flex items-start sm:items-center justify-center p-4 py-8">
+    <div className="min-h-screen bg-gradient-to-br from-green-600 to-blue-700 flex items-start sm:items-center justify-center p-4 py-8 overflow-y-auto">
       <Suspense fallback={<div className="text-white text-lg">Loading...</div>}>
         <JoinForm />
       </Suspense>

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase, Class, Assignment } from '@/lib/supabase';
 import { useRoleGuard } from '@/hooks/useRoleGuard';
@@ -20,44 +20,50 @@ export default function TeacherDashboardPage() {
   const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [copiedCode, setCopiedCode] = useState<string | null>(null);
 
   useEffect(() => {
     if (!guardLoading && profile?.role === 'teacher') {
       loadData();
     }
-  }, [guardLoading, profile]);
+  }, [guardLoading, profile, loadData]);
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     if (!profile) return;
 
-    // Check if user is admin
-    const { data: profileData } = await supabase
-      .from('profiles')
-      .select('is_admin')
-      .eq('id', profile.id)
-      .single();
+    try {
+      // Check if user is admin
+      const { data: profileData } = await supabase
+        .from('profiles')
+        .select('is_admin')
+        .eq('id', profile.id)
+        .maybeSingle();
 
-    setIsAdmin(profileData?.is_admin || false);
+      setIsAdmin(profileData?.is_admin || false);
 
-    // Load classes
-    const { data: classesData } = await supabase
-      .from('classes')
-      .select('*')
-      .eq('teacher_id', profile.id)
-      .order('created_at', { ascending: false });
+      // Load classes
+      const { data: classesData } = await supabase
+        .from('classes')
+        .select('*')
+        .eq('teacher_id', profile.id)
+        .order('created_at', { ascending: false });
 
-    setClasses(classesData || []);
+      setClasses(classesData || []);
 
-    // Load assignments
-    const { data: assignmentsData } = await supabase
-      .from('assignments')
-      .select('*')
-      .eq('teacher_id', profile.id)
-      .order('created_at', { ascending: false });
+      // Load assignments
+      const { data: assignmentsData } = await supabase
+        .from('assignments')
+        .select('*')
+        .eq('teacher_id', profile.id)
+        .order('created_at', { ascending: false });
 
-    setAssignments(assignmentsData || []);
-    setLoading(false);
-  };
+      setAssignments(assignmentsData || []);
+    } catch {
+      // silently fall through — show empty state rather than infinite spinner
+    } finally {
+      setLoading(false);
+    }
+  }, [profile]);
 
   const handleSignOut = async () => {
     await signOut();
@@ -66,6 +72,13 @@ export default function TeacherDashboardPage() {
 
   const handleCreateAssignment = () => {
     router.push('/teacher/assignments/create');
+  };
+
+  const copyClassCode = (code: string) => {
+    navigator.clipboard.writeText(code).then(() => {
+      setCopiedCode(code);
+      setTimeout(() => setCopiedCode(null), 2000);
+    });
   };
 
   if (loading || guardLoading) {
@@ -182,7 +195,16 @@ export default function TeacherDashboardPage() {
               {classes.map((cls) => (
                 <div key={cls.id} className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow">
                   <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">{cls.name}</h3>
-                  <p className="text-gray-600 dark:text-gray-400 mb-4">Class Code: <span className="font-mono bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded">{cls.class_code}</span></p>
+                  <div className="flex items-center gap-2 mb-4">
+                    <p className="text-gray-600 dark:text-gray-400">Code: <span className="font-mono bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded text-sm font-bold tracking-wider">{cls.class_code}</span></p>
+                    <button
+                      onClick={() => copyClassCode(cls.class_code)}
+                      className="text-xs px-2 py-1 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded text-gray-600 dark:text-gray-300 font-medium transition-colors"
+                      title="Copy class code"
+                    >
+                      {copiedCode === cls.class_code ? '✓ Copied!' : 'Copy'}
+                    </button>
+                  </div>
                   <div className="flex gap-2">
                     <button
                       onClick={() => sendClassViaWhatsApp(cls.name, cls.class_code)}
