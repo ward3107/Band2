@@ -30,7 +30,7 @@ interface AuthContextType {
   signUp: (email: string, password: string, fullName: string, role: 'teacher' | 'student') => Promise<SignUpResult>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
-  setSession: (session: Session | null) => void;
+  setSession: (session: Session | null) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);

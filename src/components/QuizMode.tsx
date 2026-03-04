@@ -44,6 +44,18 @@ export default function QuizMode({ words, onClose, onComplete }: QuizModeProps) 
   const [score, setScore] = useState(0);
   const [quizComplete, setQuizComplete] = useState(false);
   const [quizStarted, setQuizStarted] = useState(false);
+  const completionHandled = useRef(false);
+
+  useEffect(() => {
+    if (quizComplete && !completionHandled.current) {
+      completionHandled.current = true;
+      const percentage = Math.round((score / questions.length) * 100);
+      unlockQuizAchievement(percentage === 100);
+      if (onComplete) {
+        onComplete(questions.length, score);
+      }
+    }
+  }, [quizComplete]);
 
   // Generate questions on mount
   const generateQuestions = () => {
@@ -149,18 +161,6 @@ export default function QuizMode({ words, onClose, onComplete }: QuizModeProps) 
       </div>
     );
   }
-
-  const completionHandled = useRef(false);
-  useEffect(() => {
-    if (quizComplete && !completionHandled.current) {
-      completionHandled.current = true;
-      const percentage = Math.round((score / questions.length) * 100);
-      unlockQuizAchievement(percentage === 100);
-      if (onComplete) {
-        onComplete(questions.length, score);
-      }
-    }
-  }, [quizComplete]);
 
   if (quizComplete) {
     const percentage = Math.round((score / questions.length) * 100);
