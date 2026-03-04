@@ -147,6 +147,7 @@ CREATE INDEX IF NOT EXISTS idx_activities_student ON public.learning_activities(
 
 -- ============================================
 -- RLS (ROW LEVEL SECURITY) POLICIES
+-- Drop before create so this file can be re-run safely.
 -- ============================================
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.classes ENABLE ROW LEVEL SECURITY;
@@ -158,37 +159,43 @@ ALTER TABLE public.word_progress ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.learning_activities ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.assignment_stories ENABLE ROW LEVEL SECURITY;
 
--- Profiles: Users can manage their own profile
+-- Profiles
+DROP POLICY IF EXISTS "Users can view own profile" ON public.profiles;
 CREATE POLICY "Users can view own profile" ON public.profiles
   FOR SELECT USING (auth.uid() = id);
 
--- Required for signUp() and OAuth callback to create the initial profile row.
--- The WITH CHECK ensures a user can only insert a row for themselves.
+DROP POLICY IF EXISTS "Users can insert own profile" ON public.profiles;
 CREATE POLICY "Users can insert own profile" ON public.profiles
   FOR INSERT WITH CHECK (auth.uid() = id);
 
+DROP POLICY IF EXISTS "Users can update own profile" ON public.profiles;
 CREATE POLICY "Users can update own profile" ON public.profiles
   FOR UPDATE USING (auth.uid() = id);
 
--- Classes: Teachers can view their own classes, students can view classes they're enrolled in
+-- Classes
+DROP POLICY IF EXISTS "Teachers can view own classes" ON public.classes;
 CREATE POLICY "Teachers can view own classes" ON public.classes
   FOR SELECT USING (
     EXISTS (SELECT 1 FROM public.profiles WHERE id = teacher_id AND id = auth.uid())
   );
 
+DROP POLICY IF EXISTS "Students can view enrolled classes" ON public.classes;
 CREATE POLICY "Students can view enrolled classes" ON public.classes
   FOR SELECT USING (
     EXISTS (SELECT 1 FROM public.class_enrollments WHERE class_id = classes.id AND student_id = auth.uid())
   );
 
--- Class enrollments: Students can see their enrollments
+-- Class enrollments
+DROP POLICY IF EXISTS "Students can view own enrollments" ON public.class_enrollments;
 CREATE POLICY "Students can view own enrollments" ON public.class_enrollments
   FOR SELECT USING (student_id = auth.uid());
 
--- Assignments: Teachers can view their assignments, students can view assignments for their classes
+-- Assignments
+DROP POLICY IF EXISTS "Teachers can view own assignments" ON public.assignments;
 CREATE POLICY "Teachers can view own assignments" ON public.assignments
   FOR SELECT USING (teacher_id = auth.uid());
 
+DROP POLICY IF EXISTS "Students can view class assignments" ON public.assignments;
 CREATE POLICY "Students can view class assignments" ON public.assignments
   FOR SELECT USING (
     EXISTS (
@@ -199,10 +206,12 @@ CREATE POLICY "Students can view class assignments" ON public.assignments
     )
   );
 
--- Student progress: Students can view their own progress, teachers can view their students' progress
+-- Student progress
+DROP POLICY IF EXISTS "Students can view own progress" ON public.student_assignment_progress;
 CREATE POLICY "Students can view own progress" ON public.student_assignment_progress
   FOR SELECT USING (student_id = auth.uid());
 
+DROP POLICY IF EXISTS "Teachers can view student progress" ON public.student_assignment_progress;
 CREATE POLICY "Teachers can view student progress" ON public.student_assignment_progress
   FOR SELECT USING (
     EXISTS (
@@ -214,10 +223,12 @@ CREATE POLICY "Teachers can view student progress" ON public.student_assignment_
     )
   );
 
--- Word progress: Students can view their own, teachers can view their students'
+-- Word progress
+DROP POLICY IF EXISTS "Students can view own word progress" ON public.word_progress;
 CREATE POLICY "Students can view own word progress" ON public.word_progress
   FOR SELECT USING (student_id = auth.uid());
 
+DROP POLICY IF EXISTS "Teachers can view student word progress" ON public.word_progress;
 CREATE POLICY "Teachers can view student word progress" ON public.word_progress
   FOR SELECT USING (
     EXISTS (
@@ -227,10 +238,12 @@ CREATE POLICY "Teachers can view student word progress" ON public.word_progress
     )
   );
 
--- Learning activities: Students can view their own, teachers can view their students'
+-- Learning activities
+DROP POLICY IF EXISTS "Students can view own activities" ON public.learning_activities;
 CREATE POLICY "Students can view own activities" ON public.learning_activities
   FOR SELECT USING (student_id = auth.uid());
 
+DROP POLICY IF EXISTS "Teachers can view student activities" ON public.learning_activities;
 CREATE POLICY "Teachers can view student activities" ON public.learning_activities
   FOR SELECT USING (
     EXISTS (
@@ -240,7 +253,8 @@ CREATE POLICY "Teachers can view student activities" ON public.learning_activiti
     )
   );
 
--- Stories: Anyone who can view the assignment can view the story
+-- Assignment stories
+DROP POLICY IF EXISTS "Users can view assignment stories" ON public.assignment_stories;
 CREATE POLICY "Users can view assignment stories" ON public.assignment_stories
   FOR SELECT USING (
     EXISTS (
@@ -275,7 +289,7 @@ CREATE INDEX IF NOT EXISTS idx_approved_teachers_email ON public.approved_teache
 
 ALTER TABLE public.approved_teachers ENABLE ROW LEVEL SECURITY;
 
--- Only admins can read/write the approved teachers list
+DROP POLICY IF EXISTS "Admins can manage approved teachers" ON public.approved_teachers;
 CREATE POLICY "Admins can manage approved teachers" ON public.approved_teachers
   FOR ALL USING (
     EXISTS (
@@ -288,6 +302,7 @@ CREATE POLICY "Admins can manage approved teachers" ON public.approved_teachers
 -- This is needed during the Google OAuth callback: the user has no profile yet
 -- so the admin policy above blocks them. This narrow SELECT policy lets the
 -- callback look up only the row that matches the caller's own email.
+DROP POLICY IF EXISTS "Users can check own approval status" ON public.approved_teachers;
 CREATE POLICY "Users can check own approval status" ON public.approved_teachers
   FOR SELECT USING (
     email = (SELECT email FROM auth.users WHERE id = auth.uid())
