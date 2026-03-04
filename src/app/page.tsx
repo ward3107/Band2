@@ -194,10 +194,12 @@ export default function HomePage() {
             /* Teacher: code-only sign-in */
             <form onSubmit={handleTeacherCodeSubmit} className="space-y-4 flex-1">
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <label htmlFor="teacherCode" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Teacher Code
                 </label>
                 <input
+                  id="teacherCode"
+                  name="teacherCode"
                   type="text"
                   value={teacherCode}
                   onChange={(e) => setTeacherCode(e.target.value.toUpperCase())}
@@ -260,10 +262,12 @@ export default function HomePage() {
               <form onSubmit={handleSubmit} className="space-y-4 flex-1">
                 {!isLogin && (
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    <label htmlFor="fullName" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                       {t('fullName')}
                     </label>
                     <input
+                      id="fullName"
+                      name="fullName"
                       type="text"
                       value={fullName}
                       onChange={(e) => setFullName(e.target.value)}
@@ -275,10 +279,12 @@ export default function HomePage() {
                 )}
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     {t('email')}
                   </label>
                   <input
+                    id="email"
+                    name="email"
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
@@ -290,10 +296,12 @@ export default function HomePage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  <label htmlFor="password" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     {t('password')}
                   </label>
                   <input
+                    id="password"
+                    name="password"
                     type="password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
