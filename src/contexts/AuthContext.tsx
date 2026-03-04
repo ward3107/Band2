@@ -7,6 +7,7 @@ import { User, Session, AuthError } from '@supabase/supabase-js';
 interface SignInResult {
   data: { user: User | null; session: Session | null } | null;
   error: string | null;
+  profile?: Profile | null;
 }
 
 interface SignUpResult {
@@ -72,7 +73,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => subscription.unsubscribe();
   }, []);
 
-  const loadProfile = async (userId: string) => {
+  const loadProfile = async (userId: string): Promise<Profile | null> => {
+    let profileData: Profile | null = null;
     try {
       const { data, error } = await supabase
         .from('profiles')
@@ -80,11 +82,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         .eq('id', userId)
         .maybeSingle(); // Use maybeSingle to avoid error if not found
 
-      setProfile(error ? null : data);
+      profileData = error ? null : data;
+      setProfile(profileData);
     } catch {
       setProfile(null);
     }
     setLoading(false);
+    return profileData;
   };
 
   const handleSignIn = async (email: string, password: string) => {
@@ -94,9 +98,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // before onAuthStateChange fires asynchronously.
       setUser(result.data.user);
       setSessionState(result.data.session);
-      await loadProfile(result.data.user.id);
+      const profile = await loadProfile(result.data.user.id);
+      return { ...result, profile };
     }
-    return result;
+    return { ...result, profile: null };
   };
 
   const handleSignInWithGoogle = async () => {
