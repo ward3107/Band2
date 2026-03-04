@@ -60,16 +60,8 @@ export default function HomePage() {
         if (result.error) {
           setError(result.error);
         } else {
-          // Check user's role from profile
-          const { supabase } = await import('@/lib/supabase');
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('role')
-            .eq('id', result.data?.user?.id)
-            .single();
-
-          const userRole = profile?.role;
-
+          // Profile is already loaded by handleSignIn in AuthContext — use it directly
+          const userRole = result.profile?.role;
           if (userRole === 'teacher') {
             router.push('/teacher/dashboard');
           } else {
