@@ -31,7 +31,7 @@ export default function OAuthCallbackPage() {
         // Check if approved teacher
         const { data: approvedTeacher } = await supabase
           .from('approved_teachers')
-          .select('full_name')
+          .select('full_name, is_admin')
           .eq('email', session.user.email)
           .maybeSingle();
 
@@ -43,7 +43,7 @@ export default function OAuthCallbackPage() {
               email: session.user.email,
               full_name: approvedTeacher.full_name || session.user.user_metadata?.full_name || session.user.email?.split('@')[0],
               role: 'teacher',
-              is_admin: false,
+              is_admin: approvedTeacher.is_admin ?? false,
               created_at: new Date().toISOString()
             });
           redirectUrl = '/teacher/dashboard';
@@ -88,7 +88,7 @@ export default function OAuthCallbackPage() {
           // No profile yet — check if this is an approved teacher
           const { data: approvedTeacher } = await supabase
             .from('approved_teachers')
-            .select('full_name')
+            .select('full_name, is_admin')
             .eq('email', session.user.email)
             .maybeSingle();
 
@@ -100,7 +100,7 @@ export default function OAuthCallbackPage() {
                 email: session.user.email,
                 full_name: approvedTeacher.full_name || session.user.user_metadata?.full_name || session.user.email?.split('@')[0],
                 role: 'teacher',
-                is_admin: false,
+                is_admin: approvedTeacher.is_admin ?? false,
                 created_at: new Date().toISOString(),
               });
 
