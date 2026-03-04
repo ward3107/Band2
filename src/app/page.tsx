@@ -106,11 +106,11 @@ export default function HomePage() {
       {/* Two Equal Cards Side by Side */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 w-full max-w-5xl">
         {/* Left Card - Logo, Title & Role Selector */}
-        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-8 flex flex-col">
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-5 sm:p-8 flex flex-col">
           {/* Logo & Title */}
           <div className="text-center mb-8">
-            <div className="text-6xl mb-3">📚</div>
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">{t('appTitle')}</h1>
+            <div className="text-4xl sm:text-6xl mb-3">📚</div>
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-2">{t('appTitle')}</h1>
             <p className="text-gray-600 dark:text-gray-400">{t('appSubtitle')}</p>
           </div>
 
@@ -149,7 +149,7 @@ export default function HomePage() {
         </div>
 
         {/* Right Card - Login Form */}
-        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-8 flex flex-col">
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-5 sm:p-8 flex flex-col">
           <div className="flex items-center gap-3 mb-6">
             <span className="text-4xl">{role === 'teacher' ? '👩‍🏫' : '🎓'}</span>
             <h2 className="text-2xl font-bold text-gray-900 dark:text-white">

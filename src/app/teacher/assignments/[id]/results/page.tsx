@@ -141,22 +141,22 @@ export default function AssignmentResultsPage({ params }: { params: Promise<{ id
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Stats */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
-          <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm">
-            <div className="text-3xl font-bold text-gray-900 dark:text-white">{students.length}</div>
+          <div className="bg-white dark:bg-gray-800 rounded-xl p-4 sm:p-6 shadow-sm">
+            <div className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">{students.length}</div>
             <div className="text-sm text-gray-600 dark:text-gray-400">Total Students</div>
           </div>
-          <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm">
-            <div className="text-3xl font-bold text-green-600 dark:text-green-400">{getCompletionRate()}%</div>
+          <div className="bg-white dark:bg-gray-800 rounded-xl p-4 sm:p-6 shadow-sm">
+            <div className="text-2xl sm:text-3xl font-bold text-green-600 dark:text-green-400">{getCompletionRate()}%</div>
             <div className="text-sm text-gray-600 dark:text-gray-400">Completion Rate</div>
           </div>
-          <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm">
-            <div className="text-3xl font-bold text-blue-600 dark:text-blue-400">
+          <div className="bg-white dark:bg-gray-800 rounded-xl p-4 sm:p-6 shadow-sm">
+            <div className="text-2xl sm:text-3xl font-bold text-blue-600 dark:text-blue-400">
               {students.filter(s => s.status === 'in_progress').length}
             </div>
             <div className="text-sm text-gray-600 dark:text-gray-400">In Progress</div>
           </div>
-          <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm">
-            <div className="text-3xl font-bold text-purple-600 dark:text-purple-400">
+          <div className="bg-white dark:bg-gray-800 rounded-xl p-4 sm:p-6 shadow-sm">
+            <div className="text-2xl sm:text-3xl font-bold text-purple-600 dark:text-purple-400">
               {getAverageScore() ?? '-'}
             </div>
             <div className="text-sm text-gray-600 dark:text-gray-400">Avg Quiz Score</div>
