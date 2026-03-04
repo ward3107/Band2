@@ -6,6 +6,11 @@ import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import FlashcardMode from '@/components/FlashcardMode';
 import QuizMode from '@/components/QuizMode';
+import FillInBlankMode from '@/components/FillInBlankMode';
+import MatchingMode from '@/components/MatchingMode';
+import StoryMode from '@/components/StoryMode';
+import SpellingMode from '@/components/SpellingMode';
+import WordScrambleMode from '@/components/WordScrambleMode';
 import { useLanguage } from '@/contexts/LanguageContext';
 
 interface Assignment {
@@ -15,6 +20,8 @@ interface Assignment {
   total_words: number;
   deadline: string;
   words: string[];
+  word_ids?: string[];
+  allowed_modes?: string[] | null;
 }
 
 interface Progress {
@@ -33,6 +40,27 @@ interface VocabularyWord {
   type: string;
 }
 
+interface LeaderboardEntry {
+  student_id: string;
+  words_learned: number;
+  quiz_score: number | null;
+  student: { full_name: string } | null;
+}
+
+const ALL_MODES = ['flashcard', 'quiz', 'fillinblank', 'matching', 'story', 'spelling', 'scramble'];
+
+const MODE_CONFIG = [
+  { key: 'flashcard',   icon: '🎴', label: 'Flashcards',    desc: 'Flip & review',            color: 'from-blue-500 to-blue-600' },
+  { key: 'quiz',        icon: '🧠', label: 'Quiz',          desc: '4-choice quiz',             color: 'from-purple-500 to-purple-600' },
+  { key: 'fillinblank', icon: '✏️', label: 'Fill in Blank', desc: 'Complete sentences',         color: 'from-green-500 to-green-600' },
+  { key: 'matching',    icon: '🔗', label: 'Matching',      desc: 'Match words & meanings',    color: 'from-orange-500 to-orange-600' },
+  { key: 'story',       icon: '📖', label: 'Story',         desc: 'Read & answer questions',   color: 'from-teal-500 to-teal-600' },
+  { key: 'spelling',    icon: '🔊', label: 'Spelling',      desc: 'Hear & type the word',      color: 'from-rose-500 to-rose-600' },
+  { key: 'scramble',    icon: '🔀', label: 'Word Scramble', desc: 'Unscramble the letters',    color: 'from-yellow-500 to-yellow-600' },
+];
+
+type Mode = 'overview' | 'flashcard' | 'quiz' | 'fillinblank' | 'matching' | 'story' | 'spelling' | 'scramble';
+
 export default function AssignmentPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
   const { user, profile, loading: guardLoading } = useRoleGuard('student', {
@@ -44,8 +72,9 @@ export default function AssignmentPage({ params }: { params: Promise<{ id: strin
   const [assignment, setAssignment] = useState<Assignment | null>(null);
   const [progress, setProgress] = useState<Progress | null>(null);
   const [words, setWords] = useState<VocabularyWord[]>([]);
+  const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [loading, setLoading] = useState(true);
-  const [mode, setMode] = useState<'overview' | 'flashcards' | 'quiz'>('overview');
+  const [mode, setMode] = useState<Mode>('overview');
 
   useEffect(() => {
     if (user && profile?.role === 'student') {
@@ -55,7 +84,6 @@ export default function AssignmentPage({ params }: { params: Promise<{ id: strin
 
   const loadData = async () => {
     try {
-      // Load assignment with progress
       const { data: assignmentData } = await supabase
         .from('assignments')
         .select('*')
@@ -67,19 +95,10 @@ export default function AssignmentPage({ params }: { params: Promise<{ id: strin
         return;
       }
 
-      const assignmentWithWords = assignmentData as Assignment & { words?: string[] };
+      const wordIds: string[] = assignmentData.word_ids || assignmentData.words || [];
+      const normalised = { ...assignmentData, words: wordIds };
+      setAssignment(normalised);
 
-      // Handle if words array exists
-      if (assignmentWithWords.words && Array.isArray(assignmentWithWords.words)) {
-        assignmentWithWords.words = assignmentWithWords.words;
-      } else {
-        // If no words specified, use empty array
-        assignmentWithWords.words = [];
-      }
-
-      setAssignment(assignmentWithWords);
-
-      // Load progress
       const { data: progressData } = await supabase
         .from('student_assignment_progress')
         .select('*')
@@ -87,35 +106,38 @@ export default function AssignmentPage({ params }: { params: Promise<{ id: strin
         .eq('assignment_id', resolvedParams.id)
         .single();
 
-      setProgress(progressData || {
-        status: 'not_started',
-        words_learned: 0,
-        quiz_score: null,
-      });
+      setProgress(progressData || { status: 'not_started', words_learned: 0, quiz_score: null });
 
-      // Load all vocabulary and filter to assignment words
       const response = await fetch('/vocabulary.json');
-      if (!response.ok) throw new Error(`Failed to load vocabulary: HTTP ${response.status}`);
+      if (!response.ok) throw new Error('Failed to load vocabulary');
       const data = await response.json();
-      const allWords = data.words || [];
+      const allWords: VocabularyWord[] = data.words || [];
 
-      // Filter words if assignment has word IDs, otherwise show empty
-      const assignmentWords = assignmentWithWords.words && assignmentWithWords.words.length > 0
-        ? allWords.filter((w: VocabularyWord) => assignmentWithWords.words!.includes(w.id))
-        : allWords.slice(0, assignmentWithWords.total_words || 10); // Show first N words as fallback
+      const assignmentWords = wordIds.length > 0
+        ? allWords.filter((w) => wordIds.includes(w.id))
+        : allWords.slice(0, assignmentData.total_words || 10);
 
       setWords(assignmentWords);
+
+      // Load leaderboard
+      const { data: lbData } = await supabase
+        .from('student_assignment_progress')
+        .select('student_id, words_learned, quiz_score, student:profiles(full_name)')
+        .eq('assignment_id', resolvedParams.id)
+        .order('words_learned', { ascending: false })
+        .limit(10);
+
+      setLeaderboard((lbData as LeaderboardEntry[]) || []);
     } catch {
-      // errors handled by null assignment check below
+      // errors handled by null assignment check
     } finally {
       setLoading(false);
     }
   };
 
   const updateProgress = async (status: 'in_progress' | 'completed', wordsLearned: number) => {
-    if (!progress) {
-      // Create new progress record
-      await supabase.from('student_assignment_progress').insert({
+    if (!progress || progress.status === 'not_started') {
+      await supabase.from('student_assignment_progress').upsert({
         student_id: user!.id,
         assignment_id: resolvedParams.id,
         status,
@@ -123,7 +145,6 @@ export default function AssignmentPage({ params }: { params: Promise<{ id: strin
         last_activity: new Date().toISOString(),
       });
     } else {
-      // Update existing progress
       await supabase
         .from('student_assignment_progress')
         .update({
@@ -138,10 +159,15 @@ export default function AssignmentPage({ params }: { params: Promise<{ id: strin
     setProgress((prev) => ({ ...prev, status, words_learned: wordsLearned } as Progress));
   };
 
-  const handleLearningComplete = (wordsStudied: number, correct: number) => {
+  const handleLearningComplete = (wordsStudied: number) => {
     const newStatus = wordsStudied >= words.length ? 'completed' : 'in_progress';
     updateProgress(newStatus, wordsStudied);
     setMode('overview');
+  };
+
+  const startMode = (key: Mode) => {
+    updateProgress('in_progress', progress?.words_learned || 0);
+    setMode(key);
   };
 
   if (guardLoading || loading) {
@@ -160,27 +186,17 @@ export default function AssignmentPage({ params }: { params: Promise<{ id: strin
     );
   }
 
-  // Flashcard mode
-  if (mode === 'flashcards') {
-    return (
-      <FlashcardMode
-        words={words}
-        onClose={() => setMode('overview')}
-        onComplete={handleLearningComplete}
-      />
-    );
-  }
+  const enabledModes = assignment.allowed_modes ?? ALL_MODES;
 
-  // Quiz mode
-  if (mode === 'quiz') {
-    return (
-      <QuizMode
-        words={words}
-        onClose={() => setMode('overview')}
-        onComplete={handleLearningComplete}
-      />
-    );
-  }
+  // Render active learning mode
+  const modeProps = { words, onClose: () => setMode('overview'), onComplete: handleLearningComplete };
+  if (mode === 'flashcard') return <FlashcardMode {...modeProps} />;
+  if (mode === 'quiz')        return <QuizMode {...modeProps} />;
+  if (mode === 'fillinblank') return <FillInBlankMode {...modeProps} />;
+  if (mode === 'matching')    return <MatchingMode {...modeProps} />;
+  if (mode === 'story')       return <StoryMode {...modeProps} />;
+  if (mode === 'spelling')    return <SpellingMode {...modeProps} />;
+  if (mode === 'scramble')    return <WordScrambleMode {...modeProps} />;
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -227,14 +243,11 @@ export default function AssignmentPage({ params }: { params: Promise<{ id: strin
         </div>
       </header>
 
-      {/* Main Content */}
       <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Progress Bar */}
         <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm mb-6">
           <div className="flex items-center justify-between mb-3">
-            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-              {t('yourProgress')}
-            </span>
+            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('yourProgress')}</span>
             <span className="text-sm text-gray-600 dark:text-gray-400">
               {progress?.words_learned || 0} / {words.length} {t('words')}
             </span>
@@ -242,7 +255,7 @@ export default function AssignmentPage({ params }: { params: Promise<{ id: strin
           <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3">
             <div
               className="bg-blue-600 h-3 rounded-full transition-all"
-              style={{ width: `${((progress?.words_learned || 0) / words.length) * 100}%` }}
+              style={{ width: `${words.length ? ((progress?.words_learned || 0) / words.length) * 100 : 0}%` }}
             />
           </div>
         </div>
@@ -257,42 +270,24 @@ export default function AssignmentPage({ params }: { params: Promise<{ id: strin
 
         {/* Study Modes */}
         <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm mb-6">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-            {t('chooseStudyMode')}
-          </h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <button
-              onClick={() => {
-                updateProgress('in_progress', progress?.words_learned || 0);
-                setMode('flashcards');
-              }}
-              className="group bg-gradient-to-br from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white rounded-xl p-4 sm:p-6 text-left transition-all hover:scale-[1.02] active:scale-[0.98] shadow-md hover:shadow-xl"
-            >
-              <div className="text-4xl mb-3">🎴</div>
-              <h4 className="text-base sm:text-xl font-bold mb-2">{t('flashcardsMode')}</h4>
-              <p className="text-blue-100 text-sm">
-                {t('flashcardsDescription')}
-              </p>
-            </button>
-
-            <button
-              onClick={() => {
-                updateProgress('in_progress', progress?.words_learned || 0);
-                setMode('quiz');
-              }}
-              className="group bg-gradient-to-br from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white rounded-xl p-4 sm:p-6 text-left transition-all hover:scale-[1.02] active:scale-[0.98] shadow-md hover:shadow-xl"
-            >
-              <div className="text-4xl mb-3">🧠</div>
-              <h4 className="text-base sm:text-xl font-bold mb-2">{t('quizMode')}</h4>
-              <p className="text-purple-100 text-sm">
-                {t('quizModeDescription')}
-              </p>
-            </button>
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">{t('chooseStudyMode')}</h3>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            {MODE_CONFIG.filter((m) => enabledModes.includes(m.key)).map((m) => (
+              <button
+                key={m.key}
+                onClick={() => startMode(m.key as Mode)}
+                className={`bg-gradient-to-br ${m.color} hover:brightness-110 text-white rounded-xl p-4 text-left transition-all hover:scale-[1.02] active:scale-[0.98] shadow-md`}
+              >
+                <div className="text-3xl mb-2">{m.icon}</div>
+                <div className="font-bold text-sm sm:text-base">{m.label}</div>
+                <div className="text-xs opacity-80 mt-0.5">{m.desc}</div>
+              </button>
+            ))}
           </div>
         </div>
 
         {/* Word List */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm">
+        <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm mb-6">
           <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
             {t('totalWords')} ({words.length})
           </h3>
@@ -313,6 +308,36 @@ export default function AssignmentPage({ params }: { params: Promise<{ id: strin
             ))}
           </div>
         </div>
+
+        {/* Leaderboard */}
+        {leaderboard.length > 1 && (
+          <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">🏆 Class Leaderboard</h3>
+            <div className="space-y-2">
+              {leaderboard.map((entry, idx) => {
+                const isMe = entry.student_id === user?.id;
+                return (
+                  <div
+                    key={entry.student_id}
+                    className={`flex items-center gap-3 p-3 rounded-lg ${isMe ? 'bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700' : 'bg-gray-50 dark:bg-gray-700/50'}`}
+                  >
+                    <div className={`w-7 h-7 flex items-center justify-center rounded-full font-bold text-sm ${idx === 0 ? 'bg-yellow-400 text-yellow-900' : idx === 1 ? 'bg-gray-300 text-gray-800' : idx === 2 ? 'bg-amber-600 text-white' : 'bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-300'}`}>
+                      {idx + 1}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className={`text-sm font-medium truncate ${isMe ? 'text-blue-700 dark:text-blue-300' : 'text-gray-900 dark:text-white'}`}>
+                        {entry.student?.full_name || 'Student'}{isMe ? ' (You)' : ''}
+                      </p>
+                    </div>
+                    <div className="text-sm text-gray-600 dark:text-gray-400 shrink-0">
+                      {entry.words_learned} words
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
       </main>
     </div>
   );

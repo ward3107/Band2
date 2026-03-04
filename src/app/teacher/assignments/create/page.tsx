@@ -20,9 +20,21 @@ export default function CreateAssignmentPage() {
   });
   const router = useRouter();
 
+  const ALL_MODES = ['flashcard', 'quiz', 'fillinblank', 'matching', 'story', 'spelling', 'scramble'] as const;
+  const MODE_CONFIG = [
+    { key: 'flashcard',   icon: '🎴', label: 'Flashcards',    desc: 'Flip & review' },
+    { key: 'quiz',        icon: '🧠', label: 'Quiz',          desc: '4-choice MCQ' },
+    { key: 'fillinblank', icon: '✏️', label: 'Fill in Blank', desc: 'Complete sentences' },
+    { key: 'matching',    icon: '🔗', label: 'Matching',      desc: 'Match word & meaning' },
+    { key: 'story',       icon: '📖', label: 'Story',         desc: 'Read & answer questions' },
+    { key: 'spelling',    icon: '🔊', label: 'Spelling',      desc: 'Hear & type the word' },
+    { key: 'scramble',    icon: '🔀', label: 'Word Scramble', desc: 'Unscramble the letters' },
+  ] as const;
+
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [deadline, setDeadline] = useState('');
+  const [selectedModes, setSelectedModes] = useState<Set<string>>(new Set(ALL_MODES));
   const [selectedWords, setSelectedWords] = useState<Set<string>>(new Set());
   const [selectedClasses, setSelectedClasses] = useState<Set<string>>(new Set());
 
@@ -98,6 +110,12 @@ export default function CreateAssignmentPage() {
         return;
       }
 
+      if (selectedModes.size === 0) {
+        setError('Please select at least one study mode');
+        setSaving(false);
+        return;
+      }
+
       if (selectedWords.size === 0) {
         setError('Please select at least one word');
         setSaving(false);
@@ -126,6 +144,7 @@ export default function CreateAssignmentPage() {
           word_ids: Array.from(selectedWords),
           total_words: selectedWords.size,
           deadline: new Date(deadline).toISOString(),
+          allowed_modes: Array.from(selectedModes),
         })
         .select()
         .single();
@@ -311,9 +330,48 @@ export default function CreateAssignmentPage() {
                 />
               </div>
 
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+                  Study Modes * <span className="text-gray-400 font-normal">(select which modes students can use)</span>
+                </label>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                  {MODE_CONFIG.map((mode) => {
+                    const checked = selectedModes.has(mode.key);
+                    return (
+                      <label
+                        key={mode.key}
+                        className={`flex items-start gap-2 p-3 rounded-lg border-2 cursor-pointer transition-colors ${
+                          checked
+                            ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20'
+                            : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
+                        }`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={() => {
+                            const next = new Set(selectedModes);
+                            if (checked) next.delete(mode.key); else next.add(mode.key);
+                            setSelectedModes(next);
+                          }}
+                          className="mt-0.5 accent-indigo-600"
+                        />
+                        <div>
+                          <div className="text-sm font-medium text-gray-900 dark:text-white">{mode.icon} {mode.label}</div>
+                          <div className="text-xs text-gray-500 dark:text-gray-400">{mode.desc}</div>
+                        </div>
+                      </label>
+                    );
+                  })}
+                </div>
+                {selectedModes.size === 0 && (
+                  <p className="mt-2 text-sm text-red-600 dark:text-red-400">Select at least one mode.</p>
+                )}
+              </div>
+
               <button
-                onClick={() => title.trim() && setStep('words')}
-                disabled={!title.trim()}
+                onClick={() => title.trim() && selectedModes.size > 0 && setStep('words')}
+                disabled={!title.trim() || selectedModes.size === 0}
                 className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-400 text-white font-semibold rounded-lg transition-colors"
               >
                 Continue →
@@ -495,6 +553,20 @@ export default function CreateAssignmentPage() {
                 <p className="text-sm text-gray-500 dark:text-gray-500">
                   📅 Due: {new Date(deadline).toLocaleString()}
                 </p>
+              </div>
+
+              {/* Modes Summary */}
+              <div>
+                <h3 className="font-semibold text-gray-900 dark:text-white mb-3">
+                  {selectedModes.size} Study Mode{selectedModes.size !== 1 ? 's' : ''} Enabled
+                </h3>
+                <div className="flex flex-wrap gap-2">
+                  {MODE_CONFIG.filter(m => selectedModes.has(m.key)).map((m) => (
+                    <span key={m.key} className="px-3 py-1 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 rounded-full text-sm">
+                      {m.icon} {m.label}
+                    </span>
+                  ))}
+                </div>
               </div>
 
               {/* Words Summary */}

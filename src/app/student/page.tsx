@@ -5,6 +5,7 @@ import { useRoleGuard } from '@/hooks/useRoleGuard';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useDifficultWords } from '@/contexts/DifficultWordsContext';
 
 interface Class {
   id: string;
@@ -32,6 +33,7 @@ export default function StudentDashboardPage() {
   });
   const router = useRouter();
   const { t } = useLanguage();
+  const { difficultWords } = useDifficultWords();
   const [classes, setClasses] = useState<Class[]>([]);
   const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [loading, setLoading] = useState(true);
@@ -190,6 +192,22 @@ export default function StudentDashboardPage() {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Weak Words card */}
+        {difficultWords.length > 0 && (
+          <div className="mb-6 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-xl p-5 flex items-center justify-between gap-4">
+            <div>
+              <h3 className="font-bold text-amber-900 dark:text-amber-200">⚠️ {difficultWords.length} Weak Word{difficultWords.length !== 1 ? 's' : ''}</h3>
+              <p className="text-sm text-amber-700 dark:text-amber-400">Words you&apos;ve struggled with — practice them now!</p>
+            </div>
+            <a
+              href="/student/weak-words"
+              className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-lg font-medium text-sm shrink-0 transition-colors"
+            >
+              Review Now →
+            </a>
+          </div>
+        )}
+
         {/* My Classes */}
         <section className="mb-8">
           <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">{t('myClasses')}</h2>
