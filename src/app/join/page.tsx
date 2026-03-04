@@ -3,10 +3,12 @@
 import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/contexts/AuthContext';
 
 function JoinForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { signIn } = useAuth();
   const [classCode, setClassCode] = useState('');
   const [displayName, setDisplayName] = useState('');
   const [loading, setLoading] = useState(false);
@@ -58,16 +60,13 @@ function JoinForm() {
         return;
       }
 
-      const { error: signInError } = await supabase.auth.signInWithPassword({
-        email: json.credentials.email,
-        password: json.credentials.password,
-      });
-      if (signInError) {
+      const result = await signIn(json.credentials.email, json.credentials.password);
+      if (result.error) {
         setError('Joined class but could not sign in. Please refresh and try again.');
         setLoading(false);
         return;
       }
-      window.location.href = '/student';
+      router.push('/student');
     } catch {
       setError('An unexpected error occurred. Please try again.');
       setLoading(false);

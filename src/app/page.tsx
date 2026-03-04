@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { supabase } from '@/lib/supabase';
 
 export default function HomePage() {
   const { signIn, signUp, signInWithGoogle } = useAuth();
@@ -62,16 +61,15 @@ export default function HomePage() {
         setLoading(false);
         return;
       }
-      const { error: signInError } = await supabase.auth.signInWithPassword({
-        email: json.credentials.email,
-        password: json.credentials.password,
-      });
-      if (signInError) {
+      // Use AuthContext signIn so state is updated before navigation,
+      // and router.push so the auth lock is released cleanly (no page reload).
+      const result = await signIn(json.credentials.email, json.credentials.password);
+      if (result.error) {
         setError('Joined class but could not sign in. Please refresh and try again.');
         setLoading(false);
         return;
       }
-      window.location.href = '/student';
+      router.push('/student');
     } catch {
       setError('An unexpected error occurred. Please try again.');
       setLoading(false);
