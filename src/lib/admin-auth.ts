@@ -50,7 +50,7 @@ export async function verifyAdminAuth(request: NextRequest): Promise<AdminAuthRe
     .from('profiles')
     .select('role, is_admin')
     .eq('id', user.id)
-    .single();
+    .maybeSingle();
 
   if (!profile || profile.role !== 'teacher' || !profile.is_admin) {
     return {

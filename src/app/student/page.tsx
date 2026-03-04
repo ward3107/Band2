@@ -27,8 +27,8 @@ interface Assignment {
 
 export default function StudentDashboardPage() {
   const { user, profile, loading: guardLoading } = useRoleGuard('student', {
-    loginRedirect: '/login?redirect=/student',
-    unauthorizedRedirect: '/student/join-class',
+    loginRedirect: '/',
+    unauthorizedRedirect: '/teacher/dashboard',
   });
   const router = useRouter();
   const { t } = useLanguage();
@@ -64,74 +64,68 @@ export default function StudentDashboardPage() {
       }
 
       setClasses(enrolledClasses);
-    } catch (err) {
-      void err;
-    }
 
-    // Load assignments from enrolled classes
-    if (enrolledClasses.length > 0) {
-      const classIds = enrolledClasses.map(c => c.id);
+      // Load assignments from enrolled classes
+      if (enrolledClasses.length > 0) {
+        const classIds = enrolledClasses.map(c => c.id);
 
-      // Get assignment_ids for these classes
-      const { data: assignmentLinks } = await supabase
-        .from('assignment_classes')
-        .select('assignment_id')
-        .in('class_id', classIds);
-
-      const assignmentIds = assignmentLinks?.map(link => link.assignment_id) || [];
-
-      if (assignmentIds.length > 0) {
-        // Get assignments
-        const { data: assignmentsData } = await supabase
-          .from('assignments')
-          .select('*')
-          .in('id', assignmentIds)
-          .order('deadline', { ascending: true });
-
-        // Batch-load all progress in a single query instead of N+1
-        const { data: allProgress } = await supabase
-          .from('student_assignment_progress')
-          .select('*')
-          .eq('student_id', user!.id)
-          .in('assignment_id', assignmentIds);
-
-        const progressMap = new Map(
-          (allProgress || []).map(p => [p.assignment_id, p])
-        );
-
-        const assignmentsWithProgress = (assignmentsData || []).map((assignment) => {
-          const progress = progressMap.get(assignment.id);
-          return {
-            ...assignment,
-            status: progress?.status || 'not_started',
-            words_learned: progress?.words_learned || 0,
-            quiz_score: progress?.quiz_score,
-          } as Assignment;
-        });
-
-        // Add class name to each assignment
-        const { data: assignmentClassesData } = await supabase
+        const { data: assignmentLinks } = await supabase
           .from('assignment_classes')
-          .select('assignment_id, classes(*)')
-          .in('assignment_id', assignmentIds);
+          .select('assignment_id')
+          .in('class_id', classIds);
 
-        const classMap = new Map();
-        assignmentClassesData?.forEach(ac => {
-          if (ac.classes && Array.isArray(ac.classes) && ac.classes.length > 0) {
-            classMap.set(ac.assignment_id, (ac.classes[0] as Class).name);
-          }
-        });
+        const assignmentIds = assignmentLinks?.map(link => link.assignment_id) || [];
 
-        const finalAssignments = assignmentsWithProgress.map(a => ({
-          ...a,
-          class_name: classMap.get(a.id) || 'Unknown Class',
-        }));
+        if (assignmentIds.length > 0) {
+          const { data: assignmentsData } = await supabase
+            .from('assignments')
+            .select('*')
+            .in('id', assignmentIds)
+            .order('deadline', { ascending: true });
 
-        setAssignments(finalAssignments);
+          const { data: allProgress } = await supabase
+            .from('student_assignment_progress')
+            .select('*')
+            .eq('student_id', user!.id)
+            .in('assignment_id', assignmentIds);
+
+          const progressMap = new Map(
+            (allProgress || []).map(p => [p.assignment_id, p])
+          );
+
+          const assignmentsWithProgress = (assignmentsData || []).map((assignment) => {
+            const progress = progressMap.get(assignment.id);
+            return {
+              ...assignment,
+              status: progress?.status || 'not_started',
+              words_learned: progress?.words_learned || 0,
+              quiz_score: progress?.quiz_score,
+            } as Assignment;
+          });
+
+          const { data: assignmentClassesData } = await supabase
+            .from('assignment_classes')
+            .select('assignment_id, classes(*)')
+            .in('assignment_id', assignmentIds);
+
+          const classMap = new Map();
+          assignmentClassesData?.forEach(ac => {
+            if (ac.classes && Array.isArray(ac.classes) && ac.classes.length > 0) {
+              classMap.set(ac.assignment_id, (ac.classes[0] as Class).name);
+            }
+          });
+
+          setAssignments(assignmentsWithProgress.map(a => ({
+            ...a,
+            class_name: classMap.get(a.id) || 'Unknown Class',
+          })));
+        }
       }
+    } catch {
+      // Data load failed — show empty state rather than infinite spinner
+    } finally {
+      setLoading(false);
     }
-
-    setLoading(false);
   };
 
   const getStatusColor = (status: string) => {

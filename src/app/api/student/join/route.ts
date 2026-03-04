@@ -19,8 +19,8 @@ export async function POST(request: NextRequest) {
   if (!classCode || !/^[A-Z0-9]{4,8}$/.test(classCode)) {
     return NextResponse.json({ error: 'Invalid class code format' }, { status: 400 });
   }
-  if (!displayName || displayName.trim().length < 2) {
-    return NextResponse.json({ error: 'Name must be at least 2 characters' }, { status: 400 });
+  if (!displayName || displayName.trim().length < 2 || displayName.trim().length > 60) {
+    return NextResponse.json({ error: 'Name must be between 2 and 60 characters' }, { status: 400 });
   }
 
   // Rate limit by class code — allows a full classroom (60/hour per class)
