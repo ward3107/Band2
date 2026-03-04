@@ -281,9 +281,13 @@ CREATE TABLE IF NOT EXISTS public.approved_teachers (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
   email TEXT UNIQUE NOT NULL,
   full_name TEXT,
+  is_admin BOOLEAN DEFAULT FALSE,
   added_by UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- Add is_admin to approved_teachers if missing (idempotent)
+ALTER TABLE public.approved_teachers ADD COLUMN IF NOT EXISTS is_admin BOOLEAN DEFAULT FALSE;
 
 CREATE INDEX IF NOT EXISTS idx_approved_teachers_email ON public.approved_teachers(email);
 
