@@ -29,6 +29,9 @@ export default function TeacherDashboardPage() {
   }, [guardLoading, profile, loadData]);
 
   const loadData = useCallback(async () => {
+  const [totalStudents, setTotalStudents] = useState(0);
+
+  const loadData = async () => {
     if (!profile) return;
 
     try {
@@ -64,6 +67,43 @@ export default function TeacherDashboardPage() {
       setLoading(false);
     }
   }, [profile]);
+        .single();
+
+      setIsAdmin(profileData?.is_admin || false);
+
+      // Load classes
+      const { data: classesData } = await supabase
+        .from('classes')
+        .select('*')
+        .eq('teacher_id', profile.id)
+        .order('created_at', { ascending: false });
+
+      setClasses(classesData || []);
+
+      // Count total enrolled students across all classes
+      if (classesData && classesData.length > 0) {
+        const classIds = classesData.map(c => c.id);
+        const { count } = await supabase
+          .from('class_enrollments')
+          .select('*', { count: 'exact', head: true })
+          .in('class_id', classIds);
+
+        setTotalStudents(count ?? 0);
+      }
+
+      // Load assignments
+      const { data: assignmentsData } = await supabase
+        .from('assignments')
+        .select('*')
+        .eq('teacher_id', profile.id)
+        .order('created_at', { ascending: false });
+
+      setAssignments(assignmentsData || []);
+    } catch (err) {
+      console.error('Failed to load dashboard data:', err);
+    }
+    setLoading(false);
+  };
 
   const handleSignOut = async () => {
     await signOut();
@@ -159,7 +199,7 @@ export default function TeacherDashboardPage() {
               <div className="text-4xl">👨‍🎓</div>
               <div>
                 <div className="text-3xl font-bold text-gray-900 dark:text-white">
-                  {classes.reduce((sum, c) => sum + ((c as Class & { student_count?: number }).student_count ?? 0), 0)}
+                  {totalStudents}
                 </div>
                 <div className="text-gray-600 dark:text-gray-400">Total Students</div>
               </div>

@@ -62,11 +62,16 @@ export function generateTeacherCode(): string {
 export function parseTeacherData(data: string): Array<{ name: string; email: string }> {
   const lines = data.split('\n').filter(line => line.trim());
   const teachers: Array<{ name: string; email: string }> = [];
+  let isFirstLine = true;
 
   for (const line of lines) {
-    // Skip header row if it contains 'name' or 'email'
-    if (line.toLowerCase().includes('name') || line.toLowerCase().includes('email')) {
-      continue;
+    // Skip header row only if the first line looks like a header (no @ sign = not data)
+    if (isFirstLine) {
+      isFirstLine = false;
+      const lower = line.toLowerCase().trim();
+      if (!line.includes('@') && (lower.startsWith('name') || lower.startsWith('email') || lower === 'name,email' || lower === 'email,name')) {
+        continue;
+      }
     }
 
     // Try CSV format first

@@ -54,6 +54,7 @@ export default function AssignmentResultsPage({ params }: { params: Promise<{ id
 
   const loadData = async () => {
     try {
+      // Load assignment details
       const { data: assignmentData } = await supabase
         .from('assignments')
         .select('*')
@@ -68,6 +69,7 @@ export default function AssignmentResultsPage({ params }: { params: Promise<{ id
 
       setAssignment(assignmentData);
 
+      // Load student progress
       const { data: progressData } = await supabase
         .from('student_assignment_progress')
         .select('*, student:profiles(full_name, email)')
@@ -83,6 +85,16 @@ export default function AssignmentResultsPage({ params }: { params: Promise<{ id
     } finally {
       setLoading(false);
     }
+      // Filter out entries where student relation is null (deleted profiles)
+      const validStudents = (progressData || []).filter(
+        (s: StudentProgress) => s.student !== null
+      );
+
+      setStudents(validStudents);
+    } catch (err) {
+      console.error('Failed to load assignment results:', err);
+    }
+    setLoading(false);
   };
 
   const getStatusColor = (status: string) => {
