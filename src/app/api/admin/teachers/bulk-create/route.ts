@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { parseTeacherData } from '@/lib/password-generator';
+import { parseTeacherData, generateTeacherCode } from '@/lib/password-generator';
 import { verifyAdminAuth } from '@/lib/admin-auth';
 import { checkRateLimit } from '@/lib/rate-limit';
+import { SupabaseClient } from '@supabase/supabase-js';
+
+const TEACHER_CODE_DOMAIN = 'teacher.band2.app';
 
 // Validation helpers
 function validateEmail(email: string): boolean {
@@ -11,6 +14,21 @@ function validateEmail(email: string): boolean {
 
 function validateName(name: string): boolean {
   return name.trim().length >= 2 && name.trim().length <= 100;
+}
+
+/** Generate a code that doesn't already exist in the profiles table */
+async function generateUniqueCode(supabaseAdmin: SupabaseClient): Promise<string> {
+  for (let i = 0; i < 20; i++) {
+    const code = generateTeacherCode();
+    const email = `${code}@${TEACHER_CODE_DOMAIN}`;
+    const { data } = await supabaseAdmin
+      .from('profiles')
+      .select('id')
+      .eq('email', email)
+      .maybeSingle();
+    if (!data) return code;
+  }
+  throw new Error('Could not generate unique teacher code after 20 attempts');
 }
 
 export async function POST(request: NextRequest) {
@@ -32,32 +50,40 @@ export async function POST(request: NextRequest) {
 
   const { teachers, data: rawData } = body;
 
-  let teachersToAdd: Array<{ name: string; email: string }> = [];
+  // Categorise input lines as either email-based or name-only (code-based)
+  const emailEntries: Array<{ name: string; email: string }> = [];
+  const nameEntries: Array<{ name: string }> = [];
 
   if (typeof rawData === 'string') {
-    teachersToAdd = parseTeacherData(rawData);
+    for (const line of rawData.split('\n').filter((l: string) => l.trim())) {
+      if (line.includes('@')) {
+        const parsed = parseTeacherData(line);
+        emailEntries.push(...parsed);
+      } else {
+        const name = line.trim();
+        if (name.length >= 2) nameEntries.push({ name });
+      }
+    }
   } else if (Array.isArray(teachers)) {
-    teachersToAdd = teachers as Array<{ name: string; email: string }>;
+    emailEntries.push(...(teachers as Array<{ name: string; email: string }>));
   } else {
     return NextResponse.json({ error: 'Invalid input format' }, { status: 400 });
   }
 
   const results = {
-    added: [] as Array<{ email: string; name: string }>,
-    failed: [] as Array<{ email: string; error: string }>,
-    skipped: [] as Array<{ email: string; reason: string }>,
+    added: [] as Array<{ email?: string; name: string; code?: string }>,
+    failed: [] as Array<{ name: string; error: string }>,
+    skipped: [] as Array<{ name: string; reason: string }>,
   };
 
-  for (const teacher of teachersToAdd) {
-    const { name, email } = teacher;
-
+  // ── Email-based teachers (add to approved_teachers allowlist) ──────────────
+  for (const { name, email } of emailEntries) {
     if (!validateEmail(email)) {
-      results.failed.push({ email, error: 'Invalid email format' });
+      results.failed.push({ name, error: 'Invalid email format' });
       continue;
     }
-
     if (!validateName(name)) {
-      results.failed.push({ email, error: 'Invalid name (2-100 characters required)' });
+      results.failed.push({ name, error: 'Invalid name (2-100 characters required)' });
       continue;
     }
 
@@ -68,34 +94,79 @@ export async function POST(request: NextRequest) {
       .maybeSingle();
 
     if (existing) {
-      results.skipped.push({ email, reason: 'Already in approved list' });
+      results.skipped.push({ name, reason: 'Already in approved list' });
       continue;
     }
 
     const { error: insertError } = await supabaseAdmin
       .from('approved_teachers')
-      .insert({
-        email,
-        full_name: name,
-        added_by: userId,
-        created_at: new Date().toISOString(),
-      });
+      .insert({ email, full_name: name, added_by: userId, created_at: new Date().toISOString() });
 
     if (insertError) {
-      results.failed.push({ email, error: insertError.message });
+      results.failed.push({ name, error: insertError.message });
       continue;
     }
 
     results.added.push({ email, name });
   }
 
+  // ── Name-only teachers (code-based — create auth user + profile) ───────────
+  for (const { name } of nameEntries) {
+    if (!validateName(name)) {
+      results.failed.push({ name, error: 'Invalid name (2-100 characters required)' });
+      continue;
+    }
+
+    let code: string;
+    try {
+      code = await generateUniqueCode(supabaseAdmin);
+    } catch {
+      results.failed.push({ name, error: 'Could not generate unique code' });
+      continue;
+    }
+
+    const email = `${code}@${TEACHER_CODE_DOMAIN}`;
+
+    const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
+      email,
+      password: code,
+      email_confirm: true,
+      user_metadata: { full_name: name },
+    });
+
+    if (authError || !authData.user) {
+      results.failed.push({ name, error: authError?.message ?? 'Failed to create auth user' });
+      continue;
+    }
+
+    const { error: profileError } = await supabaseAdmin
+      .from('profiles')
+      .insert({
+        id: authData.user.id,
+        email,
+        full_name: name,
+        role: 'teacher',
+        is_admin: false,
+        created_at: new Date().toISOString(),
+      });
+
+    if (profileError) {
+      // Roll back auth user to avoid orphan accounts
+      await supabaseAdmin.auth.admin.deleteUser(authData.user.id);
+      results.failed.push({ name, error: profileError.message });
+      continue;
+    }
+
+    results.added.push({ name, code });
+  }
+
   return NextResponse.json({
-    message: `Added ${results.added.length} teachers to approved list`,
+    message: `Added ${results.added.length} teachers`,
     results,
   });
 }
 
-// GET endpoint to list approved teachers
+// GET endpoint to list teachers
 export async function GET(request: NextRequest) {
   const ip = request.headers.get('x-forwarded-for') ?? 'unknown';
   if (!checkRateLimit(`bulk-create-get:${ip}`, { maxRequests: 30, windowMs: 60_000 })) {
@@ -121,8 +192,13 @@ export async function GET(request: NextRequest) {
     .eq('role', 'teacher')
     .order('created_at', { ascending: false });
 
+  const codeTeachers = (actualTeachers ?? []).filter((t: { email: string }) =>
+    t.email?.endsWith(`@${TEACHER_CODE_DOMAIN}`)
+  );
+
   return NextResponse.json({
     approved: approvedTeachers ?? [],
     teachers: actualTeachers ?? [],
+    codeTeachers,
   });
 }
