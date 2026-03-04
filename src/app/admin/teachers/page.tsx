@@ -19,6 +19,35 @@ interface CodeTeacher {
   created_at: string;
 }
 
+function downloadCSV(teachers: { full_name: string; code: string }[]) {
+  const loginUrl = `${window.location.origin}/teacher/login`;
+  const rows = [
+    ['Name', 'Code', 'Login URL'],
+    ...teachers.map((t) => [`"${t.full_name}"`, t.code, loginUrl]),
+  ];
+  const csv = rows.map((r) => r.join(',')).join('\n');
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'teachers.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function sendViaWhatsApp(name: string, code: string) {
+  const loginUrl = `${window.location.origin}/teacher/login`;
+  const message = `Hi! Here are your Vocab Band II teacher login details:\n\nName: ${name}\nCode: ${code}\n\nLogin at: ${loginUrl}`;
+  window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank');
+}
+
+function copyAllForWhatsApp(teachers: { full_name: string; code: string }[]) {
+  const loginUrl = `${window.location.origin}/teacher/login`;
+  const lines = teachers.map((t) => `${t.full_name} — ${t.code}`).join('\n');
+  const message = `Vocab Band II Teacher Login Codes:\n\n${lines}\n\nLogin at: ${loginUrl}`;
+  navigator.clipboard.writeText(message);
+}
+
 export default function AdminTeachersPage() {
   const { profile, session, loading: guardLoading } = useRoleGuard('teacher', {
     loginRedirect: '/teacher/login',
@@ -37,6 +66,7 @@ export default function AdminTeachersPage() {
   } | null>(null);
   const [error, setError] = useState('');
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
+  const [copiedAll, setCopiedAll] = useState(false);
 
   useEffect(() => {
     if (!guardLoading && profile?.role === 'teacher') {
@@ -152,6 +182,12 @@ export default function AdminTeachersPage() {
     });
   };
 
+  const handleCopyAll = (teachers: { full_name: string; code: string }[]) => {
+    copyAllForWhatsApp(teachers);
+    setCopiedAll(true);
+    setTimeout(() => setCopiedAll(false), 2000);
+  };
+
   if (loading || guardLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -161,6 +197,11 @@ export default function AdminTeachersPage() {
   }
 
   if (!isAdmin) return null;
+
+  const allCodeTeachersForExport = codeTeachers.map((t) => ({
+    full_name: t.full_name,
+    code: t.email.split('@')[0].toUpperCase(),
+  }));
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
@@ -191,6 +232,16 @@ export default function AdminTeachersPage() {
 
       {/* Main Content */}
       <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+        {/* Security Warning */}
+        <div className="mb-6 p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-300 dark:border-amber-700 rounded-xl flex gap-3">
+          <span className="text-amber-600 dark:text-amber-400 text-lg shrink-0">⚠️</span>
+          <p className="text-sm text-amber-800 dark:text-amber-200">
+            <strong>Keep codes private.</strong> Teacher codes are permanent passwords.
+            Share them individually via WhatsApp or in person — do not post them publicly.
+          </p>
+        </div>
+
         {/* Add Teachers Section */}
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 mb-8">
           <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
@@ -234,9 +285,33 @@ export default function AdminTeachersPage() {
               </p>
               {result.added.filter(t => t.code).length > 0 && (
                 <div className="mt-3">
-                  <p className="text-sm font-medium text-green-800 dark:text-green-200 mb-2">
-                    Teacher login codes — share these with your teachers:
-                  </p>
+                  <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+                    <p className="text-sm font-medium text-green-800 dark:text-green-200">
+                      New teacher login codes — share these privately:
+                    </p>
+                    <div className="flex gap-2 flex-wrap">
+                      <button
+                        onClick={() => downloadCSV(
+                          result.added
+                            .filter(t => t.code)
+                            .map(t => ({ full_name: t.name, code: t.code! }))
+                        )}
+                        className="text-xs px-3 py-1.5 bg-white dark:bg-gray-700 border border-green-300 dark:border-green-600 text-green-700 dark:text-green-300 rounded-lg hover:bg-green-50 dark:hover:bg-green-900/30 font-medium"
+                      >
+                        ↓ Download CSV
+                      </button>
+                      <button
+                        onClick={() => handleCopyAll(
+                          result.added
+                            .filter(t => t.code)
+                            .map(t => ({ full_name: t.name, code: t.code! }))
+                        )}
+                        className="text-xs px-3 py-1.5 bg-white dark:bg-gray-700 border border-green-300 dark:border-green-600 text-green-700 dark:text-green-300 rounded-lg hover:bg-green-50 dark:hover:bg-green-900/30 font-medium"
+                      >
+                        {copiedAll ? '✓ Copied!' : 'Copy All for WhatsApp'}
+                      </button>
+                    </div>
+                  </div>
                   <div className="space-y-2">
                     {result.added.filter(t => t.code).map((t, i) => (
                       <div key={i} className="flex items-center gap-3 bg-white dark:bg-gray-800 rounded-lg px-4 py-2 border border-green-200 dark:border-green-700 flex-wrap">
@@ -250,6 +325,12 @@ export default function AdminTeachersPage() {
                         >
                           {copiedCode === t.code ? '✓ Copied' : 'Copy'}
                         </button>
+                        <button
+                          onClick={() => sendViaWhatsApp(t.name, t.code!)}
+                          className="text-sm px-3 py-1 bg-green-500 hover:bg-green-600 text-white rounded-lg font-medium"
+                        >
+                          Send via WhatsApp
+                        </button>
                       </div>
                     ))}
                   </div>
@@ -262,11 +343,29 @@ export default function AdminTeachersPage() {
         {/* Code-Based Teachers List */}
         {codeTeachers.length > 0 && (
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 mb-8">
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-1">
-              Code-Based Teachers ({codeTeachers.length})
-            </h2>
-            <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">These teachers sign in with their code</p>
-            <div className="space-y-3">
+            <div className="flex flex-wrap items-start justify-between gap-3 mb-1">
+              <div>
+                <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+                  Code-Based Teachers ({codeTeachers.length})
+                </h2>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mt-0.5">These teachers sign in with their code</p>
+              </div>
+              <div className="flex gap-2 flex-wrap">
+                <button
+                  onClick={() => downloadCSV(allCodeTeachersForExport)}
+                  className="text-xs px-3 py-1.5 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-lg font-medium border border-gray-200 dark:border-gray-600"
+                >
+                  ↓ Download CSV
+                </button>
+                <button
+                  onClick={() => handleCopyAll(allCodeTeachersForExport)}
+                  className="text-xs px-3 py-1.5 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-lg font-medium border border-gray-200 dark:border-gray-600"
+                >
+                  {copiedAll ? '✓ Copied!' : 'Copy All for WhatsApp'}
+                </button>
+              </div>
+            </div>
+            <div className="space-y-3 mt-4">
               {codeTeachers.map((teacher) => {
                 const code = teacher.email.split('@')[0].toUpperCase();
                 return (
@@ -277,7 +376,7 @@ export default function AdminTeachersPage() {
                         Added {new Date(teacher.created_at).toLocaleDateString()}
                       </div>
                     </div>
-                    <div className="flex items-center gap-2 shrink-0">
+                    <div className="flex items-center gap-2 shrink-0 flex-wrap">
                       <code className="font-mono font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/30 px-3 py-1 rounded text-sm">
                         {code}
                       </code>
@@ -286,6 +385,12 @@ export default function AdminTeachersPage() {
                         className="text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
                       >
                         {copiedCode === code ? '✓' : 'Copy'}
+                      </button>
+                      <button
+                        onClick={() => sendViaWhatsApp(teacher.full_name, code)}
+                        className="text-sm px-3 py-1 bg-green-500 hover:bg-green-600 text-white rounded-lg font-medium"
+                      >
+                        WhatsApp
                       </button>
                       <button
                         onClick={() => removeTeacher(teacher.id)}
@@ -337,7 +442,7 @@ export default function AdminTeachersPage() {
           </h3>
           <ol className="list-decimal list-inside space-y-2 text-blue-800 dark:text-blue-200">
             <li>Enter teacher names → system generates unique login codes</li>
-            <li>Share the code with each teacher</li>
+            <li>Click &quot;Send via WhatsApp&quot; next to each teacher to send their code, or download the full list as CSV</li>
             <li>Teacher enters their code on the sign-in screen → Teacher Dashboard</li>
             <li>Or add with email for Google sign-in access</li>
           </ol>
