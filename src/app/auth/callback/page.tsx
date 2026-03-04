@@ -31,13 +31,28 @@ export default function OAuthCallbackPage() {
         // Look up existing profile
         const { data: profile } = await supabase
           .from('profiles')
-          .select('role')
+          .select('role, is_admin')
           .eq('id', session.user.id)
           .maybeSingle();
 
         let redirectUrl = '/auth/complete-profile';
 
         if (profile?.role) {
+          // Profile already exists — keep is_admin in sync with approved_teachers
+          // (handles the case where is_admin was updated after first login)
+          if (profile.role === 'teacher' && !profile.is_admin) {
+            const { data: approvedTeacher } = await supabase
+              .from('approved_teachers')
+              .select('is_admin')
+              .eq('email', session.user.email)
+              .maybeSingle();
+            if (approvedTeacher?.is_admin) {
+              await supabase
+                .from('profiles')
+                .update({ is_admin: true })
+                .eq('id', session.user.id);
+            }
+          }
           redirectUrl = profile.role === 'teacher' ? '/teacher/dashboard' : '/student';
         } else {
           // No profile yet — check if this is an approved teacher
