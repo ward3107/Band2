@@ -3,9 +3,10 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
+import { supabase } from '@/lib/supabase';
 
 export default function TeacherLoginPage() {
-  const { signIn, signInWithGoogle } = useAuth();
+  const { signInWithGoogle } = useAuth();
   const router = useRouter();
   const [teacherCode, setTeacherCode] = useState('');
   const [loading, setLoading] = useState(false);
@@ -38,14 +39,37 @@ export default function TeacherLoginPage() {
     }
 
     try {
-      const result = await signIn(`${code}@teacher.band2.app`, code);
-      if (result.error) {
-        setError('Invalid teacher code. Please check your code and try again.');
-      } else {
-        router.push('/teacher/dashboard');
+      const response = await fetch('/api/teacher/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code }),
+      });
+
+      if (response.status === 429) {
+        setError('Too many login attempts. Please try again in 15 minutes.');
+        return;
       }
-    } catch (err: any) {
-      setError(err?.message || 'An error occurred. Please try again.');
+
+      const data = await response.json();
+
+      if (!response.ok || !data.session) {
+        setError('Invalid teacher code. Please check your code and try again.');
+        return;
+      }
+
+      const { error: sessionError } = await supabase.auth.setSession({
+        access_token: data.session.access_token,
+        refresh_token: data.session.refresh_token,
+      });
+
+      if (sessionError) {
+        setError('Failed to sign in. Please try again.');
+        return;
+      }
+
+      router.push('/teacher/dashboard');
+    } catch {
+      setError('An error occurred. Please try again.');
     } finally {
       setLoading(false);
     }
