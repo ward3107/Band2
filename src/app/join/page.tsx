@@ -64,8 +64,8 @@ function JoinForm() {
         refresh_token: json.session.refresh_token,
       });
 
-      setJoinedClassName(json.className || 'your class');
-      router.push('/student');
+      // Full navigation so AuthContext re-initialises with the persisted session
+      window.location.href = '/student';
     } catch {
       setError('An unexpected error occurred. Please try again.');
       setLoading(false);

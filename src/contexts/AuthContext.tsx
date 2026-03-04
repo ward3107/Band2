@@ -60,6 +60,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      // Mark as loading immediately so guards don't act on stale profile=null state
+      setLoading(true);
       setSessionState(session);
       setUser(session?.user ?? null);
       if (session?.user) {
