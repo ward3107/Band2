@@ -158,9 +158,14 @@ ALTER TABLE public.word_progress ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.learning_activities ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.assignment_stories ENABLE ROW LEVEL SECURITY;
 
--- Profiles: Users can see their own profile
+-- Profiles: Users can manage their own profile
 CREATE POLICY "Users can view own profile" ON public.profiles
   FOR SELECT USING (auth.uid() = id);
+
+-- Required for signUp() and OAuth callback to create the initial profile row.
+-- The WITH CHECK ensures a user can only insert a row for themselves.
+CREATE POLICY "Users can insert own profile" ON public.profiles
+  FOR INSERT WITH CHECK (auth.uid() = id);
 
 CREATE POLICY "Users can update own profile" ON public.profiles
   FOR UPDATE USING (auth.uid() = id);
@@ -277,6 +282,15 @@ CREATE POLICY "Admins can manage approved teachers" ON public.approved_teachers
       SELECT 1 FROM public.profiles
       WHERE id = auth.uid() AND is_admin = TRUE
     )
+  );
+
+-- Allow any authenticated user to check whether their own email is approved.
+-- This is needed during the Google OAuth callback: the user has no profile yet
+-- so the admin policy above blocks them. This narrow SELECT policy lets the
+-- callback look up only the row that matches the caller's own email.
+CREATE POLICY "Users can check own approval status" ON public.approved_teachers
+  FOR SELECT USING (
+    email = (SELECT email FROM auth.users WHERE id = auth.uid())
   );
 
 -- ============================================

@@ -41,9 +41,11 @@ export default function OAuthCallbackPage() {
           redirectUrl = profile.role === 'teacher' ? '/teacher/dashboard' : '/student';
         } else {
           // No profile yet — check if this is an approved teacher
+          // approved_teachers has no is_admin column — admins are set separately
+          // in the profiles table after account creation.
           const { data: approvedTeacher } = await supabase
             .from('approved_teachers')
-            .select('full_name, is_admin')
+            .select('full_name')
             .eq('email', session.user.email)
             .maybeSingle();
 
@@ -55,7 +57,7 @@ export default function OAuthCallbackPage() {
                 email: session.user.email,
                 full_name: approvedTeacher.full_name || session.user.user_metadata?.full_name || session.user.email?.split('@')[0],
                 role: 'teacher',
-                is_admin: approvedTeacher.is_admin ?? false,
+                is_admin: false,
                 created_at: new Date().toISOString(),
               });
 
