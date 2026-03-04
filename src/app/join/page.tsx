@@ -3,16 +3,22 @@
 import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/contexts/AuthContext';
 
 function JoinForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { signIn } = useAuth();
   const [classCode, setClassCode] = useState('');
   const [displayName, setDisplayName] = useState('');
   const [loading, setLoading] = useState(false);
   const [checking, setChecking] = useState(true);
   const [error, setError] = useState('');
   const [joinedClassName, setJoinedClassName] = useState('');
+  const [joinedPersonalCode, setJoinedPersonalCode] = useState('');
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [returningCode, setReturningCode] = useState('');
+  const [showReturning, setShowReturning] = useState(false);
 
   useEffect(() => {
     const code = searchParams.get('code');
@@ -58,18 +64,38 @@ function JoinForm() {
         return;
       }
 
-      const { error: signInError } = await supabase.auth.signInWithPassword({
-        email: json.credentials.email,
-        password: json.credentials.password,
-      });
-      if (signInError) {
+      const result = await signIn(json.credentials.email, json.credentials.password);
+      if (result.error) {
         setError('Joined class but could not sign in. Please refresh and try again.');
         setLoading(false);
         return;
       }
-      window.location.href = '/student';
+      setJoinedClassName(json.className || '');
+      setJoinedPersonalCode(json.studentCode || '');
+      setShowSuccess(true);
+      setLoading(false);
     } catch {
       setError('An unexpected error occurred. Please try again.');
+      setLoading(false);
+    }
+  };
+
+  const handleReturningSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+    const code = returningCode.trim().toUpperCase();
+    if (!code) { setError('Please enter your personal code.'); setLoading(false); return; }
+    try {
+      const result = await signIn(`s_${code.toLowerCase()}@student.band2.app`, code);
+      if (result.error) {
+        setError('Invalid code. Please check your personal code and try again.');
+      } else {
+        router.push('/student');
+      }
+    } catch {
+      setError('An unexpected error occurred. Please try again.');
+    } finally {
       setLoading(false);
     }
   };
@@ -78,6 +104,29 @@ function JoinForm() {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-white text-lg">Loading...</div>
+      </div>
+    );
+  }
+
+  if (showSuccess) {
+    return (
+      <div className="max-w-sm w-full">
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-6 sm:p-8 flex flex-col items-center text-center gap-4">
+          <div className="text-5xl">🎉</div>
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">You joined {joinedClassName}!</h2>
+          <p className="text-gray-600 dark:text-gray-400 text-sm">Save your personal code — you'll need it to log back in on any device.</p>
+          <div className="bg-yellow-50 dark:bg-yellow-900/20 border-2 border-yellow-400 dark:border-yellow-600 rounded-xl p-4 w-full">
+            <p className="text-xs font-semibold text-yellow-700 dark:text-yellow-400 uppercase tracking-wider mb-1">Your Personal Code</p>
+            <p className="text-4xl font-mono font-bold text-yellow-800 dark:text-yellow-300 tracking-[0.2em]">{joinedPersonalCode}</p>
+            <p className="text-xs text-yellow-600 dark:text-yellow-500 mt-2">Screenshot this or write it down!</p>
+          </div>
+          <button
+            onClick={() => router.push('/student')}
+            className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-4 rounded-xl transition-colors"
+          >
+            Got it, go to my class →
+          </button>
+        </div>
       </div>
     );
   }
@@ -103,6 +152,43 @@ function JoinForm() {
             <p className="text-red-700 dark:text-red-300 text-sm">{error}</p>
           </div>
         )}
+
+        {/* Returning student shortcut */}
+        <div className="mb-4">
+          <button
+            type="button"
+            onClick={() => { setShowReturning(!showReturning); setError(''); }}
+            className="w-full flex items-center justify-between p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-xl text-sm font-medium text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/40 transition-colors"
+          >
+            <span>🔑 Already joined before? Use your personal code</span>
+            <span>{showReturning ? '▲' : '▼'}</span>
+          </button>
+          {showReturning && (
+            <form onSubmit={handleReturningSubmit} className="mt-3 space-y-3">
+              <input
+                type="text"
+                value={returningCode}
+                onChange={(e) => setReturningCode(e.target.value.toUpperCase())}
+                className="w-full px-4 py-3 rounded-xl border-2 border-blue-300 dark:border-blue-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-center text-2xl font-mono tracking-[0.2em] focus:border-blue-500 focus:outline-none transition-colors"
+                placeholder="AB3X7QKP"
+                maxLength={8}
+                autoComplete="off"
+                autoCapitalize="characters"
+              />
+              <button
+                type="submit"
+                disabled={loading || returningCode.length < 6}
+                className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 dark:disabled:bg-gray-600 disabled:cursor-not-allowed text-white font-semibold py-2.5 rounded-xl transition-colors"
+              >
+                {loading ? 'Signing in...' : 'Sign In with Code →'}
+              </button>
+            </form>
+          )}
+          <div className="relative mt-4 mb-1">
+            <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-gray-200 dark:border-gray-600"></div></div>
+            <div className="relative flex justify-center text-xs"><span className="px-2 bg-white dark:bg-gray-800 text-gray-400">or join a new class</span></div>
+          </div>
+        </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Class code */}

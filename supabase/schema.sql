@@ -14,6 +14,7 @@ CREATE TABLE IF NOT EXISTS public.profiles (
   full_name TEXT,
   role TEXT NOT NULL CHECK (role IN ('teacher', 'student')),
   avatar_url TEXT,
+  student_code TEXT UNIQUE,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW(),
   last_login TIMESTAMPTZ
@@ -275,6 +276,9 @@ CREATE POLICY "Users can view assignment stories" ON public.assignment_stories
 
 -- Add is_admin column to profiles (idempotent)
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS is_admin BOOLEAN DEFAULT FALSE;
+
+-- Add student_code column to profiles (idempotent)
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS student_code TEXT UNIQUE;
 
 -- Approved teachers allowlist (used during Google OAuth sign-up)
 CREATE TABLE IF NOT EXISTS public.approved_teachers (
