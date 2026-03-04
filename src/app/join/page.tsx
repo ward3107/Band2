@@ -58,13 +58,15 @@ function JoinForm() {
         return;
       }
 
-      // Establish the session in the browser
-      await supabase.auth.setSession({
-        access_token: json.session.access_token,
-        refresh_token: json.session.refresh_token,
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: json.credentials.email,
+        password: json.credentials.password,
       });
-
-      // Full navigation so AuthContext re-initialises with the persisted session
+      if (signInError) {
+        setError('Joined class but could not sign in. Please refresh and try again.');
+        setLoading(false);
+        return;
+      }
       window.location.href = '/student';
     } catch {
       setError('An unexpected error occurred. Please try again.');
