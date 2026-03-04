@@ -156,7 +156,7 @@ export default function AssignmentPage({ params }: { params: Promise<{ id: strin
         .eq('student_id', user!.id)
         .eq('assignment_id', resolvedParams.id);
     }
-    setProgress((prev) => ({ ...prev, status, words_learned: wordsLearned } as Progress));
+    setProgress((prev: Progress | null) => ({ ...prev, status, words_learned: wordsLearned } as Progress));
   };
 
   const handleLearningComplete = (wordsStudied: number) => {
