@@ -75,10 +75,12 @@ export default function TeacherLoginPage() {
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <label htmlFor="teacherCode" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Teacher Code
               </label>
               <input
+                id="teacherCode"
+                name="teacherCode"
                 type="text"
                 value={teacherCode}
                 onChange={(e) => setTeacherCode(e.target.value.toUpperCase())}

@@ -90,6 +90,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const handleSignIn = async (email: string, password: string) => {
     const result = await signIn(email, password);
     if (result.data?.user) {
+      // Set user and session immediately so guards don't see a null user
+      // before onAuthStateChange fires asynchronously.
+      setUser(result.data.user);
+      setSessionState(result.data.session);
       await loadProfile(result.data.user.id);
     }
     return result;
