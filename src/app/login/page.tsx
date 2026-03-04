@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 
@@ -15,19 +15,6 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  // Prevent scrolling on login page
-  useEffect(() => {
-    document.body.style.overflow = 'hidden';
-    document.documentElement.style.overflow = 'hidden';
-    document.body.style.height = '100vh';
-    document.documentElement.style.height = '100vh';
-    return () => {
-      document.body.style.overflow = '';
-      document.documentElement.style.overflow = '';
-      document.body.style.height = '';
-      document.documentElement.style.height = '';
-    };
-  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -76,13 +63,13 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="h-screen bg-gradient-to-br from-blue-600 to-purple-700 flex items-center justify-center p-4 overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-blue-600 to-purple-700 flex items-start sm:items-center justify-center p-4 py-6 sm:py-8">
       <div className="max-w-md w-full">
         {/* Logo */}
-        <div className="text-center mb-8">
-          <div className="text-6xl mb-2">📚</div>
-          <h1 className="text-3xl font-bold text-white">Vocab Band II</h1>
-          <p className="text-blue-200">Israeli English Curriculum Learning Platform</p>
+        <div className="text-center mb-5 sm:mb-8">
+          <div className="text-4xl sm:text-6xl mb-2">📚</div>
+          <h1 className="text-2xl sm:text-3xl font-bold text-white">Vocab Band II</h1>
+          <p className="text-blue-200 text-sm sm:text-base">Israeli English Curriculum Learning Platform</p>
         </div>
 
         {/* Role Selector */}
@@ -110,8 +97,8 @@ export default function LoginPage() {
         </div>
 
         {/* Form Card */}
-        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-8">
-          <div className="flex items-center gap-3 mb-6">
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-5 sm:p-8">
+          <div className="flex items-center gap-3 mb-5 sm:mb-6">
             <span className="text-4xl">{role === 'teacher' ? '👩‍🏫' : '🎓'}</span>
             <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
               {isLogin ? (role === 'teacher' ? 'Teacher Login' : 'Student Login') : (role === 'teacher' ? 'Create Teacher Account' : 'Create Student Account')}
@@ -122,6 +109,35 @@ export default function LoginPage() {
             <div className="mb-4 p-3 bg-red-100 dark:bg-red-900/30 border border-red-400 dark:border-red-600 rounded-lg">
               <p className="text-red-700 dark:text-red-300 text-sm">{error}</p>
             </div>
+          )}
+
+          {/* ── Student quick-join shortcut ── */}
+          {role === 'student' && (
+            <>
+              <a
+                href="/join"
+                className="flex items-center gap-3 w-full mb-4 p-4 bg-green-50 dark:bg-green-900/20 border border-green-300 dark:border-green-700 rounded-xl hover:bg-green-100 dark:hover:bg-green-900/40 transition-colors group"
+              >
+                <span className="text-2xl shrink-0">💬</span>
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-green-800 dark:text-green-200 leading-tight">
+                    Join with class code — no account needed
+                  </p>
+                  <p className="text-xs text-green-700 dark:text-green-400 mt-0.5">
+                    Your teacher sent you a 6-character code via WhatsApp
+                  </p>
+                </div>
+                <span className="text-green-600 dark:text-green-400 text-lg ml-auto shrink-0 group-hover:translate-x-0.5 transition-transform">→</span>
+              </a>
+              <div className="relative mb-4">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-gray-300 dark:border-gray-600"></div>
+                </div>
+                <div className="relative flex justify-center text-xs">
+                  <span className="px-2 bg-white dark:bg-gray-800 text-gray-400">or sign in with your account</span>
+                </div>
+              </div>
+            </>
           )}
 
           <form onSubmit={handleSubmit} className="space-y-4">

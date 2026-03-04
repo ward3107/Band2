@@ -34,19 +34,6 @@ export default function HomePage() {
     }
   }, []);
 
-  // Prevent scrolling on login page
-  useEffect(() => {
-    document.body.style.overflow = 'hidden';
-    document.documentElement.style.overflow = 'hidden';
-    document.body.style.height = '100vh';
-    document.documentElement.style.height = '100vh';
-    return () => {
-      document.body.style.overflow = '';
-      document.documentElement.style.overflow = '';
-      document.body.style.height = '';
-      document.documentElement.style.height = '';
-    };
-  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -127,7 +114,7 @@ export default function HomePage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-600 to-purple-700 flex items-center justify-center p-4 py-8">
+    <div className="min-h-screen bg-gradient-to-br from-blue-600 to-purple-700 flex items-start lg:items-center justify-center p-4 py-6 sm:py-8">
       {/* Two Equal Cards Side by Side */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 w-full max-w-5xl">
         {/* Left Card - Logo, Title & Role Selector */}
@@ -257,8 +244,35 @@ export default function HomePage() {
               </button>
             </form>
           ) : (
-            /* Student: email + password sign-in/up */
+            /* Student: join-with-code shortcut + email/password sign-in/up */
             <>
+              {/* ── Quick join (no account needed) ── */}
+              <a
+                href="/join"
+                className="flex items-center gap-3 w-full mb-5 p-4 bg-green-50 dark:bg-green-900/20 border border-green-300 dark:border-green-700 rounded-xl hover:bg-green-100 dark:hover:bg-green-900/40 transition-colors group"
+              >
+                <span className="text-2xl shrink-0">💬</span>
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-green-800 dark:text-green-200 leading-tight">
+                    Join with class code — no account needed
+                  </p>
+                  <p className="text-xs text-green-700 dark:text-green-400 mt-0.5">
+                    Your teacher sent you a 6-character code via WhatsApp
+                  </p>
+                </div>
+                <span className="text-green-600 dark:text-green-400 text-lg ml-auto shrink-0 group-hover:translate-x-0.5 transition-transform">→</span>
+              </a>
+
+              {/* Divider */}
+              <div className="relative mb-4">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-gray-300 dark:border-gray-600"></div>
+                </div>
+                <div className="relative flex justify-center text-xs">
+                  <span className="px-2 bg-white dark:bg-gray-800 text-gray-400">or sign in with your account</span>
+                </div>
+              </div>
+
               <form onSubmit={handleSubmit} className="space-y-4 flex-1">
                 {!isLogin && (
                   <div>
