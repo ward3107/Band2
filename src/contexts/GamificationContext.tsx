@@ -105,26 +105,22 @@ export function GamificationProvider({ children }: { children: ReactNode }) {
     const today = new Date().toDateString();
     const lastStudy = currentData.lastStudyDate;
 
+    let streakBroken = false;
     if (lastStudy) {
       const lastDate = new Date(lastStudy);
       const daysDiff = Math.floor((Date.now() - lastDate.getTime()) / (1000 * 60 * 60 * 24));
-
       if (daysDiff > 1) {
-        // Streak broken
-        setData(prev => ({
-          ...prev,
-          streak: 0,
-        }));
+        streakBroken = true;
       }
     }
 
-    // Reset daily counters if new day
-    const lastStudyDate = currentData.lastStudyDate;
-    if (lastStudyDate !== today) {
+    const isNewDay = lastStudy !== today;
+
+    if (streakBroken || isNewDay) {
       setData(prev => ({
         ...prev,
-        todayXP: 0,
-        todayStudyTime: 0,
+        ...(streakBroken ? { streak: 0 } : {}),
+        ...(isNewDay ? { todayXP: 0, todayStudyTime: 0 } : {}),
       }));
     }
   };
