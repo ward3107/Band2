@@ -9,6 +9,8 @@ if (!supabaseAnonKey) throw new Error('Missing environment variable: NEXT_PUBLIC
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     persistSession: true,
+    detectSessionInUrl: true,
+    flowType: 'pkce',
   },
   global: {
     headers: {

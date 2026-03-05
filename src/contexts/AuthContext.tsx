@@ -42,29 +42,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // initAuth uses getSession() for a reliable, fast local-storage read on
-    // every page load / hard-refresh — no network call needed.
-    const initAuth = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      setSessionState(session);
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        await loadProfile(session.user.id);
-      } else {
-        setLoading(false);
-      }
-    };
-
-    initAuth();
-
-    // onAuthStateChange handles live auth events (sign-in, sign-out, token
-    // refresh). INITIAL_SESSION is skipped here because initAuth already
-    // handled it — this prevents the double loadProfile() call.
+    // Use onAuthStateChange as the single source of truth. INITIAL_SESSION
+    // fires synchronously with the cached/stored session, so there is no need
+    // for a separate getSession() call — which can race and cause navigator
+    // lock contention (the "Lock not released within 5000ms" error).
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event === 'INITIAL_SESSION') return;
-
       setSessionState(session);
       setUser(session?.user ?? null);
       if (session?.user) {
