@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useProgress } from '@/contexts/ProgressContext';
 import { useDifficultWords } from '@/contexts/DifficultWordsContext';
@@ -44,6 +44,14 @@ export default function WordScrambleMode({ words, onClose, onComplete }: WordScr
   // Tile state for current word
   const [availableTiles, setAvailableTiles] = useState<Array<{ letter: string; idx: number }>>([]);
   const [selectedTiles, setSelectedTiles] = useState<Array<{ letter: string; idx: number }>>([]);
+  const completionHandled = useRef(false);
+
+  useEffect(() => {
+    if (currentIndex >= wordList.length && wordList.length > 0 && !completionHandled.current) {
+      completionHandled.current = true;
+      if (onComplete) onComplete(wordList.length, score);
+    }
+  }, [currentIndex, wordList.length, score, onComplete]);
 
   const getTranslation = (w: WordScrambleModeProps['words'][0]) => {
     return language === 'ar'
@@ -94,7 +102,6 @@ export default function WordScrambleMode({ words, onClose, onComplete }: WordScr
 
   if (currentIndex >= wordList.length) {
     const percentage = Math.round((score / wordList.length) * 100);
-    if (onComplete) onComplete(wordList.length, score);
     return (
       <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
         <div className="bg-white dark:bg-gray-800 rounded-2xl p-5 sm:p-8 max-w-md w-full text-center">

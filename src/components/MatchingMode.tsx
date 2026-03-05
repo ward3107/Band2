@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useProgress } from '@/contexts/ProgressContext';
 import { useDifficultWords } from '@/contexts/DifficultWordsContext';
@@ -38,6 +38,14 @@ export default function MatchingMode({ words, onClose, onComplete }: MatchingMod
   const [totalCorrect, setTotalCorrect] = useState(0);
   const [totalAttempted, setTotalAttempted] = useState(0);
   const [started, setStarted] = useState(false);
+  const completionHandled = useRef(false);
+
+  useEffect(() => {
+    if (started && batchIndex >= batches.length && !completionHandled.current) {
+      completionHandled.current = true;
+      if (onComplete) onComplete(totalAttempted, totalCorrect);
+    }
+  }, [batchIndex, batches.length, started, totalAttempted, totalCorrect, onComplete]);
 
   const getTranslation = (w: MatchingModeProps['words'][0]) => {
     return language === 'ar'
@@ -74,7 +82,6 @@ export default function MatchingMode({ words, onClose, onComplete }: MatchingMod
 
   if (batchIndex >= batches.length) {
     const percentage = totalAttempted > 0 ? Math.round((totalCorrect / totalAttempted) * 100) : 0;
-    if (onComplete) onComplete(totalAttempted, totalCorrect);
     return (
       <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
         <div className="bg-white dark:bg-gray-800 rounded-2xl p-5 sm:p-8 max-w-md w-full text-center">

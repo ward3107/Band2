@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useProgress } from '@/contexts/ProgressContext';
 import { useDifficultWords } from '@/contexts/DifficultWordsContext';
@@ -66,6 +66,14 @@ export default function FillInBlankMode({ words, onClose, onComplete }: FillInBl
   const [showResult, setShowResult] = useState(false);
   const [score, setScore] = useState(0);
   const [started, setStarted] = useState(false);
+  const completionHandled = useRef(false);
+
+  useEffect(() => {
+    if (currentIndex >= questions.length && questions.length > 0 && !completionHandled.current) {
+      completionHandled.current = true;
+      if (onComplete) onComplete(questions.length, score);
+    }
+  }, [currentIndex, questions.length, score, onComplete]);
 
   if (words.length === 0) {
     return (
@@ -101,7 +109,6 @@ export default function FillInBlankMode({ words, onClose, onComplete }: FillInBl
 
   if (currentIndex >= questions.length) {
     const percentage = Math.round((score / questions.length) * 100);
-    if (onComplete) onComplete(questions.length, score);
     return (
       <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
         <div className="bg-white dark:bg-gray-800 rounded-2xl p-5 sm:p-8 max-w-md w-full text-center">
