@@ -2,10 +2,11 @@
 
 import { useState, useEffect, Suspense } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/lib/supabase';
 import { useRouter, useSearchParams } from 'next/navigation';
 
 function TeacherLoginForm() {
-  const { signIn, signInWithGoogle } = useAuth();
+  const { signIn, signInWithGoogle, user, profile, loading: authLoading } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
   const [teacherCode, setTeacherCode] = useState('');
@@ -17,6 +18,13 @@ function TeacherLoginForm() {
     const codeParam = searchParams.get('code');
     if (codeParam) setTeacherCode(codeParam.toUpperCase());
   }, [searchParams]);
+
+  // If already authenticated as a teacher, go straight to dashboard
+  useEffect(() => {
+    if (!authLoading && user && profile?.role === 'teacher') {
+      router.push('/teacher/dashboard');
+    }
+  }, [authLoading, user, profile, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -31,6 +39,11 @@ function TeacherLoginForm() {
     }
 
     try {
+      // Clear any stale local session before signing in. This releases the
+      // Supabase Web Lock so the new sign-in doesn't deadlock against an
+      // in-progress token-refresh from a previous session.
+      await supabase.auth.signOut({ scope: 'local' });
+
       const result = await signIn(`${code}@teacher.band2.app`, code);
       if (result.error) {
         setError('Invalid teacher code. Please check your code and try again.');
@@ -92,10 +105,10 @@ function TeacherLoginForm() {
 
             <button
               type="submit"
-              disabled={loading}
+              disabled={loading || authLoading}
               className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-400 text-white font-semibold py-3 px-4 rounded-lg transition-colors"
             >
-              {loading ? 'Signing in...' : 'Sign In'}
+              {authLoading ? 'Loading...' : loading ? 'Signing in...' : 'Sign In'}
             </button>
           </form>
 
@@ -114,13 +127,15 @@ function TeacherLoginForm() {
             onClick={async () => {
               setError('');
               setLoading(true);
+              // Clear stale session before OAuth redirect to avoid lock conflicts
+              await supabase.auth.signOut({ scope: 'local' });
               const { error } = await signInWithGoogle();
               if (error) {
                 setError(error.message || 'Failed to sign in with Google');
                 setLoading(false);
               }
             }}
-            disabled={loading}
+            disabled={loading || authLoading}
             className="w-full flex items-center justify-center gap-3 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 font-semibold py-3 px-4 rounded-lg transition-colors"
           >
             <svg className="w-5 h-5" viewBox="0 0 24 24">

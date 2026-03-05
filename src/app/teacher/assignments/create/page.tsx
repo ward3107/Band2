@@ -51,6 +51,9 @@ export default function CreateAssignmentPage() {
   const [cwHebrew, setCwHebrew] = useState('');
   const [cwArabic, setCwArabic] = useState('');
   const [cwError, setCwError] = useState('');
+  const [pasteText, setPasteText] = useState('');
+  const [pasteError, setPasteError] = useState('');
+  const [showPaste, setShowPaste] = useState(false);
 
   useEffect(() => {
     if (!guardLoading && profile?.role === 'teacher') {
@@ -122,6 +125,48 @@ export default function CreateAssignmentPage() {
     };
     setCustomWords(prev => [...prev, newWord]);
     setCwWord(''); setCwHebrew(''); setCwArabic('');
+  };
+
+  const addPastedWords = () => {
+    setPasteError('');
+    const lines = pasteText.split('\n').map(l => l.trim()).filter(Boolean);
+    if (lines.length === 0) { setPasteError('Paste at least one word'); return; }
+
+    const added: VocabularyWord[] = [];
+    const skipped: string[] = [];
+
+    for (const line of lines) {
+      // Support formats: "word", "word, hebrew", "word, hebrew, arabic"
+      const parts = line.split(',').map(p => p.trim());
+      const word = parts[0];
+      const hebrew = parts[1] || '';
+      const arabic = parts[2] || hebrew;
+
+      if (!word) continue;
+      if (customWords.some(w => w.word.toLowerCase() === word.toLowerCase()) ||
+          added.some(w => w.word.toLowerCase() === word.toLowerCase())) {
+        skipped.push(word);
+        continue;
+      }
+      added.push({
+        id: `custom-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+        word,
+        translations: { hebrew, arabic },
+        ipa: '',
+        example_sentences: { english: '', hebrew: '', arabic: '' },
+        category: 'custom',
+        type: 'custom',
+      });
+    }
+
+    if (added.length === 0 && skipped.length > 0) {
+      setPasteError(`All words already added: ${skipped.join(', ')}`);
+      return;
+    }
+    setCustomWords(prev => [...prev, ...added]);
+    setPasteText('');
+    setShowPaste(false);
+    if (skipped.length > 0) setPasteError(`Added ${added.length} word(s). Skipped duplicates: ${skipped.join(', ')}`);
   };
 
   const handleSave = async () => {
@@ -497,6 +542,44 @@ export default function CreateAssignmentPage() {
                 <div className="p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg border border-purple-200 dark:border-purple-800">
                   <p className="text-sm text-purple-800 dark:text-purple-200 mb-1 font-medium">Add words from your own list</p>
                   <p className="text-xs text-purple-600 dark:text-purple-400">These can be words from a textbook or any source outside the app vocabulary.</p>
+                </div>
+
+                {/* Bulk paste section */}
+                <div className="border border-dashed border-purple-300 dark:border-purple-700 rounded-lg p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">📋 Paste a word list</span>
+                    <button
+                      onClick={() => { setShowPaste(!showPaste); setPasteError(''); }}
+                      className="text-xs text-purple-600 dark:text-purple-400 hover:underline"
+                    >
+                      {showPaste ? 'Hide' : 'Expand'}
+                    </button>
+                  </div>
+                  {showPaste && (
+                    <div className="space-y-2">
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                        One word per line. Optionally add translations separated by commas:<br />
+                        <span className="font-mono">perseverance</span><br />
+                        <span className="font-mono">perseverance, התמדה</span><br />
+                        <span className="font-mono">perseverance, התמדה, مثابرة</span>
+                      </p>
+                      <textarea
+                        value={pasteText}
+                        onChange={(e) => setPasteText(e.target.value)}
+                        rows={6}
+                        className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm font-mono focus:ring-2 focus:ring-purple-500"
+                        placeholder={"apple\nbanana, בננה\ncherry, דובדבן, كرز"}
+                      />
+                      {pasteError && <p className="text-xs text-red-600 dark:text-red-400">{pasteError}</p>}
+                      <button
+                        onClick={addPastedWords}
+                        disabled={!pasteText.trim()}
+                        className="px-4 py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-400 text-white text-sm font-medium rounded-lg"
+                      >
+                        Add All Words
+                      </button>
+                    </div>
+                  )}
                 </div>
 
                 {/* Add custom word form */}
