@@ -127,7 +127,7 @@ export default function AssignmentPage({ params }: { params: Promise<{ id: strin
         .order('words_learned', { ascending: false })
         .limit(10);
 
-      setLeaderboard((lbData as LeaderboardEntry[]) || []);
+      setLeaderboard((lbData as unknown as LeaderboardEntry[]) || []);
     } catch {
       // errors handled by null assignment check
     } finally {
