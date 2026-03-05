@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useProgress } from '@/contexts/ProgressContext';
 import { useDifficultWords } from '@/contexts/DifficultWordsContext';
@@ -77,6 +77,14 @@ export default function StoryMode({ words, onClose, onComplete }: StoryModeProps
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
   const [showResult, setShowResult] = useState(false);
   const [score, setScore] = useState(0);
+  const completionHandled = useRef(false);
+
+  useEffect(() => {
+    if (phase === 'quiz' && questionIndex >= questions.length && questions.length > 0 && !completionHandled.current) {
+      completionHandled.current = true;
+      if (onComplete) onComplete(questions.length, score);
+    }
+  }, [phase, questionIndex, questions.length, score, onComplete]);
 
   if (words.length === 0) {
     return (
@@ -141,7 +149,6 @@ export default function StoryMode({ words, onClose, onComplete }: StoryModeProps
   // Quiz phase
   if (questionIndex >= questions.length) {
     const percentage = Math.round((score / questions.length) * 100);
-    if (onComplete) onComplete(questions.length, score);
     return (
       <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
         <div className="bg-white dark:bg-gray-800 rounded-2xl p-5 sm:p-8 max-w-md w-full text-center">

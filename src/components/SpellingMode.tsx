@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { useVoice } from '@/contexts/VoiceContext';
 import { useAccessibility } from '@/contexts/AccessibilityContext';
 import { useProgress } from '@/contexts/ProgressContext';
@@ -34,8 +34,16 @@ export default function SpellingMode({ words, onClose, onComplete }: SpellingMod
   const [isCorrect, setIsCorrect] = useState(false);
   const [score, setScore] = useState(0);
   const [started, setStarted] = useState(false);
+  const completionHandled = useRef(false);
 
   const currentWord = wordList[currentIndex];
+
+  useEffect(() => {
+    if (currentIndex >= wordList.length && wordList.length > 0 && !completionHandled.current) {
+      completionHandled.current = true;
+      if (onComplete) onComplete(wordList.length, score);
+    }
+  }, [currentIndex, wordList.length, score, onComplete]);
 
   // Auto-play word when it changes
   useEffect(() => {
@@ -79,7 +87,6 @@ export default function SpellingMode({ words, onClose, onComplete }: SpellingMod
 
   if (currentIndex >= wordList.length) {
     const percentage = Math.round((score / wordList.length) * 100);
-    if (onComplete) onComplete(wordList.length, score);
     return (
       <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
         <div className="bg-white dark:bg-gray-800 rounded-2xl p-5 sm:p-8 max-w-md w-full text-center">

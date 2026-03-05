@@ -25,6 +25,9 @@ export default function EditAssignmentPage({ params }: { params: Promise<{ id: s
   const [description, setDescription] = useState('');
   const [deadline, setDeadline] = useState('');
   const [assignmentType, setAssignmentType] = useState<'flashcards' | 'quiz' | 'both'>('both');
+  const [allowedModes, setAllowedModes] = useState<Set<string>>(new Set(['flashcards', 'quiz', 'fill-in-blank', 'matching', 'story', 'spelling', 'scramble']));
+  const [customWords, setCustomWords] = useState<Array<{ word: string; translation: string }>>([]);
+  const [customWordInput, setCustomWordInput] = useState('');
   const [selectedWords, setSelectedWords] = useState<Set<string>>(new Set());
   const [allWords, setAllWords] = useState<VocabularyWord[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -62,6 +65,12 @@ export default function EditAssignmentPage({ params }: { params: Promise<{ id: s
       setTitle(a.title);
       setDescription(a.description || '');
       setAssignmentType(a.assignment_type || 'both');
+      if (a.allowed_modes && a.allowed_modes.length > 0) {
+        setAllowedModes(new Set(a.allowed_modes));
+      }
+      if (a.custom_words) {
+        setCustomWords(a.custom_words);
+      }
       // Format deadline for datetime-local input
       const d = new Date(a.deadline);
       setDeadline(d.toISOString().slice(0, 16));
@@ -104,7 +113,7 @@ export default function EditAssignmentPage({ params }: { params: Promise<{ id: s
 
     try {
       if (!title.trim()) { setError('Please enter an assignment title'); setSaving(false); return; }
-      if (selectedWords.size === 0) { setError('Please select at least one word'); setSaving(false); return; }
+      if (selectedWords.size === 0 && customWords.length === 0) { setError('Please select at least one word or add custom words'); setSaving(false); return; }
       if (!deadline) { setError('Please set a deadline'); setSaving(false); return; }
 
       const { error: updateError } = await supabase
@@ -113,9 +122,11 @@ export default function EditAssignmentPage({ params }: { params: Promise<{ id: s
           title: title.trim(),
           description: description.trim() || null,
           word_ids: Array.from(selectedWords),
-          total_words: selectedWords.size,
+          total_words: selectedWords.size + customWords.length,
           deadline: new Date(deadline).toISOString(),
           assignment_type: assignmentType,
+          allowed_modes: Array.from(allowedModes),
+          custom_words: customWords.length > 0 ? customWords : null,
           updated_at: new Date().toISOString(),
         })
         .eq('id', resolvedParams.id)
@@ -229,28 +240,43 @@ export default function EditAssignmentPage({ params }: { params: Promise<{ id: s
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Assignment Type *
+                  Study Modes for Students *
                 </label>
-                <div className="grid grid-cols-3 gap-3">
+                <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
+                  Select which study modes students can use
+                </p>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                   {([
-                    { value: 'both', label: 'Flashcards + Quiz', icon: '📚' },
-                    { value: 'flashcards', label: 'Flashcards Only', icon: '🎴' },
-                    { value: 'quiz', label: 'Quiz Only', icon: '🧠' },
-                  ] as const).map((opt) => (
-                    <button
-                      key={opt.value}
-                      type="button"
-                      onClick={() => setAssignmentType(opt.value)}
-                      className={`p-3 rounded-lg border-2 text-center transition-colors ${
-                        assignmentType === opt.value
-                          ? 'border-indigo-600 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-300'
-                          : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 text-gray-700 dark:text-gray-300'
-                      }`}
-                    >
-                      <div className="text-2xl mb-1">{opt.icon}</div>
-                      <div className="text-xs font-medium">{opt.label}</div>
-                    </button>
-                  ))}
+                    { value: 'flashcards', label: 'Flashcards', icon: '🎴' },
+                    { value: 'quiz', label: 'Quiz', icon: '🧠' },
+                    { value: 'fill-in-blank', label: 'Fill in Blank', icon: '✏️' },
+                    { value: 'matching', label: 'Matching', icon: '🔗' },
+                    { value: 'story', label: 'Story Mode', icon: '📖' },
+                    { value: 'spelling', label: 'Spelling Bee', icon: '🔤' },
+                    { value: 'scramble', label: 'Word Scramble', icon: '🔀' },
+                  ]).map((opt) => {
+                    const isSelected = allowedModes.has(opt.value);
+                    return (
+                      <button
+                        key={opt.value}
+                        type="button"
+                        onClick={() => {
+                          const next = new Set(allowedModes);
+                          if (isSelected) next.delete(opt.value);
+                          else next.add(opt.value);
+                          setAllowedModes(next);
+                        }}
+                        className={`p-3 rounded-lg border-2 text-center transition-colors ${
+                          isSelected
+                            ? 'border-indigo-600 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-300'
+                            : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 text-gray-700 dark:text-gray-300'
+                        }`}
+                      >
+                        <div className="text-xl mb-1">{opt.icon}</div>
+                        <div className="text-xs font-medium">{opt.label}</div>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             </div>
@@ -442,6 +468,69 @@ export default function EditAssignmentPage({ params }: { params: Promise<{ id: s
                 </div>
               </>
             )}
+
+            {/* Custom Words Section */}
+            <div className="mt-4 bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-xl p-4">
+              <h3 className="text-sm font-semibold text-orange-900 dark:text-orange-200 mb-2">
+                Add Custom Words (not in vocabulary bank)
+              </h3>
+              <p className="text-xs text-orange-700 dark:text-orange-300 mb-3">
+                Format: <code className="bg-orange-100 dark:bg-orange-900/40 px-1 rounded">word - translation</code> (one per line)
+              </p>
+              <textarea
+                value={customWordInput}
+                onChange={(e) => setCustomWordInput(e.target.value)}
+                rows={3}
+                className="w-full px-3 py-2 rounded-lg border border-orange-300 dark:border-orange-700 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-orange-500 text-sm font-mono mb-2"
+                placeholder={"adventure - הרפתקה\nbravery - אומץ"}
+              />
+              <button
+                onClick={() => {
+                  const lines = customWordInput.split('\n').filter(l => l.trim());
+                  const newCustom: Array<{ word: string; translation: string }> = [];
+                  for (const line of lines) {
+                    const sep = line.includes(' - ') ? ' - ' : line.includes('\t') ? '\t' : line.includes(',') ? ',' : null;
+                    if (sep) {
+                      const parts = line.split(sep);
+                      const word = parts[0]?.trim();
+                      const translation = parts.slice(1).join(sep).trim();
+                      if (word && translation) {
+                        newCustom.push({ word, translation });
+                      }
+                    }
+                  }
+                  if (newCustom.length > 0) {
+                    setCustomWords(prev => [...prev, ...newCustom]);
+                    setCustomWordInput('');
+                  } else if (lines.length > 0) {
+                    alert('Could not parse words. Use format: word - translation (one per line)');
+                  }
+                }}
+                disabled={!customWordInput.trim()}
+                className="w-full py-2 bg-orange-600 hover:bg-orange-700 disabled:bg-gray-400 text-white font-medium rounded-lg text-sm"
+              >
+                Add Custom Words
+              </button>
+              {customWords.length > 0 && (
+                <div className="mt-3">
+                  <div className="flex items-center justify-between mb-1">
+                    <p className="text-xs font-medium text-orange-800 dark:text-orange-200">{customWords.length} custom word{customWords.length !== 1 ? 's' : ''}:</p>
+                    <button onClick={() => setCustomWords([])} className="text-xs text-red-600 dark:text-red-400 hover:underline">Clear All</button>
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {customWords.map((cw, i) => (
+                      <span
+                        key={i}
+                        onClick={() => setCustomWords(prev => prev.filter((_, idx) => idx !== i))}
+                        className="inline-flex items-center gap-1 px-2.5 py-1 bg-orange-600 text-white rounded-full text-xs cursor-pointer hover:bg-orange-700"
+                      >
+                        {cw.word} <span className="text-orange-200">×</span>
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Actions */}

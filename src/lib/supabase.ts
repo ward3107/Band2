@@ -47,6 +47,8 @@ export interface Assignment {
   total_words: number;
   deadline: string;
   assignment_type: 'flashcards' | 'quiz' | 'both';
+  allowed_modes?: string[];
+  custom_words?: Array<{ word: string; translation: string }> | null;
   created_at: string;
   updated_at: string;
 }

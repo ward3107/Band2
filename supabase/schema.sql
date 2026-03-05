@@ -54,6 +54,9 @@ CREATE TABLE IF NOT EXISTS public.assignments (
   word_ids TEXT[] NOT NULL, -- Array of vocabulary word IDs
   total_words INT NOT NULL,
   deadline TIMESTAMPTZ NOT NULL,
+  assignment_type TEXT DEFAULT 'both',
+  allowed_modes TEXT[], -- Which study modes are enabled for students
+  custom_words JSONB, -- Custom words added by teacher: [{word, translation}]
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
