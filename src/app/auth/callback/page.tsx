@@ -21,6 +21,9 @@ export default function OAuthCallbackPage() {
       return;
     }
 
+    // Clear stale profile cache so the fresh profile (with is_admin etc.) is loaded
+    try { sessionStorage.removeItem('band2_profile_cache'); } catch { /* ignore */ }
+
     // Listen for auth state change — this fires AFTER Supabase exchanges the
     // code/hash for a real session. Much more reliable than calling getSession()
     // immediately (which races with the exchange and often returns null).
