@@ -30,6 +30,9 @@ export default function CreateAssignmentPage() {
   const [classes, setClasses] = useState<Class[]>([]);
   const [assignmentType, setAssignmentType] = useState<'flashcards' | 'quiz' | 'both'>('both');
   const [searchTerm, setSearchTerm] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState('');
+  const [showPasteArea, setShowPasteArea] = useState(false);
+  const [pasteText, setPasteText] = useState('');
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -61,11 +64,16 @@ export default function CreateAssignmentPage() {
     }
   };
 
-  const filteredWords = allWords.filter(word =>
-    word.word.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    word.translations.hebrew.includes(searchTerm) ||
-    word.translations.arabic.includes(searchTerm)
-  );
+  const categories = [...new Set(allWords.map(w => w.category).filter(Boolean))].sort();
+
+  const filteredWords = allWords.filter(word => {
+    const matchesSearch = !searchTerm ||
+      word.word.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      word.translations.hebrew.includes(searchTerm) ||
+      word.translations.arabic.includes(searchTerm);
+    const matchesCategory = !categoryFilter || word.category === categoryFilter;
+    return matchesSearch && matchesCategory;
+  });
 
   const toggleWord = (wordId: string) => {
     const newSelected = new Set(selectedWords);
@@ -290,27 +298,51 @@ export default function CreateAssignmentPage() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Description (optional)
+                  Instructions (optional)
                 </label>
+                <select
+                  value=""
+                  onChange={(e) => {
+                    if (e.target.value) {
+                      setDescription(prev => prev ? `${prev}\n${e.target.value}` : e.target.value);
+                    }
+                  }}
+                  className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 mb-2"
+                >
+                  <option value="">Choose a preset instruction...</option>
+                  <option value="Practice all words using flashcards, then take the quiz.">Practice all words using flashcards, then take the quiz.</option>
+                  <option value="Study each word and its translation. Try to use them in sentences.">Study each word and its translation. Try to use them in sentences.</option>
+                  <option value="Complete the quiz with at least 80% correct answers.">Complete the quiz with at least 80% correct answers.</option>
+                  <option value="Review the words at least 3 times before the deadline.">Review the words at least 3 times before the deadline.</option>
+                  <option value="Focus on spelling and pronunciation. Use the audio feature.">Focus on spelling and pronunciation. Use the audio feature.</option>
+                  <option value="Try all study modes: flashcards, quiz, matching, and spelling.">Try all study modes: flashcards, quiz, matching, and spelling.</option>
+                  <option value="Write each word in a sentence in your notebook after studying.">Write each word in a sentence in your notebook after studying.</option>
+                </select>
                 <textarea
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   rows={3}
                   className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500"
-                  placeholder="Add instructions for your students..."
+                  placeholder="Or write your own instructions..."
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <label htmlFor="deadline-input" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 cursor-pointer">
                   Deadline *
                 </label>
-                <input
-                  type="datetime-local"
-                  value={deadline}
-                  onChange={(e) => setDeadline(e.target.value)}
-                  className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500"
-                />
+                <div
+                  className="relative cursor-pointer"
+                  onClick={() => (document.getElementById('deadline-input') as HTMLInputElement | null)?.showPicker?.()}
+                >
+                  <input
+                    id="deadline-input"
+                    type="datetime-local"
+                    value={deadline}
+                    onChange={(e) => setDeadline(e.target.value)}
+                    className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 cursor-pointer"
+                  />
+                </div>
               </div>
 
               <div>
@@ -354,67 +386,194 @@ export default function CreateAssignmentPage() {
         {/* Step 2: Select Words */}
         {step === 'words' && (
           <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm">
-            <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Select Vocabulary Words</h2>
-              <div className="text-sm text-gray-600 dark:text-gray-400">
-                {selectedWords.size} word{selectedWords.size !== 1 ? 's' : ''} selected
+              <span className="text-sm font-medium text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/30 px-3 py-1 rounded-full">
+                {selectedWords.size} selected
+              </span>
+            </div>
+
+            {/* Toggle: Browse or Paste */}
+            <div className="flex gap-2 mb-4">
+              <button
+                onClick={() => setShowPasteArea(false)}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  !showPasteArea
+                    ? 'bg-indigo-600 text-white'
+                    : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                }`}
+              >
+                Browse Words
+              </button>
+              <button
+                onClick={() => setShowPasteArea(true)}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  showPasteArea
+                    ? 'bg-indigo-600 text-white'
+                    : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                }`}
+              >
+                Paste Word List
+              </button>
+            </div>
+
+            {showPasteArea ? (
+              <div>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                  Paste a list of English words (one per line or comma-separated). We&apos;ll match them against the vocabulary bank.
+                </p>
+                <textarea
+                  value={pasteText}
+                  onChange={(e) => setPasteText(e.target.value)}
+                  rows={6}
+                  className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 mb-3 font-mono text-sm"
+                  placeholder={"school\nteacher\nhomework\nOR: school, teacher, homework"}
+                />
+                <button
+                  onClick={() => {
+                    const inputWords = pasteText
+                      .split(/[,\n]+/)
+                      .map(w => w.trim().toLowerCase())
+                      .filter(Boolean);
+                    const matched = new Set(selectedWords);
+                    let matchCount = 0;
+                    for (const inputWord of inputWords) {
+                      const found = allWords.find(w => w.word.toLowerCase() === inputWord);
+                      if (found) {
+                        matched.add(found.id);
+                        matchCount++;
+                      }
+                    }
+                    setSelectedWords(matched);
+                    setPasteText('');
+                    alert(`Matched ${matchCount} out of ${inputWords.length} words. ${inputWords.length - matchCount > 0 ? `${inputWords.length - matchCount} words were not found in the vocabulary bank.` : ''}`);
+                  }}
+                  disabled={!pasteText.trim()}
+                  className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-400 text-white font-semibold rounded-lg"
+                >
+                  Match & Add Words
+                </button>
               </div>
-            </div>
+            ) : (
+              <>
+                {/* Search + Category Filter */}
+                <div className="flex gap-2 mb-3">
+                  <input
+                    type="text"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="flex-1 px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500"
+                    placeholder="Search words..."
+                  />
+                  <select
+                    value={categoryFilter}
+                    onChange={(e) => setCategoryFilter(e.target.value)}
+                    className="px-3 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 text-sm"
+                  >
+                    <option value="">All Categories</option>
+                    {categories.map(cat => (
+                      <option key={cat} value={cat}>{cat}</option>
+                    ))}
+                  </select>
+                </div>
 
-            <div className="mb-4">
-              <input
-                type="text"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500"
-                placeholder="Search words, translations..."
-              />
-            </div>
-
-            <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-              <p className="text-sm text-blue-800 dark:text-blue-200">
-                💡 Tip: Search for specific topics like "school", "food", or browse all 773 words
-              </p>
-            </div>
-
-            <div className="max-h-96 overflow-y-auto border border-gray-200 dark:border-gray-700 rounded-lg">
-              {filteredWords.length === 0 ? (
-                <div className="p-8 text-center text-gray-500">No words found</div>
-              ) : (
-                <div className="divide-y divide-gray-200 dark:divide-gray-700">
-                  {filteredWords.map((word) => (
-                    <div
-                      key={word.id}
-                      onClick={() => toggleWord(word.id)}
-                      className={`p-4 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer flex items-center justify-between ${
-                        selectedWords.has(word.id) ? 'bg-indigo-50 dark:bg-indigo-900/20' : ''
-                      }`}
+                {/* Select / Deselect filtered */}
+                <div className="flex items-center justify-between mb-3">
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                    {filteredWords.length} word{filteredWords.length !== 1 ? 's' : ''} shown
+                  </p>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => {
+                        const newSelected = new Set(selectedWords);
+                        filteredWords.forEach(w => newSelected.add(w.id));
+                        setSelectedWords(newSelected);
+                      }}
+                      className="text-xs px-3 py-1.5 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 rounded-lg font-medium hover:bg-indigo-200 dark:hover:bg-indigo-900/50"
                     >
-                      <div className="flex items-center gap-3">
-                        <div className={`w-5 h-5 rounded border-2 flex items-center justify-center ${
-                          selectedWords.has(word.id)
-                            ? 'bg-indigo-600 border-indigo-600'
-                            : 'border-gray-300 dark:border-gray-600'
-                        }`}>
-                          {selectedWords.has(word.id) && (
-                            <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
-                              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                            </svg>
-                          )}
-                        </div>
-                        <div>
-                          <div className="font-medium text-gray-900 dark:text-white">{word.word}</div>
-                          <div className="text-sm text-gray-500 dark:text-gray-400">
-                            {word.translations.hebrew} • {word.translations.arabic}
+                      Select All Shown
+                    </button>
+                    <button
+                      onClick={() => {
+                        const newSelected = new Set(selectedWords);
+                        filteredWords.forEach(w => newSelected.delete(w.id));
+                        setSelectedWords(newSelected);
+                      }}
+                      className="text-xs px-3 py-1.5 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 rounded-lg font-medium hover:bg-gray-200 dark:hover:bg-gray-600"
+                    >
+                      Deselect All Shown
+                    </button>
+                  </div>
+                </div>
+
+                {/* Selected words pills (if any) */}
+                {selectedWords.size > 0 && (
+                  <div className="mb-3 p-3 bg-indigo-50 dark:bg-indigo-900/20 rounded-lg">
+                    <div className="flex items-center justify-between mb-2">
+                      <p className="text-xs font-medium text-indigo-700 dark:text-indigo-300">Selected Words:</p>
+                      <button
+                        onClick={() => setSelectedWords(new Set())}
+                        className="text-xs text-red-600 dark:text-red-400 hover:underline"
+                      >
+                        Clear All
+                      </button>
+                    </div>
+                    <div className="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto">
+                      {allWords.filter(w => selectedWords.has(w.id)).map(w => (
+                        <span
+                          key={w.id}
+                          onClick={() => toggleWord(w.id)}
+                          className="inline-flex items-center gap-1 px-2.5 py-1 bg-indigo-600 text-white rounded-full text-xs cursor-pointer hover:bg-indigo-700"
+                        >
+                          {w.word}
+                          <span className="text-indigo-200">×</span>
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Word list */}
+                <div className="max-h-80 overflow-y-auto border border-gray-200 dark:border-gray-700 rounded-lg">
+                  {filteredWords.length === 0 ? (
+                    <div className="p-8 text-center text-gray-500">No words found</div>
+                  ) : (
+                    <div className="divide-y divide-gray-200 dark:divide-gray-700">
+                      {filteredWords.map((word) => (
+                        <div
+                          key={word.id}
+                          onClick={() => toggleWord(word.id)}
+                          className={`p-3 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer flex items-center gap-3 ${
+                            selectedWords.has(word.id) ? 'bg-indigo-50 dark:bg-indigo-900/20' : ''
+                          }`}
+                        >
+                          <div className={`w-5 h-5 rounded border-2 flex items-center justify-center shrink-0 ${
+                            selectedWords.has(word.id)
+                              ? 'bg-indigo-600 border-indigo-600'
+                              : 'border-gray-300 dark:border-gray-600'
+                          }`}>
+                            {selectedWords.has(word.id) && (
+                              <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                              </svg>
+                            )}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <span className="font-medium text-gray-900 dark:text-white">{word.word}</span>
+                              <span className="text-xs text-gray-400 bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded-full shrink-0">{word.category}</span>
+                            </div>
+                            <div className="text-sm text-gray-500 dark:text-gray-400 truncate">
+                              {word.translations.hebrew} • {word.translations.arabic}
+                            </div>
                           </div>
                         </div>
-                      </div>
-                      <div className="text-xs text-gray-400">{word.category}</div>
+                      ))}
                     </div>
-                  ))}
+                  )}
                 </div>
-              )}
-            </div>
+              </>
+            )}
 
             <div className="flex gap-4 mt-6">
               <button
@@ -428,7 +587,7 @@ export default function CreateAssignmentPage() {
                 disabled={selectedWords.size === 0}
                 className="flex-1 py-3 bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-400 text-white font-semibold rounded-lg"
               >
-                Continue ({selectedWords.size} words selected) →
+                Continue ({selectedWords.size} words) →
               </button>
             </div>
           </div>

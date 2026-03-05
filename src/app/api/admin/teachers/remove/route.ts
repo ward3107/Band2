@@ -14,11 +14,34 @@ export async function DELETE(request: NextRequest) {
 
   const { searchParams } = new URL(request.url);
   const id = searchParams.get('id');
+  const type = searchParams.get('type') || 'approved'; // 'approved' or 'code'
 
   if (!id) {
     return NextResponse.json({ error: 'Teacher ID required' }, { status: 400 });
   }
 
+  if (type === 'code') {
+    // Code-based teacher: delete profile and auth user
+    const { error: profileError } = await supabaseAdmin
+      .from('profiles')
+      .delete()
+      .eq('id', id);
+
+    if (profileError) {
+      return NextResponse.json({ error: 'Failed to remove teacher profile' }, { status: 500 });
+    }
+
+    // Also delete the auth user
+    const { error: authError } = await supabaseAdmin.auth.admin.deleteUser(id);
+    if (authError) {
+      // Profile already deleted, log but don't fail
+      console.error('Failed to delete auth user:', authError.message);
+    }
+
+    return NextResponse.json({ success: true });
+  }
+
+  // Google-based teacher: delete from approved_teachers
   const { error } = await supabaseAdmin
     .from('approved_teachers')
     .delete()
