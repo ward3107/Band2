@@ -69,6 +69,33 @@ export default function TeacherDashboardPage() {
     router.push('/teacher/assignments/create');
   };
 
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  const handleDeleteAssignment = async (assignmentId: string) => {
+    if (!confirm('Are you sure you want to delete this assignment? This will also remove all student progress for it.')) return;
+
+    setDeletingId(assignmentId);
+    try {
+      // Delete related records first, then the assignment
+      await Promise.all([
+        supabase.from('student_assignment_progress').delete().eq('assignment_id', assignmentId),
+        supabase.from('assignment_classes').delete().eq('assignment_id', assignmentId),
+      ]);
+      const { error } = await supabase
+        .from('assignments')
+        .delete()
+        .eq('id', assignmentId)
+        .eq('teacher_id', profile!.id);
+
+      if (error) throw error;
+      setAssignments(prev => prev.filter(a => a.id !== assignmentId));
+    } catch (err) {
+      console.error('Failed to delete assignment:', err);
+      alert('Failed to delete assignment. Please try again.');
+    }
+    setDeletingId(null);
+  };
+
   if (loading || guardLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -246,8 +273,18 @@ export default function TeacherDashboardPage() {
                       >
                         Results
                       </a>
-                      <button className="flex-1 sm:flex-none px-3 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg text-sm font-medium">
+                      <a
+                        href={`/teacher/assignments/${assignment.id}/edit`}
+                        className="flex-1 sm:flex-none text-center px-3 py-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-lg text-sm font-medium"
+                      >
                         Edit
+                      </a>
+                      <button
+                        onClick={() => handleDeleteAssignment(assignment.id)}
+                        disabled={deletingId === assignment.id}
+                        className="flex-1 sm:flex-none px-3 py-2 bg-red-100 dark:bg-red-900/30 hover:bg-red-200 dark:hover:bg-red-900/50 text-red-700 dark:text-red-300 rounded-lg text-sm font-medium disabled:opacity-50"
+                      >
+                        {deletingId === assignment.id ? 'Deleting...' : 'Delete'}
                       </button>
                     </div>
                   </div>

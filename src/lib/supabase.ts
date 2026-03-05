@@ -46,6 +46,7 @@ export interface Assignment {
   word_ids: string[];
   total_words: number;
   deadline: string;
+  assignment_type: 'flashcards' | 'quiz' | 'both';
   created_at: string;
   updated_at: string;
 }
