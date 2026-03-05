@@ -39,7 +39,6 @@ const cairo = Cairo({
 export const metadata: Metadata = {
   title: "Vocabulary Band II - Israeli English Curriculum",
   description: "Learn English vocabulary for grades 7-9 with translations in Hebrew and Arabic",
-  manifest: "/manifest.json",
 };
 
 export const viewport: Viewport = {
