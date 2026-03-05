@@ -6,6 +6,11 @@ import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import FlashcardMode from '@/components/FlashcardMode';
 import QuizMode from '@/components/QuizMode';
+import FillInBlankMode from '@/components/FillInBlankMode';
+import MatchingMode from '@/components/MatchingMode';
+import StoryMode from '@/components/StoryMode';
+import SpellingMode from '@/components/SpellingMode';
+import WordScrambleMode from '@/components/WordScrambleMode';
 import { useLanguage } from '@/contexts/LanguageContext';
 
 interface Assignment {
@@ -46,7 +51,7 @@ export default function AssignmentPage({ params }: { params: Promise<{ id: strin
   const [progress, setProgress] = useState<Progress | null>(null);
   const [words, setWords] = useState<VocabularyWord[]>([]);
   const [loading, setLoading] = useState(true);
-  const [mode, setMode] = useState<'overview' | 'flashcards' | 'quiz'>('overview');
+  const [mode, setMode] = useState<'overview' | 'flashcards' | 'quiz' | 'fill-in-blank' | 'matching' | 'story' | 'spelling' | 'scramble'>('overview');
 
   useEffect(() => {
     if (user && profile?.role === 'student') {
@@ -197,6 +202,26 @@ export default function AssignmentPage({ params }: { params: Promise<{ id: strin
     );
   }
 
+  if (mode === 'fill-in-blank') {
+    return <FillInBlankMode words={words} onClose={() => setMode('overview')} onComplete={handleLearningComplete} />;
+  }
+
+  if (mode === 'matching') {
+    return <MatchingMode words={words} onClose={() => setMode('overview')} onComplete={handleLearningComplete} />;
+  }
+
+  if (mode === 'story') {
+    return <StoryMode words={words} onClose={() => setMode('overview')} onComplete={handleLearningComplete} />;
+  }
+
+  if (mode === 'spelling') {
+    return <SpellingMode words={words} onClose={() => setMode('overview')} onComplete={handleLearningComplete} />;
+  }
+
+  if (mode === 'scramble') {
+    return <WordScrambleMode words={words} onClose={() => setMode('overview')} onComplete={handleLearningComplete} />;
+  }
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'completed': return 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300';
@@ -307,6 +332,51 @@ export default function AssignmentPage({ params }: { params: Promise<{ id: strin
                 </p>
               </button>
             )}
+
+            <button
+              onClick={() => { updateProgress('in_progress', progress?.words_learned || 0); setMode('fill-in-blank'); }}
+              className="group bg-gradient-to-br from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white rounded-xl p-4 sm:p-6 text-left transition-all hover:scale-[1.02] active:scale-[0.98] shadow-md hover:shadow-xl"
+            >
+              <div className="text-4xl mb-3">✏️</div>
+              <h4 className="text-base sm:text-xl font-bold mb-2">Fill in the Blank</h4>
+              <p className="text-amber-100 text-sm">Complete sentences by choosing the missing word</p>
+            </button>
+
+            <button
+              onClick={() => { updateProgress('in_progress', progress?.words_learned || 0); setMode('matching'); }}
+              className="group bg-gradient-to-br from-teal-500 to-cyan-600 hover:from-teal-600 hover:to-cyan-700 text-white rounded-xl p-4 sm:p-6 text-left transition-all hover:scale-[1.02] active:scale-[0.98] shadow-md hover:shadow-xl"
+            >
+              <div className="text-4xl mb-3">🔗</div>
+              <h4 className="text-base sm:text-xl font-bold mb-2">Matching</h4>
+              <p className="text-teal-100 text-sm">Match English words with their translations</p>
+            </button>
+
+            <button
+              onClick={() => { updateProgress('in_progress', progress?.words_learned || 0); setMode('story'); }}
+              className="group bg-gradient-to-br from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white rounded-xl p-4 sm:p-6 text-left transition-all hover:scale-[1.02] active:scale-[0.98] shadow-md hover:shadow-xl"
+            >
+              <div className="text-4xl mb-3">📖</div>
+              <h4 className="text-base sm:text-xl font-bold mb-2">Story Mode</h4>
+              <p className="text-emerald-100 text-sm">Read a passage and answer comprehension questions</p>
+            </button>
+
+            <button
+              onClick={() => { updateProgress('in_progress', progress?.words_learned || 0); setMode('spelling'); }}
+              className="group bg-gradient-to-br from-rose-500 to-pink-600 hover:from-rose-600 hover:to-pink-700 text-white rounded-xl p-4 sm:p-6 text-left transition-all hover:scale-[1.02] active:scale-[0.98] shadow-md hover:shadow-xl"
+            >
+              <div className="text-4xl mb-3">🔤</div>
+              <h4 className="text-base sm:text-xl font-bold mb-2">Spelling Bee</h4>
+              <p className="text-rose-100 text-sm">Listen to the word and type the correct spelling</p>
+            </button>
+
+            <button
+              onClick={() => { updateProgress('in_progress', progress?.words_learned || 0); setMode('scramble'); }}
+              className="group bg-gradient-to-br from-violet-500 to-purple-600 hover:from-violet-600 hover:to-purple-700 text-white rounded-xl p-4 sm:p-6 text-left transition-all hover:scale-[1.02] active:scale-[0.98] shadow-md hover:shadow-xl"
+            >
+              <div className="text-4xl mb-3">🔀</div>
+              <h4 className="text-base sm:text-xl font-bold mb-2">Word Scramble</h4>
+              <p className="text-violet-100 text-sm">Unscramble the letters to spell the word</p>
+            </button>
           </div>
         </div>
 
