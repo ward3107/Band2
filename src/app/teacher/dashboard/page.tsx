@@ -26,38 +26,25 @@ export default function TeacherDashboardPage() {
   const loadData = useCallback(async () => {
     if (!profile) return;
     try {
-      const { data: profileData } = await supabase
-        .from('profiles')
-        .select('is_admin')
-        .eq('id', profile.id)
-        .maybeSingle();
+      // Round-trip 1: profile check + classes + assignments in parallel
+      const [profileRes, classesRes, assignmentsRes] = await Promise.all([
+        supabase.from('profiles').select('is_admin').eq('id', profile.id).maybeSingle(),
+        supabase.from('classes').select('*').eq('teacher_id', profile.id).order('created_at', { ascending: false }),
+        supabase.from('assignments').select('*').eq('teacher_id', profile.id).order('created_at', { ascending: false }),
+      ]);
 
-      setIsAdmin(profileData?.is_admin || false);
+      setIsAdmin(profileRes.data?.is_admin || false);
+      setClasses(classesRes.data || []);
+      setAssignments(assignmentsRes.data || []);
 
-      const { data: classesData } = await supabase
-        .from('classes')
-        .select('*')
-        .eq('teacher_id', profile.id)
-        .order('created_at', { ascending: false });
-
-      setClasses(classesData || []);
-
-      if (classesData && classesData.length > 0) {
-        const classIds = classesData.map(c => c.id);
+      // Round-trip 2: enrollment count (needs class IDs from round-trip 1)
+      if (classesRes.data && classesRes.data.length > 0) {
         const { count } = await supabase
           .from('class_enrollments')
           .select('*', { count: 'exact', head: true })
-          .in('class_id', classIds);
+          .in('class_id', classesRes.data.map(c => c.id));
         setTotalStudents(count ?? 0);
       }
-
-      const { data: assignmentsData } = await supabase
-        .from('assignments')
-        .select('*')
-        .eq('teacher_id', profile.id)
-        .order('created_at', { ascending: false });
-
-      setAssignments(assignmentsData || []);
     } catch {
       // silently fall through — show empty state rather than infinite spinner
     } finally {

@@ -47,6 +47,15 @@ const nextConfig: NextConfig = {
         source: '/:path*',
         headers: securityHeaders,
       },
+      {
+        // Cache vocabulary.json aggressively — it never changes at runtime.
+        // 24h browser cache + 7-day stale-while-revalidate means 0 network
+        // requests on every return visit for all 7 study modes.
+        source: '/vocabulary.json',
+        headers: [
+          { key: 'Cache-Control', value: 'public, max-age=86400, stale-while-revalidate=604800' },
+        ],
+      },
     ];
   },
 };

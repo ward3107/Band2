@@ -45,12 +45,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // initAuth uses getSession() for a reliable, fast local-storage read on
     // every page load / hard-refresh — no network call needed.
     const initAuth = async () => {
+      // Show cached profile immediately (0ms) so the UI unblocks instantly on
+      // refresh/back-navigation, then validate from DB in background.
+      try {
+        const cached = sessionStorage.getItem('band2_profile');
+        if (cached) {
+          const cachedProfile = JSON.parse(cached) as Profile;
+          setProfile(cachedProfile);
+          setLoading(false); // unblock guards immediately
+        }
+      } catch {
+        // Ignore sessionStorage errors (private browsing, quota, etc.)
+      }
+
       const { data: { session } } = await supabase.auth.getSession();
       setSessionState(session);
       setUser(session?.user ?? null);
       if (session?.user) {
         await loadProfile(session.user.id);
       } else {
+        sessionStorage.removeItem('band2_profile');
         setLoading(false);
       }
     };
@@ -89,6 +103,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       profileData = error ? null : data;
       setProfile(profileData);
+      // Cache profile so next page load / refresh shows UI immediately
+      if (profileData) {
+        try { sessionStorage.setItem('band2_profile', JSON.stringify(profileData)); } catch { /* ignore */ }
+      }
     } catch {
       setProfile(null);
     }
@@ -123,6 +141,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
     setProfile(null);
     setSessionState(null);
+    try { sessionStorage.removeItem('band2_profile'); } catch { /* ignore */ }
   };
 
   const refreshProfile = async () => {

@@ -45,6 +45,12 @@ export default function CreateAssignmentPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [step, setStep] = useState<'details' | 'words' | 'classes' | 'review'>('details');
+  const [wordTab, setWordTab] = useState<'vocab' | 'custom'>('vocab');
+  const [customWords, setCustomWords] = useState<VocabularyWord[]>([]);
+  const [cwWord, setCwWord] = useState('');
+  const [cwHebrew, setCwHebrew] = useState('');
+  const [cwArabic, setCwArabic] = useState('');
+  const [cwError, setCwError] = useState('');
 
   useEffect(() => {
     if (!guardLoading && profile?.role === 'teacher') {
@@ -98,6 +104,26 @@ export default function CreateAssignmentPage() {
     setSelectedClasses(newSelected);
   };
 
+  const addCustomWord = () => {
+    setCwError('');
+    if (!cwWord.trim()) { setCwError('Word is required'); return; }
+    if (!cwHebrew.trim()) { setCwError('Hebrew translation is required'); return; }
+    if (customWords.some(w => w.word.toLowerCase() === cwWord.trim().toLowerCase())) {
+      setCwError('This word has already been added'); return;
+    }
+    const newWord: VocabularyWord = {
+      id: `custom-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+      word: cwWord.trim(),
+      translations: { hebrew: cwHebrew.trim(), arabic: cwArabic.trim() || cwHebrew.trim() },
+      ipa: '',
+      example_sentences: { english: '', hebrew: '', arabic: '' },
+      category: 'custom',
+      type: 'custom',
+    };
+    setCustomWords(prev => [...prev, newWord]);
+    setCwWord(''); setCwHebrew(''); setCwArabic('');
+  };
+
   const handleSave = async () => {
     setError('');
     setSaving(true);
@@ -116,8 +142,8 @@ export default function CreateAssignmentPage() {
         return;
       }
 
-      if (selectedWords.size === 0) {
-        setError('Please select at least one word');
+      if (selectedWords.size === 0 && customWords.length === 0) {
+        setError('Please select at least one word (from vocabulary or add custom words)');
         setSaving(false);
         return;
       }
@@ -142,9 +168,10 @@ export default function CreateAssignmentPage() {
           title: title.trim(),
           description: description.trim() || null,
           word_ids: Array.from(selectedWords),
-          total_words: selectedWords.size,
+          total_words: selectedWords.size + customWords.length,
           deadline: new Date(deadline).toISOString(),
           allowed_modes: Array.from(selectedModes),
+          ...(customWords.length > 0 ? { custom_words: customWords } : {}),
         })
         .select()
         .single();
@@ -383,67 +410,173 @@ export default function CreateAssignmentPage() {
         {/* Step 2: Select Words */}
         {step === 'words' && (
           <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Select Vocabulary Words</h2>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Select Words</h2>
               <div className="text-sm text-gray-600 dark:text-gray-400">
-                {selectedWords.size} word{selectedWords.size !== 1 ? 's' : ''} selected
+                {selectedWords.size + customWords.length} word{selectedWords.size + customWords.length !== 1 ? 's' : ''} selected
               </div>
             </div>
 
-            <div className="mb-4">
-              <input
-                type="text"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500"
-                placeholder="Search words, translations..."
-              />
+            {/* Tabs */}
+            <div className="flex gap-2 mb-5 border-b border-gray-200 dark:border-gray-700">
+              <button
+                onClick={() => setWordTab('vocab')}
+                className={`pb-3 px-1 text-sm font-medium border-b-2 transition-colors ${wordTab === 'vocab' ? 'border-indigo-600 text-indigo-600 dark:text-indigo-400' : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'}`}
+              >
+                📚 App Vocabulary {selectedWords.size > 0 && <span className="ml-1 bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 text-xs px-1.5 py-0.5 rounded-full">{selectedWords.size}</span>}
+              </button>
+              <button
+                onClick={() => setWordTab('custom')}
+                className={`pb-3 px-1 text-sm font-medium border-b-2 transition-colors ${wordTab === 'custom' ? 'border-purple-600 text-purple-600 dark:text-purple-400' : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'}`}
+              >
+                ✏️ Custom Words {customWords.length > 0 && <span className="ml-1 bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 text-xs px-1.5 py-0.5 rounded-full">{customWords.length}</span>}
+              </button>
             </div>
 
-            <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-              <p className="text-sm text-blue-800 dark:text-blue-200">
-                💡 Tip: Search for specific topics like "school", "food", or browse all 773 words
-              </p>
-            </div>
+            {wordTab === 'vocab' && (
+              <>
+                <div className="mb-4">
+                  <input
+                    type="text"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500"
+                    placeholder="Search words, translations..."
+                  />
+                </div>
 
-            <div className="max-h-96 overflow-y-auto border border-gray-200 dark:border-gray-700 rounded-lg">
-              {filteredWords.length === 0 ? (
-                <div className="p-8 text-center text-gray-500">No words found</div>
-              ) : (
-                <div className="divide-y divide-gray-200 dark:divide-gray-700">
-                  {filteredWords.map((word) => (
-                    <div
-                      key={word.id}
-                      onClick={() => toggleWord(word.id)}
-                      className={`p-4 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer flex items-center justify-between ${
-                        selectedWords.has(word.id) ? 'bg-indigo-50 dark:bg-indigo-900/20' : ''
-                      }`}
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className={`w-5 h-5 rounded border-2 flex items-center justify-center ${
-                          selectedWords.has(word.id)
-                            ? 'bg-indigo-600 border-indigo-600'
-                            : 'border-gray-300 dark:border-gray-600'
-                        }`}>
-                          {selectedWords.has(word.id) && (
-                            <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
-                              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                            </svg>
+                <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                  <p className="text-sm text-blue-800 dark:text-blue-200">
+                    💡 Tip: Search for specific topics like &quot;school&quot;, &quot;food&quot;, or browse all 773 words
+                  </p>
+                </div>
+
+                <div className="max-h-96 overflow-y-auto border border-gray-200 dark:border-gray-700 rounded-lg">
+                  {filteredWords.length === 0 ? (
+                    <div className="p-8 text-center text-gray-500">No words found</div>
+                  ) : (
+                    <div className="divide-y divide-gray-200 dark:divide-gray-700">
+                      {filteredWords.map((word) => (
+                        <div
+                          key={word.id}
+                          onClick={() => toggleWord(word.id)}
+                          className={`p-4 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer flex items-center justify-between ${
+                            selectedWords.has(word.id) ? 'bg-indigo-50 dark:bg-indigo-900/20' : ''
+                          }`}
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className={`w-5 h-5 rounded border-2 flex items-center justify-center ${
+                              selectedWords.has(word.id)
+                                ? 'bg-indigo-600 border-indigo-600'
+                                : 'border-gray-300 dark:border-gray-600'
+                            }`}>
+                              {selectedWords.has(word.id) && (
+                                <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                </svg>
+                              )}
+                            </div>
+                            <div>
+                              <div className="font-medium text-gray-900 dark:text-white">{word.word}</div>
+                              <div className="text-sm text-gray-500 dark:text-gray-400">
+                                {word.translations.hebrew} • {word.translations.arabic}
+                              </div>
+                            </div>
+                          </div>
+                          <div className="text-xs text-gray-400">{word.category}</div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
+
+            {wordTab === 'custom' && (
+              <div className="space-y-4">
+                <div className="p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg border border-purple-200 dark:border-purple-800">
+                  <p className="text-sm text-purple-800 dark:text-purple-200 mb-1 font-medium">Add words from your own list</p>
+                  <p className="text-xs text-purple-600 dark:text-purple-400">These can be words from a textbook or any source outside the app vocabulary.</p>
+                </div>
+
+                {/* Add custom word form */}
+                <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 space-y-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">English Word *</label>
+                      <input
+                        type="text"
+                        value={cwWord}
+                        onChange={(e) => setCwWord(e.target.value)}
+                        onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addCustomWord(); } }}
+                        className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-purple-500"
+                        placeholder="e.g., perseverance"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Hebrew Translation *</label>
+                      <input
+                        type="text"
+                        value={cwHebrew}
+                        onChange={(e) => setCwHebrew(e.target.value)}
+                        onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addCustomWord(); } }}
+                        dir="rtl"
+                        className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-purple-500"
+                        placeholder="e.g., התמדה"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Arabic (optional)</label>
+                      <input
+                        type="text"
+                        value={cwArabic}
+                        onChange={(e) => setCwArabic(e.target.value)}
+                        onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addCustomWord(); } }}
+                        dir="rtl"
+                        className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-purple-500"
+                        placeholder="e.g., مثابرة"
+                      />
+                    </div>
+                  </div>
+                  {cwError && <p className="text-sm text-red-600 dark:text-red-400">{cwError}</p>}
+                  <button
+                    onClick={addCustomWord}
+                    className="w-full sm:w-auto px-5 py-2 bg-purple-600 hover:bg-purple-700 text-white text-sm font-medium rounded-lg"
+                  >
+                    + Add Word
+                  </button>
+                </div>
+
+                {/* Custom word list */}
+                {customWords.length === 0 ? (
+                  <div className="p-8 text-center text-gray-400 dark:text-gray-500 text-sm">
+                    No custom words added yet. Add words using the form above.
+                  </div>
+                ) : (
+                  <div className="border border-gray-200 dark:border-gray-700 rounded-lg divide-y divide-gray-200 dark:divide-gray-700">
+                    {customWords.map((w) => (
+                      <div key={w.id} className="flex items-center justify-between p-3">
+                        <div>
+                          <span className="font-medium text-gray-900 dark:text-white text-sm">{w.word}</span>
+                          <span className="text-gray-400 mx-2">→</span>
+                          <span className="text-sm text-gray-600 dark:text-gray-400">{w.translations.hebrew}</span>
+                          {w.translations.arabic && w.translations.arabic !== w.translations.hebrew && (
+                            <span className="text-sm text-gray-500 dark:text-gray-500 ml-2">/ {w.translations.arabic}</span>
                           )}
                         </div>
-                        <div>
-                          <div className="font-medium text-gray-900 dark:text-white">{word.word}</div>
-                          <div className="text-sm text-gray-500 dark:text-gray-400">
-                            {word.translations.hebrew} • {word.translations.arabic}
-                          </div>
-                        </div>
+                        <button
+                          onClick={() => setCustomWords(prev => prev.filter(x => x.id !== w.id))}
+                          className="text-gray-400 hover:text-red-500 dark:hover:text-red-400 transition-colors ml-3"
+                          title="Remove word"
+                        >
+                          ✕
+                        </button>
                       </div>
-                      <div className="text-xs text-gray-400">{word.category}</div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
 
             <div className="flex gap-4 mt-6">
               <button
@@ -453,11 +586,11 @@ export default function CreateAssignmentPage() {
                 ← Back
               </button>
               <button
-                onClick={() => selectedWords.size > 0 && setStep('classes')}
-                disabled={selectedWords.size === 0}
+                onClick={() => (selectedWords.size + customWords.length) > 0 && setStep('classes')}
+                disabled={(selectedWords.size + customWords.length) === 0}
                 className="flex-1 py-3 bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-400 text-white font-semibold rounded-lg"
               >
-                Continue ({selectedWords.size} words selected) →
+                Continue ({selectedWords.size + customWords.length} words) →
               </button>
             </div>
           </div>
@@ -509,8 +642,8 @@ export default function CreateAssignmentPage() {
                       </div>
                       <div>
                         <div className="font-medium text-gray-900 dark:text-white">{cls.name}</div>
-                        <div className="text-sm text-gray-500 dark:text-gray-400">
-                          Code: {cls.class_code}
+                        <div className="flex items-center gap-1.5 text-sm text-gray-500 dark:text-gray-400">
+                          Code: <span className="font-mono font-bold">{cls.class_code}</span>
                         </div>
                       </div>
                     </div>
@@ -572,14 +705,14 @@ export default function CreateAssignmentPage() {
               {/* Words Summary */}
               <div>
                 <h3 className="font-semibold text-gray-900 dark:text-white mb-3">
-                  {selectedWords.size} Vocabulary Words
+                  {selectedWords.size + customWords.length} Words Total
+                  {selectedWords.size > 0 && customWords.length > 0 && (
+                    <span className="font-normal text-gray-500 dark:text-gray-400 text-sm ml-2">({selectedWords.size} from vocabulary + {customWords.length} custom)</span>
+                  )}
                 </h3>
                 <div className="flex flex-wrap gap-2">
                   {selectedWordsDetails.slice(0, 20).map((word) => (
-                    <span
-                      key={word.id}
-                      className="px-3 py-1 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 rounded-full text-sm"
-                    >
+                    <span key={word.id} className="px-3 py-1 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 rounded-full text-sm">
                       {word.word}
                     </span>
                   ))}
@@ -588,6 +721,11 @@ export default function CreateAssignmentPage() {
                       +{selectedWords.size - 20} more
                     </span>
                   )}
+                  {customWords.map((word) => (
+                    <span key={word.id} className="px-3 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 rounded-full text-sm">
+                      ✏️ {word.word}
+                    </span>
+                  ))}
                 </div>
               </div>
 

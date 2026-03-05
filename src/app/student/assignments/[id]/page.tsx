@@ -22,6 +22,7 @@ interface Assignment {
   words: string[];
   word_ids?: string[];
   allowed_modes?: string[] | null;
+  custom_words?: VocabularyWord[] | null;
 }
 
 interface Progress {
@@ -113,11 +114,12 @@ export default function AssignmentPage({ params }: { params: Promise<{ id: strin
       const data = await response.json();
       const allWords: VocabularyWord[] = data.words || [];
 
-      const assignmentWords = wordIds.length > 0
+      const vocabWords = wordIds.length > 0
         ? allWords.filter((w) => wordIds.includes(w.id))
         : allWords.slice(0, assignmentData.total_words || 10);
 
-      setWords(assignmentWords);
+      const customWords: VocabularyWord[] = normalised.custom_words || [];
+      setWords([...vocabWords, ...customWords]);
 
       // Load leaderboard
       const { data: lbData } = await supabase

@@ -37,6 +37,14 @@ export default function StudentDashboardPage() {
   const [classes, setClasses] = useState<Class[]>([]);
   const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [loading, setLoading] = useState(true);
+  const [copiedCode, setCopiedCode] = useState<string | null>(null);
+
+  const copyClassCode = (code: string) => {
+    navigator.clipboard.writeText(code).then(() => {
+      setCopiedCode(code);
+      setTimeout(() => setCopiedCode(null), 2000);
+    });
+  };
 
   useEffect(() => {
     if (user && profile?.role === 'student') {
@@ -45,84 +53,59 @@ export default function StudentDashboardPage() {
   }, [user, profile]);
 
   const loadData = async () => {
-    let enrolledClasses: Class[] = [];
-
     try {
-      // Load enrolled classes
+      // Round-trip 1: get enrollment class IDs
       const { data: enrollments } = await supabase
         .from('class_enrollments')
         .select('class_id')
         .eq('student_id', user!.id);
 
-      if (enrollments && enrollments.length > 0) {
-        const classIds = enrollments.map(e => e.class_id);
-
-        const { data: classesData } = await supabase
-          .from('classes')
-          .select('*')
-          .in('id', classIds);
-
-        enrolledClasses = (classesData || []) as Class[];
+      if (!enrollments || enrollments.length === 0) {
+        setClasses([]);
+        return;
       }
 
+      const classIds = enrollments.map(e => e.class_id);
+
+      // Round-trip 2: classes + assignment links in parallel
+      const [classesRes, assignmentLinksRes] = await Promise.all([
+        supabase.from('classes').select('*').in('id', classIds),
+        supabase.from('assignment_classes').select('assignment_id, classes(name)').in('class_id', classIds),
+      ]);
+
+      const enrolledClasses = (classesRes.data || []) as Class[];
       setClasses(enrolledClasses);
 
-      // Load assignments from enrolled classes
-      if (enrolledClasses.length > 0) {
-        const classIds = enrolledClasses.map(c => c.id);
+      const assignmentIds = [...new Set((assignmentLinksRes.data || []).map(l => l.assignment_id))];
+      if (assignmentIds.length === 0) return;
 
-        const { data: assignmentLinks } = await supabase
-          .from('assignment_classes')
-          .select('assignment_id')
-          .in('class_id', classIds);
-
-        const assignmentIds = assignmentLinks?.map(link => link.assignment_id) || [];
-
-        if (assignmentIds.length > 0) {
-          const { data: assignmentsData } = await supabase
-            .from('assignments')
-            .select('*')
-            .in('id', assignmentIds)
-            .order('deadline', { ascending: true });
-
-          const { data: allProgress } = await supabase
-            .from('student_assignment_progress')
-            .select('*')
-            .eq('student_id', user!.id)
-            .in('assignment_id', assignmentIds);
-
-          const progressMap = new Map(
-            (allProgress || []).map(p => [p.assignment_id, p])
-          );
-
-          const assignmentsWithProgress = (assignmentsData || []).map((assignment) => {
-            const progress = progressMap.get(assignment.id);
-            return {
-              ...assignment,
-              status: progress?.status || 'not_started',
-              words_learned: progress?.words_learned || 0,
-              quiz_score: progress?.quiz_score,
-            } as Assignment;
-          });
-
-          const { data: assignmentClassesData } = await supabase
-            .from('assignment_classes')
-            .select('assignment_id, classes(*)')
-            .in('assignment_id', assignmentIds);
-
-          const classMap = new Map();
-          assignmentClassesData?.forEach(ac => {
-            if (ac.classes && Array.isArray(ac.classes) && ac.classes.length > 0) {
-              classMap.set(ac.assignment_id, (ac.classes[0] as Class).name);
-            }
-          });
-
-          setAssignments(assignmentsWithProgress.map(a => ({
-            ...a,
-            class_name: classMap.get(a.id) || 'Unknown Class',
-          })));
+      // Build class name map from the join we already fetched (no extra query)
+      const classMap = new Map<string, string>();
+      (assignmentLinksRes.data || []).forEach(ac => {
+        if (!classMap.has(ac.assignment_id) && ac.classes) {
+          const cls = Array.isArray(ac.classes) ? ac.classes[0] : ac.classes;
+          if (cls) classMap.set(ac.assignment_id, (cls as { name: string }).name);
         }
-      }
+      });
+
+      // Round-trip 3: assignments + progress in parallel
+      const [assignmentsRes, progressRes] = await Promise.all([
+        supabase.from('assignments').select('*').in('id', assignmentIds).order('deadline', { ascending: true }),
+        supabase.from('student_assignment_progress').select('*').eq('student_id', user!.id).in('assignment_id', assignmentIds),
+      ]);
+
+      const progressMap = new Map((progressRes.data || []).map(p => [p.assignment_id, p]));
+
+      setAssignments((assignmentsRes.data || []).map(a => {
+        const progress = progressMap.get(a.id);
+        return {
+          ...a,
+          status: progress?.status || 'not_started',
+          words_learned: progress?.words_learned || 0,
+          quiz_score: progress?.quiz_score ?? null,
+          class_name: classMap.get(a.id) || 'Unknown Class',
+        } as Assignment;
+      }));
     } catch {
       // Data load failed — show empty state rather than infinite spinner
     } finally {
@@ -236,9 +219,18 @@ export default function StudentDashboardPage() {
                       {t('grade')} {cls.grade_level}
                     </p>
                   )}
-                  <p className="text-sm text-gray-500 dark:text-gray-500 font-mono">
-                    {t('classCode')}: {cls.class_code}
-                  </p>
+                  <div className="flex items-center gap-2 mt-1">
+                    <p className="text-sm text-gray-500 dark:text-gray-500 font-mono">
+                      {t('classCode')}: <span className="font-bold tracking-wider">{cls.class_code}</span>
+                    </p>
+                    <button
+                      onClick={() => copyClassCode(cls.class_code)}
+                      className="text-xs px-2 py-0.5 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded text-gray-600 dark:text-gray-300 font-medium transition-colors"
+                      title="Copy class code"
+                    >
+                      {copiedCode === cls.class_code ? '✓ Copied!' : 'Copy'}
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
