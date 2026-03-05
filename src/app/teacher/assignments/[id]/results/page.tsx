@@ -85,16 +85,6 @@ export default function AssignmentResultsPage({ params }: { params: Promise<{ id
     } finally {
       setLoading(false);
     }
-      // Filter out entries where student relation is null (deleted profiles)
-      const validStudents = (progressData || []).filter(
-        (s: StudentProgress) => s.student !== null
-      );
-
-      setStudents(validStudents);
-    } catch (err) {
-      console.error('Failed to load assignment results:', err);
-    }
-    setLoading(false);
   };
 
   const getStatusColor = (status: string) => {

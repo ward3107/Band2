@@ -21,21 +21,11 @@ export default function TeacherDashboardPage() {
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!guardLoading && profile?.role === 'teacher') {
-      loadData();
-    }
-  }, [guardLoading, profile, loadData]);
-
-  const loadData = useCallback(async () => {
   const [totalStudents, setTotalStudents] = useState(0);
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     if (!profile) return;
-
     try {
-      // Check if user is admin
       const { data: profileData } = await supabase
         .from('profiles')
         .select('is_admin')
@@ -44,7 +34,6 @@ export default function TeacherDashboardPage() {
 
       setIsAdmin(profileData?.is_admin || false);
 
-      // Load classes
       const { data: classesData } = await supabase
         .from('classes')
         .select('*')
@@ -53,7 +42,15 @@ export default function TeacherDashboardPage() {
 
       setClasses(classesData || []);
 
-      // Load assignments
+      if (classesData && classesData.length > 0) {
+        const classIds = classesData.map(c => c.id);
+        const { count } = await supabase
+          .from('class_enrollments')
+          .select('*', { count: 'exact', head: true })
+          .in('class_id', classIds);
+        setTotalStudents(count ?? 0);
+      }
+
       const { data: assignmentsData } = await supabase
         .from('assignments')
         .select('*')
@@ -67,43 +64,12 @@ export default function TeacherDashboardPage() {
       setLoading(false);
     }
   }, [profile]);
-        .single();
 
-      setIsAdmin(profileData?.is_admin || false);
-
-      // Load classes
-      const { data: classesData } = await supabase
-        .from('classes')
-        .select('*')
-        .eq('teacher_id', profile.id)
-        .order('created_at', { ascending: false });
-
-      setClasses(classesData || []);
-
-      // Count total enrolled students across all classes
-      if (classesData && classesData.length > 0) {
-        const classIds = classesData.map(c => c.id);
-        const { count } = await supabase
-          .from('class_enrollments')
-          .select('*', { count: 'exact', head: true })
-          .in('class_id', classIds);
-
-        setTotalStudents(count ?? 0);
-      }
-
-      // Load assignments
-      const { data: assignmentsData } = await supabase
-        .from('assignments')
-        .select('*')
-        .eq('teacher_id', profile.id)
-        .order('created_at', { ascending: false });
-
-      setAssignments(assignmentsData || []);
-    } catch (err) {
-      console.error('Failed to load dashboard data:', err);
+  useEffect(() => {
+    if (!guardLoading && profile?.role === 'teacher') {
+      loadData();
     }
-    setLoading(false);
-  };
+  }, [guardLoading, profile, loadData]);
 
   const handleSignOut = async () => {
     await signOut();
