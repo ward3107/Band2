@@ -154,21 +154,27 @@ export default function AdminTeachersPage() {
     }
   };
 
-  const removeTeacher = async (id: string) => {
+  const removeTeacher = async (id: string, type: 'approved' | 'code') => {
     const token = session?.access_token;
     if (!token) return;
 
+    const label = type === 'code' ? 'code-based teacher' : 'approved teacher';
+    if (!confirm(`Are you sure you want to remove this ${label}?`)) return;
+
     try {
-      const response = await fetch(`/api/admin/teachers/remove?id=${id}`, {
+      const response = await fetch(`/api/admin/teachers/remove?id=${id}&type=${type}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
       });
 
       if (response.ok) {
         await loadTeachers();
+      } else {
+        const data = await response.json();
+        alert(data.error || 'Failed to remove teacher');
       }
     } catch {
-      // removal failure handled by UI not refreshing
+      alert('Failed to connect to server');
     }
   };
 
@@ -390,7 +396,7 @@ export default function AdminTeachersPage() {
                         WhatsApp
                       </button>
                       <button
-                        onClick={() => removeTeacher(teacher.id)}
+                        onClick={() => removeTeacher(teacher.id, 'code')}
                         className="px-3 py-1 text-sm text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
                       >
                         Remove
@@ -421,7 +427,7 @@ export default function AdminTeachersPage() {
                     <div className="text-sm text-gray-600 dark:text-gray-400 truncate">{teacher.email}</div>
                   </div>
                   <button
-                    onClick={() => removeTeacher(teacher.id)}
+                    onClick={() => removeTeacher(teacher.id, 'approved')}
                     className="px-3 py-1 text-sm text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 shrink-0"
                   >
                     Remove
