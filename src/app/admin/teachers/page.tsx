@@ -75,9 +75,13 @@ export default function AdminTeachersPage() {
   }, [guardLoading, profile]);
 
   const checkAdminAndLoad = () => {
-    if (!profile) return;
+    if (!profile) {
+      setLoading(false);
+      return;
+    }
 
     if (!profile.is_admin) {
+      setLoading(false);
       router.push('/teacher/dashboard');
       return;
     }
