@@ -52,9 +52,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSessionState(session);
       setUser(session?.user ?? null);
       if (session?.user) {
+        // On fresh sign-in, clear cached profile to avoid stale data
+        // (e.g. missing is_admin flag from a previous session)
+        if (event === 'SIGNED_IN') {
+          setCachedProfile(null);
+        }
         await loadProfile(session.user.id);
       } else {
         setProfile(null);
+        setCachedProfile(null);
         setLoading(false);
       }
     });
@@ -118,6 +124,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // before onAuthStateChange fires asynchronously.
       setUser(result.data.user);
       setSessionState(result.data.session);
+      // Clear stale profile cache before loading fresh data
+      setCachedProfile(null);
       const profile = await loadProfile(result.data.user.id);
       // Update last_login timestamp (fire-and-forget)
       supabase.from('profiles').update({ last_login: new Date().toISOString() }).eq('id', result.data.user.id).then();
