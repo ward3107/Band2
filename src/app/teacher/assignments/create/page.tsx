@@ -28,6 +28,7 @@ export default function CreateAssignmentPage() {
 
   const [allWords, setAllWords] = useState<VocabularyWord[]>([]);
   const [classes, setClasses] = useState<Class[]>([]);
+  const [assignmentType, setAssignmentType] = useState<'flashcards' | 'quiz' | 'both'>('both');
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -126,6 +127,7 @@ export default function CreateAssignmentPage() {
           word_ids: Array.from(selectedWords),
           total_words: selectedWords.size,
           deadline: new Date(deadline).toISOString(),
+          assignment_type: assignmentType,
         })
         .select()
         .single();
@@ -311,6 +313,33 @@ export default function CreateAssignmentPage() {
                 />
               </div>
 
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Assignment Type *
+                </label>
+                <div className="grid grid-cols-3 gap-3">
+                  {([
+                    { value: 'both', label: 'Flashcards + Quiz', icon: '📚' },
+                    { value: 'flashcards', label: 'Flashcards Only', icon: '🎴' },
+                    { value: 'quiz', label: 'Quiz Only', icon: '🧠' },
+                  ] as const).map((opt) => (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      onClick={() => setAssignmentType(opt.value)}
+                      className={`p-3 rounded-lg border-2 text-center transition-colors ${
+                        assignmentType === opt.value
+                          ? 'border-indigo-600 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-300'
+                          : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 text-gray-700 dark:text-gray-300'
+                      }`}
+                    >
+                      <div className="text-2xl mb-1">{opt.icon}</div>
+                      <div className="text-xs font-medium">{opt.label}</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               <button
                 onClick={() => title.trim() && setStep('words')}
                 disabled={!title.trim()}
@@ -494,6 +523,9 @@ export default function CreateAssignmentPage() {
                 {description && <p className="text-gray-600 dark:text-gray-400 text-sm mb-2">{description}</p>}
                 <p className="text-sm text-gray-500 dark:text-gray-500">
                   📅 Due: {new Date(deadline).toLocaleString()}
+                </p>
+                <p className="text-sm text-gray-500 dark:text-gray-500">
+                  📝 Type: {assignmentType === 'both' ? 'Flashcards + Quiz' : assignmentType === 'flashcards' ? 'Flashcards Only' : 'Quiz Only'}
                 </p>
               </div>
 

@@ -26,7 +26,7 @@ interface Assignment {
 }
 
 export default function StudentDashboardPage() {
-  const { user, profile, loading: guardLoading } = useRoleGuard('student', {
+  const { user, profile, signOut, loading: guardLoading } = useRoleGuard('student', {
     loginRedirect: '/login?redirect=/student',
     unauthorizedRedirect: '/student/join-class',
   });
@@ -176,12 +176,12 @@ export default function StudentDashboardPage() {
               >
                 {t('practiceMode')}
               </a>
-              <a
-                href="/student/join-class"
-                className="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium"
+              <button
+                onClick={async () => { await signOut(); router.push('/'); }}
+                className="px-3 py-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 rounded-lg text-sm text-gray-700 dark:text-gray-300 font-medium"
               >
-                {t('joinClass')}
-              </a>
+                {t('signOut')}
+              </button>
             </div>
           </div>
         </div>
