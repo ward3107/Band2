@@ -158,12 +158,12 @@ export default function AdminTeachersPage() {
     }
   };
 
-  const removeTeacher = async (id: string) => {
+  const removeTeacher = async (id: string, type: 'code' | 'google') => {
     const token = session?.access_token;
     if (!token) return;
 
     try {
-      const response = await fetch(`/api/admin/teachers/remove?id=${id}`, {
+      const response = await fetch(`/api/admin/teachers/remove?id=${id}&type=${type}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -394,7 +394,7 @@ export default function AdminTeachersPage() {
                         WhatsApp
                       </button>
                       <button
-                        onClick={() => removeTeacher(teacher.id)}
+                        onClick={() => removeTeacher(teacher.id, 'code')}
                         className="px-3 py-1 text-sm text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
                       >
                         Remove
@@ -425,7 +425,7 @@ export default function AdminTeachersPage() {
                     <div className="text-sm text-gray-600 dark:text-gray-400 truncate">{teacher.email}</div>
                   </div>
                   <button
-                    onClick={() => removeTeacher(teacher.id)}
+                    onClick={() => removeTeacher(teacher.id, 'google')}
                     className="px-3 py-1 text-sm text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 shrink-0"
                   >
                     Remove
