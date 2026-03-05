@@ -82,6 +82,8 @@ export default function OAuthCallbackPage() {
             }
           }
 
+          // Update last_login timestamp (fire-and-forget)
+          supabase.from('profiles').update({ last_login: new Date().toISOString() }).eq('id', session.user.id).then();
           router.push(redirectUrl);
         } catch {
           router.push('/?error=callback_failed');
