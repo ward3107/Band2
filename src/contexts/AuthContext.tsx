@@ -78,17 +78,48 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => subscription.unsubscribe();
   }, []);
 
+  const PROFILE_CACHE_KEY = 'band2_profile_cache';
+
+  const getCachedProfile = (userId: string): Profile | null => {
+    try {
+      const cached = sessionStorage.getItem(PROFILE_CACHE_KEY);
+      if (!cached) return null;
+      const parsed = JSON.parse(cached);
+      if (parsed.id === userId) return parsed;
+    } catch { /* ignore */ }
+    return null;
+  };
+
+  const setCachedProfile = (profile: Profile | null) => {
+    try {
+      if (profile) {
+        sessionStorage.setItem(PROFILE_CACHE_KEY, JSON.stringify(profile));
+      } else {
+        sessionStorage.removeItem(PROFILE_CACHE_KEY);
+      }
+    } catch { /* ignore */ }
+  };
+
   const loadProfile = async (userId: string): Promise<Profile | null> => {
+    // Return cached profile instantly, skip DB round-trip on refresh
+    const cached = getCachedProfile(userId);
+    if (cached) {
+      setProfile(cached);
+      setLoading(false);
+      return cached;
+    }
+
     let profileData: Profile | null = null;
     try {
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', userId)
-        .maybeSingle(); // Use maybeSingle to avoid error if not found
+        .maybeSingle();
 
       profileData = error ? null : data;
       setProfile(profileData);
+      setCachedProfile(profileData);
     } catch {
       setProfile(null);
     }
@@ -123,6 +154,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
     setProfile(null);
     setSessionState(null);
+    setCachedProfile(null);
   };
 
   const refreshProfile = async () => {

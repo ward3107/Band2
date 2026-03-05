@@ -33,27 +33,20 @@ export default function TeacherDashboardPage() {
     if (!profile) return;
 
     try {
-      // Check if user is admin
-      const { data: profileData } = await supabase
-        .from('profiles')
-        .select('is_admin')
-        .eq('id', profile.id)
-        .single();
+      // Run independent queries in parallel
+      const [adminResult, classesResult, assignmentsResult] = await Promise.all([
+        supabase.from('profiles').select('is_admin').eq('id', profile.id).single(),
+        supabase.from('classes').select('*').eq('teacher_id', profile.id).order('created_at', { ascending: false }),
+        supabase.from('assignments').select('*').eq('teacher_id', profile.id).order('created_at', { ascending: false }),
+      ]);
 
-      setIsAdmin(profileData?.is_admin || false);
+      setIsAdmin(adminResult.data?.is_admin || false);
+      setClasses(classesResult.data || []);
+      setAssignments(assignmentsResult.data || []);
 
-      // Load classes
-      const { data: classesData } = await supabase
-        .from('classes')
-        .select('*')
-        .eq('teacher_id', profile.id)
-        .order('created_at', { ascending: false });
-
-      setClasses(classesData || []);
-
-      // Count total enrolled students across all classes
-      if (classesData && classesData.length > 0) {
-        const classIds = classesData.map(c => c.id);
+      // Student count depends on classes result
+      if (classesResult.data && classesResult.data.length > 0) {
+        const classIds = classesResult.data.map(c => c.id);
         const { count } = await supabase
           .from('class_enrollments')
           .select('*', { count: 'exact', head: true })
@@ -61,15 +54,6 @@ export default function TeacherDashboardPage() {
 
         setTotalStudents(count ?? 0);
       }
-
-      // Load assignments
-      const { data: assignmentsData } = await supabase
-        .from('assignments')
-        .select('*')
-        .eq('teacher_id', profile.id)
-        .order('created_at', { ascending: false });
-
-      setAssignments(assignmentsData || []);
     } catch (err) {
       console.error('Failed to load dashboard data:', err);
     }
