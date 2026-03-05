@@ -3,6 +3,7 @@
 import { useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
+import type { Session } from '@supabase/supabase-js';
 
 export default function OAuthCallbackPage() {
   const router = useRouter();
@@ -39,7 +40,7 @@ export default function OAuthCallbackPage() {
         } else if (hash.includes('access_token')) {
           // Implicit flow — Supabase detects the hash fragment via detectSessionInUrl.
           // Wait for onAuthStateChange to fire and set the session.
-          const session = await new Promise<typeof import('@supabase/supabase-js').Session | null>((resolve) => {
+          const session = await new Promise<Session | null>((resolve) => {
             const timeout = setTimeout(() => resolve(null), 5000);
             const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
               if (session) {
