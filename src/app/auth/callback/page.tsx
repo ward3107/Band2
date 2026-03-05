@@ -3,6 +3,7 @@
 import { useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
+import type { Session } from '@supabase/supabase-js';
 
 export default function OAuthCallbackPage() {
   const router = useRouter();
@@ -37,8 +38,22 @@ export default function OAuthCallbackPage() {
             return;
           }
         } else if (hash.includes('access_token')) {
-          // Implicit flow — Supabase auto-detects from hash, just wait a moment
-          await new Promise(resolve => setTimeout(resolve, 500));
+          // Implicit flow — Supabase detects the hash fragment via detectSessionInUrl.
+          // Wait for onAuthStateChange to fire and set the session.
+          const session = await new Promise<Session | null>((resolve) => {
+            const timeout = setTimeout(() => resolve(null), 5000);
+            const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+              if (session) {
+                clearTimeout(timeout);
+                subscription.unsubscribe();
+                resolve(session);
+              }
+            });
+          });
+          if (!session) {
+            router.push('/?error=no_session');
+            return;
+          }
         } else {
           // No auth params — redirect home
           router.push('/');
