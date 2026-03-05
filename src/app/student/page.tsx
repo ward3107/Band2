@@ -43,99 +43,85 @@ export default function StudentDashboardPage() {
   }, [user, profile]);
 
   const loadData = async () => {
-    let enrolledClasses: Class[] = [];
-
     try {
-      // Load enrolled classes
+      // Query 1: Get enrolled classes with class details in one join
       const { data: enrollments } = await supabase
         .from('class_enrollments')
-        .select('class_id')
+        .select('classes(id, name, class_code, grade_level)')
         .eq('student_id', user!.id);
 
-      if (enrollments && enrollments.length > 0) {
-        const classIds = enrollments.map(e => e.class_id);
-
-        const { data: classesData } = await supabase
-          .from('classes')
-          .select('*')
-          .in('id', classIds);
-
-        enrolledClasses = (classesData || []) as Class[];
-      }
+      const enrolledClasses: Class[] = (enrollments || [])
+        .map(e => {
+          const cls = e.classes;
+          if (cls && typeof cls === 'object' && !Array.isArray(cls)) return cls as Class;
+          if (Array.isArray(cls) && cls.length > 0) return cls[0] as Class;
+          return null;
+        })
+        .filter((c): c is Class => c !== null);
 
       setClasses(enrolledClasses);
-    } catch (err) {
-      void err;
-    }
 
-    // Load assignments from enrolled classes
-    try {
-      if (enrolledClasses.length > 0) {
-        const classIds = enrolledClasses.map(c => c.id);
-
-        // Get assignment_ids for these classes
-        const { data: assignmentLinks } = await supabase
-          .from('assignment_classes')
-          .select('assignment_id')
-          .in('class_id', classIds);
-
-        const assignmentIds = assignmentLinks?.map(link => link.assignment_id) || [];
-
-        if (assignmentIds.length > 0) {
-          // Get assignments
-          const { data: assignmentsData } = await supabase
-            .from('assignments')
-            .select('*')
-            .in('id', assignmentIds)
-            .order('deadline', { ascending: true });
-
-          // Batch-load all progress in a single query instead of N+1
-          const { data: allProgress } = await supabase
-            .from('student_assignment_progress')
-            .select('*')
-            .eq('student_id', user!.id)
-            .in('assignment_id', assignmentIds);
-
-          const progressMap = new Map(
-            (allProgress || []).map(p => [p.assignment_id, p])
-          );
-
-          const assignmentsWithProgress = (assignmentsData || []).map((assignment) => {
-            const progress = progressMap.get(assignment.id);
-            return {
-              ...assignment,
-              status: progress?.status || 'not_started',
-              words_learned: progress?.words_learned || 0,
-              quiz_score: progress?.quiz_score,
-            } as Assignment;
-          });
-
-          // Add class name to each assignment
-          const { data: assignmentClassesData } = await supabase
-            .from('assignment_classes')
-            .select('assignment_id, classes(*)')
-            .in('assignment_id', assignmentIds);
-
-          const classMap = new Map();
-          assignmentClassesData?.forEach(ac => {
-            // ac.classes is a single object (not array) for a belongsTo relation
-            if (ac.classes && typeof ac.classes === 'object' && !Array.isArray(ac.classes)) {
-              classMap.set(ac.assignment_id, (ac.classes as Class).name);
-            } else if (ac.classes && Array.isArray(ac.classes) && ac.classes.length > 0) {
-              classMap.set(ac.assignment_id, (ac.classes[0] as Class).name);
-            }
-          });
-
-          const finalAssignments = assignmentsWithProgress.map(a => ({
-            ...a,
-            class_name: classMap.get(a.id) || 'Unknown Class',
-          }));
-
-          setAssignments(finalAssignments);
-        }
+      if (enrolledClasses.length === 0) {
+        setLoading(false);
+        return;
       }
+
+      const classIds = enrolledClasses.map(c => c.id);
+      const classNameById = new Map(enrolledClasses.map(c => [c.id, c.name]));
+
+      // Query 2: Get assignments with class mapping and student progress in one join
+      const { data: assignmentLinks } = await supabase
+        .from('assignment_classes')
+        .select('class_id, assignments(id, title, description, total_words, deadline)')
+        .in('class_id', classIds);
+
+      if (!assignmentLinks || assignmentLinks.length === 0) {
+        setLoading(false);
+        return;
+      }
+
+      // Deduplicate assignments and map class names
+      const assignmentMap = new Map<string, Assignment>();
+      assignmentLinks.forEach(link => {
+        const a = link.assignments;
+        if (!a || typeof a !== 'object') return;
+        const assignment = Array.isArray(a) ? a[0] : a;
+        if (!assignment?.id) return;
+        if (!assignmentMap.has(assignment.id)) {
+          assignmentMap.set(assignment.id, {
+            ...assignment,
+            status: 'not_started' as const,
+            words_learned: 0,
+            quiz_score: null,
+            class_name: classNameById.get(link.class_id) || 'Unknown Class',
+          });
+        }
+      });
+
+      const assignmentIds = Array.from(assignmentMap.keys());
+
+      // Query 3 (small, targeted): Get progress only for this student's assignments
+      const { data: allProgress } = await supabase
+        .from('student_assignment_progress')
+        .select('assignment_id, status, words_learned, quiz_score')
+        .eq('student_id', user!.id)
+        .in('assignment_id', assignmentIds);
+
+      (allProgress || []).forEach(p => {
+        const a = assignmentMap.get(p.assignment_id);
+        if (a) {
+          a.status = p.status;
+          a.words_learned = p.words_learned || 0;
+          a.quiz_score = p.quiz_score;
+        }
+      });
+
+      const finalAssignments = Array.from(assignmentMap.values())
+        .sort((a, b) => new Date(a.deadline).getTime() - new Date(b.deadline).getTime());
+
+      setAssignments(finalAssignments);
     } catch (err) {
-      console.error('Failed to load assignments:', err);
+      console.error('Failed to load dashboard data:', err);
     }
 
     setLoading(false);

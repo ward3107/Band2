@@ -45,32 +45,30 @@ export default function AssignmentResultsPage({ params }: { params: Promise<{ id
 
   const loadData = async () => {
     try {
-      // Load assignment details
-      const { data: assignmentData } = await supabase
-        .from('assignments')
-        .select('*')
-        .eq('id', resolvedParams.id)
-        .eq('teacher_id', profile!.id)
-        .single();
+      // Run both queries in parallel
+      const [assignmentResult, progressResult] = await Promise.all([
+        supabase
+          .from('assignments')
+          .select('*')
+          .eq('id', resolvedParams.id)
+          .eq('teacher_id', profile!.id)
+          .single(),
+        supabase
+          .from('student_assignment_progress')
+          .select('*, student:profiles(full_name, email)')
+          .eq('assignment_id', resolvedParams.id),
+      ]);
 
-      if (!assignmentData) {
+      if (!assignmentResult.data) {
         router.push('/teacher/dashboard');
         return;
       }
 
-      setAssignment(assignmentData);
+      setAssignment(assignmentResult.data);
 
-      // Load student progress
-      const { data: progressData } = await supabase
-        .from('student_assignment_progress')
-        .select('*, student:profiles(full_name, email)')
-        .eq('assignment_id', resolvedParams.id);
-
-      // Filter out entries where student relation is null (deleted profiles)
-      const validStudents = (progressData || []).filter(
+      const validStudents = (progressResult.data || []).filter(
         (s: StudentProgress) => s.student !== null
       );
-
       setStudents(validStudents);
     } catch (err) {
       console.error('Failed to load assignment results:', err);
