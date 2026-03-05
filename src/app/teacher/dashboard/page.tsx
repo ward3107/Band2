@@ -11,6 +11,14 @@ function sendClassViaWhatsApp(className: string, classCode: string) {
   window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank');
 }
 
+interface ActiveStudent {
+  id: string;
+  full_name: string | null;
+  email: string;
+  last_login: string | null;
+  class_name: string;
+}
+
 export default function TeacherDashboardPage() {
   const { profile, signOut, loading: guardLoading } = useRoleGuard('teacher', {
     loginRedirect: '/teacher/login',
@@ -20,6 +28,7 @@ export default function TeacherDashboardPage() {
   const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [activeStudents, setActiveStudents] = useState<ActiveStudent[]>([]);
 
   useEffect(() => {
     if (!guardLoading && profile?.role === 'teacher') {
@@ -44,15 +53,49 @@ export default function TeacherDashboardPage() {
       setClasses(classesResult.data || []);
       setAssignments(assignmentsResult.data || []);
 
-      // Student count depends on classes result
+      // Student count and active students depend on classes result
       if (classesResult.data && classesResult.data.length > 0) {
         const classIds = classesResult.data.map(c => c.id);
-        const { count } = await supabase
-          .from('class_enrollments')
-          .select('*', { count: 'exact', head: true })
-          .in('class_id', classIds);
+        const classNameById = new Map(classesResult.data.map(c => [c.id, c.name]));
 
-        setTotalStudents(count ?? 0);
+        const [countResult, enrollmentsResult] = await Promise.all([
+          supabase
+            .from('class_enrollments')
+            .select('*', { count: 'exact', head: true })
+            .in('class_id', classIds),
+          supabase
+            .from('class_enrollments')
+            .select('class_id, student_id, profiles!inner(id, full_name, email, last_login)')
+            .in('class_id', classIds),
+        ]);
+
+        setTotalStudents(countResult.count ?? 0);
+
+        // Build active students list (logged in within last 24 hours)
+        const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+        const students: ActiveStudent[] = [];
+        const seen = new Set<string>();
+
+        (enrollmentsResult.data || []).forEach((enrollment: Record<string, unknown>) => {
+          const p = enrollment.profiles as Record<string, unknown> | null;
+          if (!p || typeof p !== 'object') return;
+          const id = p.id as string;
+          if (seen.has(id)) return;
+          seen.add(id);
+          const lastLogin = p.last_login as string | null;
+          if (lastLogin && lastLogin >= oneDayAgo) {
+            students.push({
+              id,
+              full_name: p.full_name as string | null,
+              email: p.email as string,
+              last_login: lastLogin,
+              class_name: classNameById.get(enrollment.class_id as string) || '',
+            });
+          }
+        });
+
+        students.sort((a, b) => (b.last_login || '').localeCompare(a.last_login || ''));
+        setActiveStudents(students);
       }
     } catch (err) {
       console.error('Failed to load dashboard data:', err);
