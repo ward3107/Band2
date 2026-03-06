@@ -42,6 +42,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // Safety timeout: if auth never resolves (e.g. Supabase unreachable),
+    // stop loading after 10 seconds so the UI doesn't hang forever.
+    const safetyTimeout = setTimeout(() => {
+      setLoading((prev) => {
+        if (prev) console.warn('Auth loading timed out after 10s');
+        return false;
+      });
+    }, 10_000);
+
     // Use onAuthStateChange as the single source of truth. INITIAL_SESSION
     // fires synchronously with the cached/stored session, so there is no need
     // for a separate getSession() call — which can race and cause navigator
@@ -63,9 +72,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setCachedProfile(null);
         setLoading(false);
       }
+      clearTimeout(safetyTimeout);
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      clearTimeout(safetyTimeout);
+      subscription.unsubscribe();
+    };
   }, []);
 
   const PROFILE_CACHE_KEY = 'band2_profile_cache';
@@ -101,13 +114,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     let profileData: Profile | null = null;
     try {
-      const { data, error } = await supabase
+      // Race the profile query against an 8s timeout to prevent hanging
+      const query = supabase
         .from('profiles')
         .select('*')
         .eq('id', userId)
         .maybeSingle();
 
-      profileData = error ? null : data;
+      const result = await Promise.race([
+        query,
+        new Promise<{ data: null; error: { message: string } }>((resolve) =>
+          setTimeout(() => resolve({ data: null, error: { message: 'Profile load timed out' } }), 8_000)
+        ),
+      ]);
+
+      profileData = result.error ? null : result.data;
       setProfile(profileData);
       setCachedProfile(profileData);
     } catch {
