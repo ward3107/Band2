@@ -108,6 +108,10 @@ export default function TeacherDashboardPage() {
       return;
     }
 
+    // Optimistically remove from UI immediately for fast response
+    const previousClasses = classes;
+    setClasses(classes.filter(c => c.id !== classId));
+
     try {
       // Delete related records first (enrollments and assignment links)
       await Promise.all([
@@ -119,13 +123,13 @@ export default function TeacherDashboardPage() {
       const { error } = await supabase.from('classes').delete().eq('id', classId);
 
       if (error) {
+        // Revert on error
+        setClasses(previousClasses);
         alert('Failed to delete class: ' + error.message);
-        return;
       }
-
-      // Refresh the classes list
-      setClasses(classes.filter(c => c.id !== classId));
     } catch (err) {
+      // Revert on error
+      setClasses(previousClasses);
       alert('Failed to delete class');
     }
   };
