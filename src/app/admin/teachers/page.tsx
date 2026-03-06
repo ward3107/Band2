@@ -49,7 +49,7 @@ function copyAllForWhatsApp(teachers: { full_name: string; code: string }[]) {
 }
 
 export default function AdminTeachersPage() {
-  const { profile, session, loading: guardLoading } = useRoleGuard('teacher', {
+  const { profile, session, signOut, loading: guardLoading } = useRoleGuard('teacher', {
     loginRedirect: '/teacher/login',
   });
   const router = useRouter();
@@ -227,12 +227,20 @@ export default function AdminTeachersPage() {
                 </p>
               </div>
             </div>
-            <button
-              onClick={() => router.push('/teacher/dashboard')}
-              className="px-3 py-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 rounded-lg text-sm text-gray-700 dark:text-gray-300 font-medium self-start sm:self-auto"
-            >
-              Back to Dashboard
-            </button>
+            <div className="flex gap-2 self-start sm:self-auto">
+              <button
+                onClick={() => router.push('/teacher/dashboard')}
+                className="px-3 py-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 rounded-lg text-sm text-gray-700 dark:text-gray-300 font-medium"
+              >
+                Back to Dashboard
+              </button>
+              <button
+                onClick={async () => { await signOut(); router.push('/login'); }}
+                className="px-3 py-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 rounded-lg text-sm text-gray-700 dark:text-gray-300 font-medium"
+              >
+                Sign Out
+              </button>
+            </div>
           </div>
         </div>
       </header>
