@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import type { Session } from '@supabase/supabase-js';
 
+const PROFILE_CACHE_KEY = 'band2_profile_cache';
+
 export default function OAuthCallbackPage() {
   const router = useRouter();
   const handled = useRef(false);
@@ -14,7 +16,6 @@ export default function OAuthCallbackPage() {
     handled.current = true;
 
     const params = new URLSearchParams(window.location.search);
-    const hash = window.location.hash;
 
     // Surface any OAuth-level error Supabase puts in the URL
     const oauthError = params.get('error');
@@ -23,112 +24,96 @@ export default function OAuthCallbackPage() {
       return;
     }
 
-    // Clear stale profile cache so the fresh profile (with is_admin etc.) is loaded
-    try { sessionStorage.removeItem('band2_profile_cache'); } catch { /* ignore */ }
+    const code = params.get('code');
+    if (!code) {
+      // No code in URL — nothing to exchange, go home
+      router.push('/');
+      return;
+    }
 
-    async function handleCallback() {
-      try {
-        // For PKCE flow: explicitly exchange the code for a session
-        const code = params.get('code');
-        if (code) {
-          const { error } = await supabase.auth.exchangeCodeForSession(code);
-          if (error) {
-            console.error('Code exchange failed:', error.message);
-            router.push(`/?error=${encodeURIComponent(error.message)}`);
-            return;
-          }
-        } else if (hash.includes('access_token')) {
-          // Implicit flow — Supabase's detectSessionInUrl may have already
-          // processed the hash before we subscribe. Check getSession() first,
-          // then fall back to waiting for onAuthStateChange.
-          const { data: existing } = await supabase.auth.getSession();
-          if (!existing.session) {
-            const waited = await new Promise<Session | null>((resolve) => {
-              const timeout = setTimeout(() => resolve(null), 5000);
-              const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-                if (session) {
-                  clearTimeout(timeout);
-                  subscription.unsubscribe();
-                  resolve(session);
-                }
-              });
-            });
-            if (!waited) {
-              router.push('/?error=no_session');
-              return;
-            }
-          }
-        } else {
-          // No auth params — redirect home
-          router.push('/');
+    // Manually exchange the PKCE code for a session.
+    // This avoids the race between detectSessionInUrl's auto-exchange
+    // and the AuthContext's onAuthStateChange listener, which was causing
+    // navigator.locks contention ("Lock not released within 5000ms").
+    handleCodeExchange(code);
+  }, [router]);
+
+  async function handleCodeExchange(code: string) {
+    try {
+      const { data, error } = await supabase.auth.exchangeCodeForSession(code);
+      if (error || !data.session?.user) {
+        router.push(`/?error=${encodeURIComponent(error?.message ?? 'no_session')}`);
+        return;
+      }
+
+      const session = data.session;
+
+      // Check for existing profile
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role, id, email, full_name, avatar_url, is_admin')
+        .eq('id', session.user.id)
+        .maybeSingle();
+
+      if (profile?.role) {
+        // Cache the profile so the next page finds it instantly
+        try { sessionStorage.setItem(PROFILE_CACHE_KEY, JSON.stringify(profile)); } catch {}
+        router.push(profile.role === 'teacher' ? '/teacher/dashboard' : '/student');
+        return;
+      }
+
+      // No profile yet — check if this is an approved teacher
+      const { data: approvedTeacher } = await supabase
+        .from('approved_teachers')
+        .select('full_name, is_admin')
+        .eq('email', session.user.email)
+        .maybeSingle();
+
+      if (approvedTeacher) {
+        const fullName = approvedTeacher.full_name
+          || session.user.user_metadata?.full_name
+          || session.user.user_metadata?.name
+          || session.user.email?.split('@')[0];
+
+        const newProfile = {
+          id: session.user.id,
+          email: session.user.email,
+          full_name: fullName,
+          role: 'teacher' as const,
+          is_admin: approvedTeacher.is_admin ?? false,
+          avatar_url: session.user.user_metadata?.avatar_url || session.user.user_metadata?.picture || null,
+          created_at: new Date().toISOString(),
+        };
+
+        const { error: insertError } = await supabase
+          .from('profiles')
+          .insert(newProfile);
+
+        if (!insertError) {
+          try { sessionStorage.setItem(PROFILE_CACHE_KEY, JSON.stringify(newProfile)); } catch {}
+          router.push('/teacher/dashboard');
           return;
         }
 
-        // At this point we should have a valid session
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session?.user) {
-          router.push('/?error=no_session');
-          return;
-        }
-
-        // Look up existing profile
-        const { data: profile } = await supabase
+        // Insert failed — maybe race condition, check if profile exists now
+        const { data: existing } = await supabase
           .from('profiles')
           .select('role')
           .eq('id', session.user.id)
           .maybeSingle();
 
-        let redirectUrl = '/auth/complete-profile';
-
-        if (profile?.role) {
-          redirectUrl = profile.role === 'teacher' ? '/teacher/dashboard' : '/student';
-        } else {
-          // No profile yet — check if this is an approved teacher
-          const { data: approvedTeacher } = await supabase
-            .from('approved_teachers')
-            .select('full_name, is_admin')
-            .eq('email', session.user.email)
-            .maybeSingle();
-
-          if (approvedTeacher) {
-            const { error: insertError } = await supabase
-              .from('profiles')
-              .insert({
-                id: session.user.id,
-                email: session.user.email,
-                full_name: approvedTeacher.full_name || session.user.user_metadata?.full_name || session.user.email?.split('@')[0],
-                role: 'teacher',
-                is_admin: approvedTeacher.is_admin ?? false,
-                created_at: new Date().toISOString(),
-              });
-
-            if (!insertError) {
-              redirectUrl = '/teacher/dashboard';
-            } else {
-              const { data: existingProfile } = await supabase
-                .from('profiles')
-                .select('role')
-                .eq('id', session.user.id)
-                .maybeSingle();
-
-              redirectUrl = existingProfile?.role === 'teacher'
-                ? '/teacher/dashboard'
-                : '/auth/complete-profile';
-            }
-          }
+        if (existing?.role === 'teacher') {
+          router.push('/teacher/dashboard');
+          return;
         }
-
-        // Update last_login timestamp (fire-and-forget, swallow errors)
-        supabase.from('profiles').update({ last_login: new Date().toISOString() }).eq('id', session.user.id).then(null, () => {});
-        router.push(redirectUrl);
-      } catch (err) {
-        console.error('OAuth callback error:', err);
-        router.push('/?error=callback_failed');
       }
-    }
 
-    handleCallback();
-  }, [router]);
+      // Not an approved teacher — send to complete-profile (student signup)
+      router.push('/auth/complete-profile');
+    } catch {
+      router.push('/?error=callback_failed');
+    }
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-600 to-purple-700 flex items-center justify-center">

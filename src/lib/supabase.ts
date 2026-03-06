@@ -9,8 +9,11 @@ if (!supabaseAnonKey) throw new Error('Missing environment variable: NEXT_PUBLIC
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     persistSession: true,
-    detectSessionInUrl: true,
-    flowType: 'implicit',
+    // We handle code exchange manually in /auth/callback to avoid
+    // two onAuthStateChange listeners fighting over navigator.locks
+    // (the "Lock not released within 5000ms" error).
+    detectSessionInUrl: false,
+    flowType: 'pkce',
   },
   global: {
     headers: {

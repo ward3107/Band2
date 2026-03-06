@@ -8,11 +8,10 @@ import { useAuth } from '@/contexts/AuthContext';
 function JoinForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { signIn } = useAuth();
+  const { signIn, user, profile, loading: authLoading } = useAuth();
   const [classCode, setClassCode] = useState('');
   const [displayName, setDisplayName] = useState('');
   const [loading, setLoading] = useState(false);
-  const [checking, setChecking] = useState(true);
   const [error, setError] = useState('');
   const [joinedClassName, setJoinedClassName] = useState('');
   const [joinedPersonalCode, setJoinedPersonalCode] = useState('');
@@ -23,23 +22,15 @@ function JoinForm() {
   useEffect(() => {
     const code = searchParams.get('code');
     if (code) setClassCode(code.toUpperCase());
+  }, [searchParams]);
 
-    // If already signed in as a student, go straight to dashboard
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      if (session?.user) {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('role')
-          .eq('id', session.user.id)
-          .maybeSingle();
-        if (profile?.role === 'student') {
-          router.push('/student');
-          return;
-        }
-      }
-      setChecking(false);
-    });
-  }, [searchParams, router]);
+  // If already signed in as a student, go straight to dashboard
+  useEffect(() => {
+    if (authLoading) return;
+    if (user && profile?.role === 'student') {
+      router.push('/student');
+    }
+  }, [authLoading, user, profile, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -100,7 +91,7 @@ function JoinForm() {
     }
   };
 
-  if (checking) {
+  if (authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-white text-lg">Loading...</div>
