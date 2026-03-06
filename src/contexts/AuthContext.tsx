@@ -25,6 +25,7 @@ interface AuthContextType {
   profile: Profile | null;
   session: Session | null;
   loading: boolean;
+  timedOut: boolean;
   signIn: (email: string, password: string) => Promise<SignInResult>;
   signInWithGoogle: () => Promise<SignInWithGoogleResult>;
   signUp: (email: string, password: string, fullName: string, role: 'teacher' | 'student') => Promise<SignUpResult>;
@@ -40,13 +41,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [session, setSessionState] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [timedOut, setTimedOut] = useState(false);
 
   useEffect(() => {
     // Safety timeout: if auth never resolves (e.g. Supabase unreachable),
     // stop loading after 10 seconds so the UI doesn't hang forever.
     const safetyTimeout = setTimeout(() => {
       setLoading((prev) => {
-        if (prev) console.warn('Auth loading timed out after 10s');
+        if (prev) {
+          console.warn('Auth loading timed out after 10s');
+          setTimedOut(true);
+        }
         return false;
       });
     }, 10_000);
@@ -199,6 +204,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         profile,
         session,
         loading,
+        timedOut,
         signIn: handleSignIn,
         signInWithGoogle: handleSignInWithGoogle,
         signUp: handleSignUp,

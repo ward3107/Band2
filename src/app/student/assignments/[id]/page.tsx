@@ -54,6 +54,7 @@ export default function AssignmentPage({ params }: { params: Promise<{ id: strin
   const [words, setWords] = useState<VocabularyWord[]>([]);
   const [loading, setLoading] = useState(true);
   const [mode, setMode] = useState<'overview' | 'flashcards' | 'quiz' | 'fill-in-blank' | 'matching' | 'story' | 'spelling' | 'scramble'>('overview');
+  const [saveError, setSaveError] = useState(false);
 
   useEffect(() => {
     if (user && profile?.role === 'student') {
@@ -135,9 +136,9 @@ export default function AssignmentPage({ params }: { params: Promise<{ id: strin
   };
 
   const updateProgress = async (status: 'in_progress' | 'completed', wordsLearned: number, quizScore?: number | null) => {
+    setSaveError(false);
     try {
       if (!progress) {
-        // Create new progress record
         const { error } = await supabase.from('student_assignment_progress').insert({
           student_id: user!.id,
           assignment_id: resolvedParams.id,
@@ -146,9 +147,8 @@ export default function AssignmentPage({ params }: { params: Promise<{ id: strin
           ...(quizScore !== undefined ? { quiz_score: quizScore } : {}),
           last_activity: new Date().toISOString(),
         });
-        if (error) console.error('Failed to create progress:', error);
+        if (error) { setSaveError(true); return; }
       } else {
-        // Update existing progress
         const { error } = await supabase
           .from('student_assignment_progress')
           .update({
@@ -160,7 +160,7 @@ export default function AssignmentPage({ params }: { params: Promise<{ id: strin
           })
           .eq('student_id', user!.id)
           .eq('assignment_id', resolvedParams.id);
-        if (error) console.error('Failed to update progress:', error);
+        if (error) { setSaveError(true); return; }
       }
       setProgress((prev) => ({
         ...prev,
@@ -168,8 +168,8 @@ export default function AssignmentPage({ params }: { params: Promise<{ id: strin
         words_learned: wordsLearned,
         ...(quizScore !== undefined ? { quiz_score: quizScore } : {}),
       } as Progress));
-    } catch (err) {
-      console.error('Failed to save progress:', err);
+    } catch {
+      setSaveError(true);
     }
   };
 
@@ -285,6 +285,13 @@ export default function AssignmentPage({ params }: { params: Promise<{ id: strin
 
       {/* Main Content */}
       <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {saveError && (
+          <div className="mb-4 p-3 bg-red-100 dark:bg-red-900/30 border border-red-400 dark:border-red-600 rounded-lg flex items-center justify-between">
+            <p className="text-red-700 dark:text-red-300 text-sm">Progress couldn&apos;t be saved. Check your connection.</p>
+            <button onClick={() => setSaveError(false)} className="text-red-700 dark:text-red-300 text-sm font-medium ml-4" aria-label="Dismiss error">✕</button>
+          </div>
+        )}
+
         {/* Progress Bar */}
         <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm mb-6">
           <div className="flex items-center justify-between mb-3">

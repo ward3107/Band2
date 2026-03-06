@@ -158,6 +158,8 @@ export default function AdminTeachersPage() {
     }
   };
 
+  const [removeError, setRemoveError] = useState('');
+
   const removeTeacher = async (id: string, type: 'approved' | 'code') => {
     const token = session?.access_token;
     if (!token) return;
@@ -175,10 +177,10 @@ export default function AdminTeachersPage() {
         await loadTeachers();
       } else {
         const data = await response.json();
-        alert(data.error || 'Failed to remove teacher');
+        setRemoveError(data.error || 'Failed to remove teacher');
       }
     } catch {
-      alert('Failed to connect to server');
+      setRemoveError('Failed to connect to server');
     }
   };
 
@@ -249,6 +251,13 @@ export default function AdminTeachersPage() {
           </p>
         </div>
 
+
+        {removeError && (
+          <div className="mb-6 p-3 bg-red-100 dark:bg-red-900/30 border border-red-400 dark:border-red-600 rounded-lg flex items-center justify-between">
+            <p className="text-red-700 dark:text-red-300 text-sm">{removeError}</p>
+            <button onClick={() => setRemoveError('')} className="text-red-700 dark:text-red-300 text-sm font-medium ml-4" aria-label="Dismiss error">✕</button>
+          </div>
+        )}
         {/* Add Teachers Section */}
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 mb-8">
           <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">

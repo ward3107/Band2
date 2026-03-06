@@ -113,10 +113,12 @@ export default function TeacherDashboardPage() {
   };
 
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const handleDeleteAssignment = async (assignmentId: string) => {
     if (!confirm('Are you sure you want to delete this assignment? This will also remove all student progress for it.')) return;
 
+    setDeleteError(null);
     setDeletingId(assignmentId);
     try {
       // Delete related records first, then the assignment
@@ -132,9 +134,8 @@ export default function TeacherDashboardPage() {
 
       if (error) throw error;
       setAssignments(prev => prev.filter(a => a.id !== assignmentId));
-    } catch (err) {
-      console.error('Failed to delete assignment:', err);
-      alert('Failed to delete assignment. Please try again.');
+    } catch {
+      setDeleteError('Failed to delete assignment. Please try again.');
     }
     setDeletingId(null);
   };
@@ -274,6 +275,13 @@ export default function TeacherDashboardPage() {
             </div>
           )}
         </section>
+
+        {deleteError && (
+          <div className="mb-4 p-3 bg-red-100 dark:bg-red-900/30 border border-red-400 dark:border-red-600 rounded-lg flex items-center justify-between">
+            <p className="text-red-700 dark:text-red-300 text-sm">{deleteError}</p>
+            <button onClick={() => setDeleteError(null)} className="text-red-700 dark:text-red-300 text-sm font-medium ml-4" aria-label="Dismiss error">✕</button>
+          </div>
+        )}
 
         {/* My Assignments */}
         <section>

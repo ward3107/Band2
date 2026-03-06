@@ -46,5 +46,7 @@ export async function POST(request: NextRequest) {
       access_token: data.session.access_token,
       refresh_token: data.session.refresh_token,
     },
+  }, {
+    headers: { 'Cache-Control': 'no-store' },
   });
 }

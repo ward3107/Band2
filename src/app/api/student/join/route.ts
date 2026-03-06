@@ -16,7 +16,7 @@ export async function POST(request: NextRequest) {
 
   const { classCode, displayName } = body;
 
-  if (!classCode || !/^[A-Z0-9]{4,8}$/.test(classCode)) {
+  if (!classCode || !/^[A-Z0-9]{6}$/.test(classCode)) {
     return NextResponse.json({ error: 'Invalid class code format' }, { status: 400 });
   }
   if (!displayName || displayName.trim().length < 2) {
@@ -116,5 +116,7 @@ export async function POST(request: NextRequest) {
     className: classData.name,
     studentCode,
     credentials: { email, password },
+  }, {
+    headers: { 'Cache-Control': 'no-store' },
   });
 }

@@ -38,17 +38,17 @@ export default function StudentDashboardPage() {
 
   useEffect(() => {
     if (user && profile?.role === 'student') {
-      loadData();
+      loadData(user.id);
     }
   }, [user, profile]);
 
-  const loadData = async () => {
+  const loadData = async (userId: string) => {
     try {
       // Query 1: Get enrolled classes with class details in one join
       const { data: enrollments } = await supabase
         .from('class_enrollments')
         .select('classes(id, name, class_code, grade_level)')
-        .eq('student_id', user!.id);
+        .eq('student_id', userId);
 
       const enrolledClasses: Class[] = (enrollments || [])
         .map(e => {
@@ -104,7 +104,7 @@ export default function StudentDashboardPage() {
       const { data: allProgress } = await supabase
         .from('student_assignment_progress')
         .select('assignment_id, status, words_learned, quiz_score')
-        .eq('student_id', user!.id)
+        .eq('student_id', userId)
         .in('assignment_id', assignmentIds);
 
       (allProgress || []).forEach(p => {
