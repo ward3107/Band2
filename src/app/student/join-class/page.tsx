@@ -59,7 +59,7 @@ export default function JoinClassPage() {
         .from('classes')
         .select('*')
         .eq('class_code', classCode.toUpperCase().trim())
-        .single();
+        .maybeSingle();
 
       if (classError || !classData) {
         setError('Invalid class code. Please check and try again.');
@@ -73,7 +73,7 @@ export default function JoinClassPage() {
         .select('*')
         .eq('class_id', classData.id)
         .eq('student_id', user.id)
-        .single();
+        .maybeSingle();
 
       if (existingEnrollment) {
         setError('You are already enrolled in this class.');

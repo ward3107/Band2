@@ -55,7 +55,7 @@ export default function CreateClassPage() {
           .from('classes')
           .select('id')
           .eq('class_code', classCode)
-          .single();
+          .maybeSingle();
 
         if (!existing) break; // Code is unique
         classCode = generateClassCode();

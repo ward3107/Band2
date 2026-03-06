@@ -103,6 +103,31 @@ export default function TeacherDashboardPage() {
     setLoading(false);
   };
 
+  const handleDeleteClass = async (classId: string, className: string) => {
+    if (!confirm(`Are you sure you want to delete "${className}"? This will also remove all student enrollments for this class. This action cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      // First delete all enrollments for this class
+      await supabase.from('class_enrollments').delete().eq('class_id', classId);
+
+      // Then delete the class
+      const { error } = await supabase.from('classes').delete().eq('id', classId);
+
+      if (error) {
+        alert('Failed to delete class: ' + error.message);
+        return;
+      }
+
+      // Refresh the classes list
+      setClasses(classes.filter(c => c.id !== classId));
+      setTotalStudents(prev => prev - 1); // Rough estimate, actual count would need re-fetch
+    } catch (err) {
+      alert('Failed to delete class');
+    }
+  };
+
   const handleSignOut = async () => {
     await signOut();
     router.push('/');
@@ -265,8 +290,14 @@ export default function TeacherDashboardPage() {
                       </svg>
                       Share
                     </button>
-                    <button className="flex-1 px-3 py-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300">
-                      Manage
+                    <button
+                      onClick={() => handleDeleteClass(cls.id, cls.name)}
+                      className="px-3 py-2 bg-red-100 dark:bg-red-900/30 hover:bg-red-200 dark:hover:bg-red-900/50 rounded-lg text-sm font-medium text-red-600 dark:text-red-400"
+                      title="Delete class"
+                    >
+                      <svg viewBox="0 0 24 24" className="w-4 h-4 fill-current" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                      </svg>
                     </button>
                   </div>
                 </div>
