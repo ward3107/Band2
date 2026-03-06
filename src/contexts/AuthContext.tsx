@@ -57,7 +57,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // lock contention (the "Lock not released within 5000ms" error).
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event, session) => {
+    } = supabase.auth.onAuthStateChange((event, session) => {
       setSessionState(session);
       setUser(session?.user ?? null);
       if (session?.user) {
@@ -66,7 +66,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (event === 'SIGNED_IN') {
           setCachedProfile(null);
         }
-        await loadProfile(session.user.id);
+        // Do NOT await — the callback runs inside the navigator lock.
+        // Awaiting a REST call here holds the lock open and causes the
+        // "Lock not released within 5000ms" timeout.
+        loadProfile(session.user.id);
       } else {
         setProfile(null);
         setCachedProfile(null);

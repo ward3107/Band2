@@ -3,15 +3,19 @@
 import { useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
-import type { Session } from '@supabase/supabase-js';
+import { useAuth } from '@/contexts/AuthContext';
 
 const PROFILE_CACHE_KEY = 'band2_profile_cache';
 
 export default function OAuthCallbackPage() {
   const router = useRouter();
+  const { loading: authLoading } = useAuth();
   const handled = useRef(false);
 
   useEffect(() => {
+    // Wait for AuthContext's onAuthStateChange (INITIAL_SESSION) to finish.
+    // This releases the navigator lock so exchangeCodeForSession won't contend.
+    if (authLoading) return;
     if (handled.current) return;
     handled.current = true;
 
@@ -32,11 +36,9 @@ export default function OAuthCallbackPage() {
     }
 
     // Manually exchange the PKCE code for a session.
-    // This avoids the race between detectSessionInUrl's auto-exchange
-    // and the AuthContext's onAuthStateChange listener, which was causing
-    // navigator.locks contention ("Lock not released within 5000ms").
+    // AuthContext's initial load is done so the navigator lock is free.
     handleCodeExchange(code);
-  }, [router]);
+  }, [authLoading, router]);
 
   async function handleCodeExchange(code: string) {
     try {
@@ -85,17 +87,19 @@ export default function OAuthCallbackPage() {
           created_at: new Date().toISOString(),
         };
 
-        const { error: insertError } = await supabase
+        // Use upsert to handle race conditions (409 Conflict if profile
+        // was already created by a concurrent request)
+        const { error: upsertError } = await supabase
           .from('profiles')
-          .insert(newProfile);
+          .upsert(newProfile, { onConflict: 'id' });
 
-        if (!insertError) {
+        if (!upsertError) {
           try { sessionStorage.setItem(PROFILE_CACHE_KEY, JSON.stringify(newProfile)); } catch {}
           router.push('/teacher/dashboard');
           return;
         }
 
-        // Insert failed — maybe race condition, check if profile exists now
+        // Upsert failed — check if profile exists now (last resort)
         const { data: existing } = await supabase
           .from('profiles')
           .select('role')

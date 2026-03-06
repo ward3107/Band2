@@ -47,13 +47,13 @@ export default function CompleteProfilePage() {
 
       const { error: insertError } = await supabase
         .from('profiles')
-        .insert({
+        .upsert({
           id: user.id,
           email: user.email!,
           full_name: fullName,
           avatar_url: user.user_metadata?.avatar_url || user.user_metadata?.picture,
           role: 'student',
-        });
+        }, { onConflict: 'id' });
 
       if (insertError) throw insertError;
 
