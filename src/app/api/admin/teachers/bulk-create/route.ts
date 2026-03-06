@@ -103,7 +103,7 @@ export async function POST(request: NextRequest) {
       .insert({ email, full_name: name, added_by: userId, created_at: new Date().toISOString() });
 
     if (insertError) {
-      results.failed.push({ name, error: insertError.message });
+      results.failed.push({ name, error: 'Failed to add to approved list' });
       continue;
     }
 
@@ -135,7 +135,7 @@ export async function POST(request: NextRequest) {
     });
 
     if (authError || !authData.user) {
-      results.failed.push({ name, error: authError?.message ?? 'Failed to create auth user' });
+      results.failed.push({ name, error: 'Failed to create teacher account' });
       continue;
     }
 
@@ -153,7 +153,7 @@ export async function POST(request: NextRequest) {
     if (profileError) {
       // Roll back auth user to avoid orphan accounts
       await supabaseAdmin.auth.admin.deleteUser(authData.user.id);
-      results.failed.push({ name, error: profileError.message });
+      results.failed.push({ name, error: 'Failed to create teacher profile' });
       continue;
     }
 

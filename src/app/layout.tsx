@@ -39,7 +39,6 @@ const cairo = Cairo({
 export const metadata: Metadata = {
   title: "Vocabulary Band II - Israeli English Curriculum",
   description: "Learn English vocabulary for grades 7-9 with translations in Hebrew and Arabic",
-  manifest: "/manifest.json",
 };
 
 export const viewport: Viewport = {
@@ -63,6 +62,7 @@ export default async function RootLayout({
     <html lang={lang} dir={dir} suppressHydrationWarning>
       <head>
         <link rel="icon" href="/favicon.ico" />
+        <link rel="manifest" href="/manifest.webmanifest" />
       </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} ${heebo.variable} ${cairo.variable} antialiased`}
