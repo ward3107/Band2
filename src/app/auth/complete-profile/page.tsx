@@ -6,7 +6,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
 
 export default function CompleteProfilePage() {
-  const { user, profile, refreshProfile, loading: authLoading } = useAuth();
+  const { user, profile, refreshProfile, signOut: authSignOut, loading: authLoading } = useAuth();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -133,7 +133,7 @@ export default function CompleteProfilePage() {
 
           <div className="mt-6 text-center">
             <button
-              onClick={() => supabase.auth.signOut()}
+              onClick={async () => { await authSignOut(); router.push('/'); }}
               className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 text-sm"
             >
               Sign out and use different account
