@@ -6,13 +6,16 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
 
 export default function CompleteProfilePage() {
-  const { user, profile, refreshProfile } = useAuth();
+  const { user, profile, refreshProfile, loading: authLoading } = useAuth();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
   // Redirect if already has profile with role, or no user
   useEffect(() => {
+    // Wait for auth to finish loading before making redirect decisions
+    if (authLoading) return;
+
     if (!user) {
       router.push('/');
       return;
@@ -26,7 +29,7 @@ export default function CompleteProfilePage() {
         router.push('/student');
       }
     }
-  }, [user, profile, router]);
+  }, [user, profile, authLoading, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -54,7 +57,18 @@ export default function CompleteProfilePage() {
 
       if (insertError) throw insertError;
 
-      // Refresh profile and redirect
+      // Cache the new profile in sessionStorage so the next page finds it
+      // instantly (avoids redirect loop when useRoleGuard checks profile).
+      const newProfile = {
+        id: user.id,
+        email: user.email!,
+        full_name: fullName,
+        avatar_url: user.user_metadata?.avatar_url || user.user_metadata?.picture || null,
+        role: 'student',
+      };
+      try { sessionStorage.setItem('band2_profile_cache', JSON.stringify(newProfile)); } catch {}
+
+      // Refresh profile in context and redirect
       await refreshProfile();
       router.push('/student/join-class');
     } catch (err: any) {
@@ -64,7 +78,7 @@ export default function CompleteProfilePage() {
     }
   };
 
-  if (!user) {
+  if (authLoading || !user) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-600 to-purple-700">
         <div className="text-white text-xl">Loading...</div>
