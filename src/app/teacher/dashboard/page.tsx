@@ -104,13 +104,16 @@ export default function TeacherDashboardPage() {
   };
 
   const handleDeleteClass = async (classId: string, className: string) => {
-    if (!confirm(`Are you sure you want to delete "${className}"? This will also remove all student enrollments for this class. This action cannot be undone.`)) {
+    if (!confirm(`Are you sure you want to delete "${className}"? This will remove all student enrollments and unlink any assignments. This action cannot be undone.`)) {
       return;
     }
 
     try {
-      // First delete all enrollments for this class
-      await supabase.from('class_enrollments').delete().eq('class_id', classId);
+      // Delete related records first (enrollments and assignment links)
+      await Promise.all([
+        supabase.from('class_enrollments').delete().eq('class_id', classId),
+        supabase.from('assignment_classes').delete().eq('class_id', classId),
+      ]);
 
       // Then delete the class
       const { error } = await supabase.from('classes').delete().eq('id', classId);
@@ -122,7 +125,6 @@ export default function TeacherDashboardPage() {
 
       // Refresh the classes list
       setClasses(classes.filter(c => c.id !== classId));
-      setTotalStudents(prev => prev - 1); // Rough estimate, actual count would need re-fetch
     } catch (err) {
       alert('Failed to delete class');
     }
