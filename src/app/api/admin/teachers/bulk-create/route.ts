@@ -88,9 +88,7 @@ export async function POST(request: NextRequest) {
     }
 
     const { data: existing } = await supabaseAdmin
-      .from('approved_teachers')
-      .select('email')
-      .eq('email', email)
+      .rpc('is_approved_teacher', { check_email: email })
       .maybeSingle();
 
     if (existing) {

@@ -85,9 +85,7 @@ export default function OAuthCallbackPage() {
         } else {
           // No profile yet — check if this is an approved teacher
           const { data: approvedTeacher } = await supabase
-            .from('approved_teachers')
-            .select('full_name, is_admin')
-            .eq('email', session.user.email)
+            .rpc('is_approved_teacher', { check_email: session.user.email })
             .maybeSingle();
 
           if (approvedTeacher) {

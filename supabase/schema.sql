@@ -443,6 +443,30 @@ CREATE POLICY "Users can check own approval status" ON public.approved_teachers
   );
 
 -- ============================================
+-- RPC: is_approved_teacher
+-- ============================================
+-- Returns the approved_teachers row for the given email, or empty result if not found.
+-- SECURITY DEFINER so it bypasses RLS — callers only get data for the email they pass.
+CREATE OR REPLACE FUNCTION public.is_approved_teacher(check_email TEXT)
+RETURNS TABLE (
+  id UUID,
+  email TEXT,
+  full_name TEXT,
+  is_admin BOOLEAN,
+  added_by UUID,
+  created_at TIMESTAMPTZ
+)
+LANGUAGE sql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT id, email, full_name, is_admin, added_by, created_at
+  FROM public.approved_teachers
+  WHERE approved_teachers.email = check_email
+  LIMIT 1;
+$$;
+
+-- ============================================
 -- STORAGE BUCKETS (optional, for avatars)
 -- ============================================
 -- Insert storage bucket policies if you want to store avatars
