@@ -117,7 +117,7 @@ export function ProgressProvider({ children }: { children: ReactNode }) {
     const progress = wordProgress[wordId];
     if (!progress) return 'new';
 
-    const accuracy = progress.correct / progress.attempts;
+    const accuracy = progress.attempts > 0 ? progress.correct / progress.attempts : 0;
     const isDue = new Date(progress.nextReview) <= new Date();
 
     if (progress.interval >= 21 && accuracy >= 0.9) return 'mastered';

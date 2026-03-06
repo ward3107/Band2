@@ -1,0 +1,16 @@
+{
+  "name": "Vocabulary Band II",
+  "short_name": "Vocab Band II",
+  "description": "Learn English vocabulary for grades 7-9 with translations in Hebrew and Arabic",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#2563eb",
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "any",
+      "type": "image/x-icon"
+    }
+  ]
+}

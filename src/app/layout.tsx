@@ -62,6 +62,7 @@ export default async function RootLayout({
     <html lang={lang} dir={dir} suppressHydrationWarning>
       <head>
         <link rel="icon" href="/favicon.ico" />
+        <link rel="manifest" href="/manifest.webmanifest" />
       </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} ${heebo.variable} ${cairo.variable} antialiased`}

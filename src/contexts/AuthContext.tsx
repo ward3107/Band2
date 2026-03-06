@@ -148,8 +148,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Clear stale profile cache before loading fresh data
       setCachedProfile(null);
       const profile = await loadProfile(result.data.user.id);
-      // Update last_login timestamp (fire-and-forget)
-      supabase.from('profiles').update({ last_login: new Date().toISOString() }).eq('id', result.data.user.id).then();
+      // Update last_login timestamp (fire-and-forget, swallow errors)
+      supabase.from('profiles').update({ last_login: new Date().toISOString() }).eq('id', result.data.user.id).then(null, () => {});
       return { ...result, profile };
     }
     return { ...result, profile: null };

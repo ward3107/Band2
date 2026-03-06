@@ -62,7 +62,9 @@ export async function POST(request: NextRequest) {
   // can log back in on a new device just by entering the code.
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
   let studentCode = '';
-  for (let i = 0; i < 8; i++) studentCode += chars[Math.floor(Math.random() * chars.length)];
+  const randomBytes = new Uint8Array(8);
+  crypto.getRandomValues(randomBytes);
+  for (let i = 0; i < 8; i++) studentCode += chars[randomBytes[i] % chars.length];
   const email = `s_${studentCode.toLowerCase()}@${STUDENT_DOMAIN}`;
   const password = studentCode;
 

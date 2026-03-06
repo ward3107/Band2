@@ -45,8 +45,12 @@ export function useRoleGuard(
     }
   }, [user, profile, authLoading, requiredRole, options?.loginRedirect, options?.unauthorizedRedirect, router]);
 
-  // `loading` reflects auth resolution only — authLoading becomes false only
-  // after the profile query completes, so there is no race condition to guard
-  // against with an extra `!!user && !profile` check.
-  return { ...auth, loading: authLoading };
+  // While auth is loading OR a redirect is about to happen, treat as loading
+  // to prevent unauthorized content from flashing before navigation completes.
+  const needsRedirect = !authLoading && (
+    !user ||
+    !profile ||
+    profile.role !== requiredRole
+  );
+  return { ...auth, loading: authLoading || needsRedirect };
 }
