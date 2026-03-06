@@ -25,8 +25,13 @@ export function generateStrongPassword(length: number = 12): string {
     password += all[crypto.randomInt(all.length)];
   }
 
-  // Shuffle the password
-  return password.split('').sort(() => crypto.randomInt(3) - 1).join('');
+  // Fisher-Yates shuffle for unbiased randomization
+  const arr = password.split('');
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = crypto.randomInt(i + 1);
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr.join('');
 }
 
 /**

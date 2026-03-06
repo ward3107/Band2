@@ -38,21 +38,25 @@ export default function OAuthCallbackPage() {
             return;
           }
         } else if (hash.includes('access_token')) {
-          // Implicit flow — Supabase detects the hash fragment via detectSessionInUrl.
-          // Wait for onAuthStateChange to fire and set the session.
-          const session = await new Promise<Session | null>((resolve) => {
-            const timeout = setTimeout(() => resolve(null), 5000);
-            const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-              if (session) {
-                clearTimeout(timeout);
-                subscription.unsubscribe();
-                resolve(session);
-              }
+          // Implicit flow — Supabase's detectSessionInUrl may have already
+          // processed the hash before we subscribe. Check getSession() first,
+          // then fall back to waiting for onAuthStateChange.
+          const { data: existing } = await supabase.auth.getSession();
+          if (!existing.session) {
+            const waited = await new Promise<Session | null>((resolve) => {
+              const timeout = setTimeout(() => resolve(null), 5000);
+              const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+                if (session) {
+                  clearTimeout(timeout);
+                  subscription.unsubscribe();
+                  resolve(session);
+                }
+              });
             });
-          });
-          if (!session) {
-            router.push('/?error=no_session');
-            return;
+            if (!waited) {
+              router.push('/?error=no_session');
+              return;
+            }
           }
         } else {
           // No auth params — redirect home
@@ -114,8 +118,8 @@ export default function OAuthCallbackPage() {
           }
         }
 
-        // Update last_login timestamp (fire-and-forget)
-        supabase.from('profiles').update({ last_login: new Date().toISOString() }).eq('id', session.user.id).then();
+        // Update last_login timestamp (fire-and-forget, swallow errors)
+        supabase.from('profiles').update({ last_login: new Date().toISOString() }).eq('id', session.user.id).then(null, () => {});
         router.push(redirectUrl);
       } catch (err) {
         console.error('OAuth callback error:', err);
