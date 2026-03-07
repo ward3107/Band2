@@ -4,6 +4,8 @@ import { useState, useMemo, useEffect, useRef } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useProgress } from '@/contexts/ProgressContext';
 import { useDifficultWords } from '@/contexts/DifficultWordsContext';
+import { useVoice } from '@/contexts/VoiceContext';
+import { useAccessibility } from '@/contexts/AccessibilityContext';
 
 interface StoryModeProps {
   words: Array<{
@@ -22,12 +24,16 @@ interface ComprehensionQuestion {
   correctAnswer: string;
   options: string[];
   wordData: StoryModeProps['words'][0];
+  contextSentence?: string;  // The sentence from the story containing this word
 }
 
 export default function StoryMode({ words, onClose, onComplete }: StoryModeProps) {
   const { language } = useLanguage();
   const { markWordReviewed } = useProgress();
   const { addMistake } = useDifficultWords();
+  const { speak } = useVoice();
+  const { settings } = useAccessibility();
+  const [isReading, setIsReading] = useState(false);
 
   // Pick a subset for the story and build comprehension questions
   const { passage, questions } = useMemo(() => {
@@ -43,17 +49,18 @@ export default function StoryMode({ words, onClose, onComplete }: StoryModeProps
 
     // Build comprehension questions — "What does X mean?"
     const qs: ComprehensionQuestion[] = selected.map(w => {
-      const correctTranslation = language === 'ar'
-        ? w.translations.arabic.split('،')[0].trim()
-        : w.translations.hebrew.split(',')[0].trim();
+      // Default to Arabic, use Hebrew if explicitly selected
+      const correctTranslation = language === 'he'
+        ? w.translations.hebrew.split(',')[0].trim()
+        : w.translations.arabic.split('،')[0].trim();
 
       const wrong = words
         .filter(other => other.id !== w.id)
         .sort(() => Math.random() - 0.5)
         .slice(0, 3)
-        .map(other => language === 'ar'
-          ? other.translations.arabic.split('،')[0].trim()
-          : other.translations.hebrew.split(',')[0].trim()
+        .map(other => language === 'he'
+          ? other.translations.hebrew.split(',')[0].trim()
+          : other.translations.arabic.split('،')[0].trim()
         );
 
       return {
@@ -62,6 +69,7 @@ export default function StoryMode({ words, onClose, onComplete }: StoryModeProps
         correctAnswer: correctTranslation,
         options: [...wrong, correctTranslation].sort(() => Math.random() - 0.5),
         wordData: w,
+        contextSentence: w.example_sentences.english,  // Include context for the question
       };
     });
 
@@ -78,6 +86,35 @@ export default function StoryMode({ words, onClose, onComplete }: StoryModeProps
   const [showResult, setShowResult] = useState(false);
   const [score, setScore] = useState(0);
   const completionHandled = useRef(false);
+  const speechRef = useRef<SpeechSynthesisUtterance | null>(null);
+
+  // Clean up speech on unmount
+  useEffect(() => {
+    return () => {
+      if (speechRef.current) {
+        window.speechSynthesis.cancel();
+      }
+    };
+  }, []);
+
+  const readStoryAloud = () => {
+    if (isReading) {
+      window.speechSynthesis.cancel();
+      setIsReading(false);
+      return;
+    }
+
+    setIsReading(true);
+    const utterance = new SpeechSynthesisUtterance(passage);
+    utterance.lang = 'en-US';
+    utterance.rate = settings.audioSpeed;
+
+    utterance.onend = () => setIsReading(false);
+    utterance.onerror = () => setIsReading(false);
+
+    speechRef.current = utterance;
+    window.speechSynthesis.speak(utterance);
+  };
 
   useEffect(() => {
     if (phase === 'quiz' && questionIndex >= questions.length && questions.length > 0 && !completionHandled.current) {
@@ -125,11 +162,37 @@ export default function StoryMode({ words, onClose, onComplete }: StoryModeProps
         </div>
 
         <div className="max-w-2xl mx-auto p-4 sm:p-8">
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6 sm:p-8 mb-6">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6 sm:p-8 mb-4">
             <p className="text-lg sm:text-xl leading-relaxed text-gray-800 dark:text-gray-200">
               {passage}
             </p>
           </div>
+
+          {/* Read Aloud Button */}
+          <button
+            onClick={readStoryAloud}
+            className={`w-full mb-4 flex items-center justify-center gap-2 py-3 rounded-xl font-medium transition-all ${
+              isReading
+                ? 'bg-red-100 hover:bg-red-200 text-red-700 dark:bg-red-900/30 dark:hover:bg-red-900/50 dark:text-red-300'
+                : 'bg-blue-100 hover:bg-blue-200 text-blue-700 dark:bg-blue-900/30 dark:hover:bg-blue-900/50 dark:text-blue-300'
+            }`}
+          >
+            {isReading ? (
+              <>
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+                Stop Reading
+              </>
+            ) : (
+              <>
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+                </svg>
+                Read Story Aloud
+              </>
+            )}
+          </button>
 
           <p className="text-center text-gray-500 dark:text-gray-400 text-sm mb-4">
             When you&apos;re done reading, test your comprehension:
@@ -173,6 +236,15 @@ export default function StoryMode({ words, onClose, onComplete }: StoryModeProps
     if (!correct) addMistake(q.wordData);
   };
 
+  const readContextAloud = () => {
+    if (q.contextSentence) {
+      const utterance = new SpeechSynthesisUtterance(q.contextSentence);
+      utterance.lang = 'en-US';
+      utterance.rate = settings.audioSpeed;
+      window.speechSynthesis.speak(utterance);
+    }
+  };
+
   const handleNext = () => {
     setQuestionIndex(i => i + 1);
     setSelectedAnswer(null);
@@ -196,6 +268,27 @@ export default function StoryMode({ words, onClose, onComplete }: StoryModeProps
 
       <div className="flex items-center justify-center min-h-[calc(100vh-100px)] p-4">
         <div className="w-full max-w-lg">
+          {/* Context sentence from the story */}
+          {q.contextSentence && (
+            <div className="bg-blue-50 dark:bg-blue-900/20 rounded-xl p-4 mb-4 border border-blue-200 dark:border-blue-800">
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex-1">
+                  <p className="text-xs text-blue-600 dark:text-blue-400 font-medium mb-1">Context from story:</p>
+                  <p className="text-sm text-gray-700 dark:text-gray-300 italic">"{q.contextSentence}"</p>
+                </div>
+                <button
+                  onClick={readContextAloud}
+                  className="shrink-0 p-2 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-lg transition-colors"
+                  aria-label="Read context aloud"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+          )}
+
           <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-5 sm:p-8 mb-6 text-center">
             <p className="text-gray-500 dark:text-gray-400 text-sm mb-2">From the story:</p>
             <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">{q.question}</h2>
