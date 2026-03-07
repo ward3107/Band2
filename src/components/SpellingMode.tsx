@@ -38,6 +38,7 @@ export default function SpellingMode({ words, onClose, onComplete, assignmentId 
   const [isCorrect, setIsCorrect] = useState(false);
   const [score, setScore] = useState(0);
   const [started, setStarted] = useState(false);
+  const [translationLang, setTranslationLang] = useState<'he' | 'ar'>('ar');  // Local toggle for translations
   const completionHandled = useRef(false);
 
   const currentWord = wordList[currentIndex];
@@ -61,10 +62,10 @@ export default function SpellingMode({ words, onClose, onComplete, assignmentId 
   }, [currentIndex, started]);
 
   const getTranslation = (w: SpellingModeProps['words'][0]) => {
-    // Default to Arabic, use Hebrew if explicitly selected
-    return language === 'he'
-      ? w.translations.hebrew.split(',')[0].trim()
-      : w.translations.arabic.split('،')[0].trim();
+    // Use local toggle state for translations
+    return translationLang === 'ar'
+      ? w.translations.arabic.split('،')[0].trim()
+      : w.translations.hebrew.split(',')[0].trim();
   };
 
   if (words.length === 0) {
@@ -85,9 +86,35 @@ export default function SpellingMode({ words, onClose, onComplete, assignmentId 
         <div className="bg-white dark:bg-gray-800 rounded-2xl p-5 sm:p-8 max-w-md w-full text-center">
           <div className="text-6xl mb-4">🔤</div>
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">Spelling Bee</h2>
-          <p className="text-gray-600 dark:text-gray-400 mb-6">
+          <p className="text-gray-600 dark:text-gray-400 mb-4">
             Listen to the word and its translation, then type the correct spelling. {wordList.length} words.
           </p>
+          {/* Translation language toggle */}
+          <div className="mb-6">
+            <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">Translation language:</p>
+            <div className="flex justify-center gap-2">
+              <button
+                onClick={() => setTranslationLang('ar')}
+                className={`px-4 py-2 rounded-lg font-medium transition-all ${
+                  translationLang === 'ar'
+                    ? 'bg-green-500 text-white'
+                    : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
+                }`}
+              >
+                Arabic (عربي)
+              </button>
+              <button
+                onClick={() => setTranslationLang('he')}
+                className={`px-4 py-2 rounded-lg font-medium transition-all ${
+                  translationLang === 'he'
+                    ? 'bg-purple-500 text-white'
+                    : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
+                }`}
+              >
+                Hebrew (עברית)
+              </button>
+            </div>
+          </div>
           <button onClick={() => setStarted(true)} className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg">Start</button>
         </div>
       </div>

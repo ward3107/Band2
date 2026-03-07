@@ -48,6 +48,7 @@ export default function QuizMode({ words, onClose, onComplete, assignmentId }: Q
   const [score, setScore] = useState(0);
   const [quizComplete, setQuizComplete] = useState(false);
   const [quizStarted, setQuizStarted] = useState(false);
+  const [translationLang, setTranslationLang] = useState<'he' | 'ar'>('ar');  // Local toggle for translations
   const completionHandled = useRef(false);
 
   useEffect(() => {
@@ -71,14 +72,14 @@ export default function QuizMode({ words, onClose, onComplete, assignmentId }: Q
     const selectedWords = [...words].sort(() => Math.random() - 0.5).slice(0, numQuestions);
 
     const newQuestions: Question[] = selectedWords.map(targetWord => {
-      const correctTranslation = language === 'he'
+      const correctTranslation = translationLang === 'he'
         ? targetWord.translations.hebrew.split(',')[0]
         : targetWord.translations.arabic.split('،')[0];
 
       // Get 3 random wrong answers
       const wrongAnswers = words
         .filter(w => w.id !== targetWord.id)
-        .map(w => language === 'he' ? w.translations.hebrew.split(',')[0] : w.translations.arabic.split('،')[0])
+        .map(w => translationLang === 'he' ? w.translations.hebrew.split(',')[0] : w.translations.arabic.split('،')[0])
         .sort(() => Math.random() - 0.5)
         .slice(0, 3);
 
@@ -156,9 +157,35 @@ export default function QuizMode({ words, onClose, onComplete, assignmentId }: Q
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
             Quiz Time!
           </h2>
-          <p className="text-gray-600 dark:text-gray-400 mb-6">
+          <p className="text-gray-600 dark:text-gray-400 mb-4">
             Test your knowledge with {Math.min(10, words.length)} questions. Choose the correct translation for each word.
           </p>
+          {/* Translation language toggle */}
+          <div className="mb-6">
+            <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">Translation language:</p>
+            <div className="flex justify-center gap-2">
+              <button
+                onClick={() => setTranslationLang('ar')}
+                className={`px-4 py-2 rounded-lg font-medium transition-all ${
+                  translationLang === 'ar'
+                    ? 'bg-green-500 text-white'
+                    : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
+                }`}
+              >
+                Arabic (عربي)
+              </button>
+              <button
+                onClick={() => setTranslationLang('he')}
+                className={`px-4 py-2 rounded-lg font-medium transition-all ${
+                  translationLang === 'he'
+                    ? 'bg-purple-500 text-white'
+                    : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
+                }`}
+              >
+                Hebrew (עברית)
+              </button>
+            </div>
+          </div>
           <button
             onClick={generateQuestions}
             className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg"
