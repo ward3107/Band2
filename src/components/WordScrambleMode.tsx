@@ -4,6 +4,8 @@ import { useState, useMemo, useEffect, useRef } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useProgress } from '@/contexts/ProgressContext';
 import { useDifficultWords } from '@/contexts/DifficultWordsContext';
+import { useAuth } from '@/contexts/AuthContext';
+import { saveModeProgress } from '@/lib/supabase';
 
 interface WordScrambleModeProps {
   words: Array<{
@@ -13,6 +15,7 @@ interface WordScrambleModeProps {
   }>;
   onClose: () => void;
   onComplete?: (wordsStudied: number, correct: number) => void;
+  assignmentId?: string;
 }
 
 function scrambleWord(word: string): string[] {
@@ -26,10 +29,11 @@ function scrambleWord(word: string): string[] {
   return letters.reverse();
 }
 
-export default function WordScrambleMode({ words, onClose, onComplete }: WordScrambleModeProps) {
+export default function WordScrambleMode({ words, onClose, onComplete, assignmentId }: WordScrambleModeProps) {
   const { language } = useLanguage();
   const { markWordReviewed } = useProgress();
   const { addMistake } = useDifficultWords();
+  const { user } = useAuth();
 
   const wordList = useMemo(() => {
     return [...words].sort(() => Math.random() - 0.5).slice(0, Math.min(10, words.length));
@@ -49,6 +53,10 @@ export default function WordScrambleMode({ words, onClose, onComplete }: WordScr
   useEffect(() => {
     if (currentIndex >= wordList.length && wordList.length > 0 && !completionHandled.current) {
       completionHandled.current = true;
+      // Save mode progress
+      if (user && assignmentId) {
+        void saveModeProgress(user.id, assignmentId, 'scramble', wordList.length, score, true);
+      }
       if (onComplete) onComplete(wordList.length, score);
     }
   }, [currentIndex, wordList.length, score, onComplete]);

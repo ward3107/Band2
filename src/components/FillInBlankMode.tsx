@@ -4,6 +4,8 @@ import { useState, useMemo, useEffect, useRef } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useProgress } from '@/contexts/ProgressContext';
 import { useDifficultWords } from '@/contexts/DifficultWordsContext';
+import { useAuth } from '@/contexts/AuthContext';
+import { saveModeProgress } from '@/lib/supabase';
 
 interface FillInBlankModeProps {
   words: Array<{
@@ -15,6 +17,7 @@ interface FillInBlankModeProps {
   }>;
   onClose: () => void;
   onComplete?: (wordsStudied: number, correct: number) => void;
+  assignmentId?: string;
 }
 
 interface Question {
@@ -26,10 +29,11 @@ interface Question {
   wordData: FillInBlankModeProps['words'][0];
 }
 
-export default function FillInBlankMode({ words, onClose, onComplete }: FillInBlankModeProps) {
+export default function FillInBlankMode({ words, onClose, onComplete, assignmentId }: FillInBlankModeProps) {
   const { language } = useLanguage();
   const { markWordReviewed } = useProgress();
   const { addMistake } = useDifficultWords();
+  const { user } = useAuth();
 
   const questions = useMemo(() => {
     const selected = [...words].sort(() => Math.random() - 0.5).slice(0, Math.min(10, words.length));
@@ -71,6 +75,10 @@ export default function FillInBlankMode({ words, onClose, onComplete }: FillInBl
   useEffect(() => {
     if (currentIndex >= questions.length && questions.length > 0 && !completionHandled.current) {
       completionHandled.current = true;
+      // Save mode progress
+      if (user && assignmentId) {
+        void saveModeProgress(user.id, assignmentId, 'fill-in-blank', questions.length, score, true);
+      }
       if (onComplete) onComplete(questions.length, score);
     }
   }, [currentIndex, questions.length, score, onComplete]);

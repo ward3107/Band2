@@ -162,8 +162,13 @@ export default function AdminTeachersPage() {
     const token = session?.access_token;
     if (!token) return;
 
-    const label = type === 'code' ? 'code-based teacher' : 'approved teacher';
-    if (!confirm(`Are you sure you want to remove this ${label}?`)) return;
+    // Optimistic UI update - remove immediately
+    const prevState = type === 'code' ? [...codeTeachers] : [...approvedTeachers];
+    if (type === 'code') {
+      setCodeTeachers(prev => prev.filter(t => t.id !== id));
+    } else {
+      setApprovedTeachers(prev => prev.filter(t => t.id !== id));
+    }
 
     try {
       const response = await fetch(`/api/admin/teachers/remove?id=${id}&type=${type}`, {
@@ -171,14 +176,24 @@ export default function AdminTeachersPage() {
         headers: { 'Authorization': `Bearer ${token}` }
       });
 
-      if (response.ok) {
-        await loadTeachers();
-      } else {
+      if (!response.ok) {
+        // Revert on error
         const data = await response.json();
         alert(data.error || 'Failed to remove teacher');
+        if (type === 'code') {
+          setCodeTeachers(prevState);
+        } else {
+          setApprovedTeachers(prevState);
+        }
       }
     } catch {
+      // Revert on network error
       alert('Failed to connect to server');
+      if (type === 'code') {
+        setCodeTeachers(prevState);
+      } else {
+        setApprovedTeachers(prevState);
+      }
     }
   };
 

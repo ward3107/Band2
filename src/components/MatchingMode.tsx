@@ -4,6 +4,8 @@ import { useState, useMemo, useEffect, useRef } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useProgress } from '@/contexts/ProgressContext';
 import { useDifficultWords } from '@/contexts/DifficultWordsContext';
+import { useAuth } from '@/contexts/AuthContext';
+import { saveModeProgress } from '@/lib/supabase';
 
 interface MatchingModeProps {
   words: Array<{
@@ -13,14 +15,16 @@ interface MatchingModeProps {
   }>;
   onClose: () => void;
   onComplete?: (wordsStudied: number, correct: number) => void;
+  assignmentId?: string;
 }
 
 const BATCH_SIZE = 6;
 
-export default function MatchingMode({ words, onClose, onComplete }: MatchingModeProps) {
+export default function MatchingMode({ words, onClose, onComplete, assignmentId }: MatchingModeProps) {
   const { language } = useLanguage();
   const { markWordReviewed } = useProgress();
   const { addMistake } = useDifficultWords();
+  const { user } = useAuth();
 
   const batches = useMemo(() => {
     const shuffled = [...words].sort(() => Math.random() - 0.5);
@@ -43,6 +47,10 @@ export default function MatchingMode({ words, onClose, onComplete }: MatchingMod
   useEffect(() => {
     if (started && batchIndex >= batches.length && !completionHandled.current) {
       completionHandled.current = true;
+      // Save mode progress
+      if (user && assignmentId) {
+        void saveModeProgress(user.id, assignmentId, 'matching', words.length, totalCorrect, true);
+      }
       if (onComplete) onComplete(totalAttempted, totalCorrect);
     }
   }, [batchIndex, batches.length, started, totalAttempted, totalCorrect, onComplete]);

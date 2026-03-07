@@ -156,3 +156,49 @@ export async function signInWithGoogle() {
 
   return { data, error };
 }
+
+// Mode progress helper functions
+export async function saveModeProgress(
+  studentId: string,
+  assignmentId: string,
+  mode: 'flashcards' | 'quiz' | 'matching' | 'story' | 'spelling' | 'scramble' | 'fill-in-blank',
+  wordsStudied: number,
+  correctAnswers: number,
+  completed: boolean
+) {
+  const { data: existing } = await supabase
+    .from('student_mode_progress')
+    .select('id')
+    .eq('student_id', studentId)
+    .eq('assignment_id', assignmentId)
+    .eq('mode', mode)
+    .maybeSingle();
+
+  if (existing) {
+    // Update existing record
+    const { error } = await supabase
+      .from('student_mode_progress')
+      .update({
+        words_studied: Math.max(existing.words_studied || 0, wordsStudied),
+        correct_answers: Math.max(existing.correct_answers || 0, correctAnswers),
+        completed: completed || existing.completed,
+        last_activity: new Date().toISOString(),
+      })
+      .eq('id', existing.id);
+    return { error };
+  } else {
+    // Insert new record
+    const { error } = await supabase
+      .from('student_mode_progress')
+      .insert({
+        student_id: studentId,
+        assignment_id: assignmentId,
+        mode,
+        words_studied: wordsStudied,
+        correct_answers: correctAnswers,
+        completed,
+        last_activity: new Date().toISOString(),
+      });
+    return { error };
+  }
+}

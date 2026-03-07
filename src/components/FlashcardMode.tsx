@@ -1,11 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useProgress } from '@/contexts/ProgressContext';
 import { useAccessibility } from '@/contexts/AccessibilityContext';
 import { useVoice } from '@/contexts/VoiceContext';
 import { useDifficultWords } from '@/contexts/DifficultWordsContext';
+import { useAuth } from '@/contexts/AuthContext';
+import { saveModeProgress } from '@/lib/supabase';
 import VoiceSelector from '@/components/VoiceSelector';
 
 interface FlashcardModeProps {
@@ -18,14 +20,16 @@ interface FlashcardModeProps {
   }>;
   onClose: () => void;
   onComplete?: (wordsStudied: number, correct: number) => void;
+  assignmentId?: string;
 }
 
-export default function FlashcardMode({ words, onClose, onComplete }: FlashcardModeProps) {
+export default function FlashcardMode({ words, onClose, onComplete, assignmentId }: FlashcardModeProps) {
   const { language, t } = useLanguage();
   const { settings } = useAccessibility();
   const { markWordReviewed, getWordStatus } = useProgress();
   const { speak } = useVoice();
   const { addMistake } = useDifficultWords();
+  const { user } = useAuth();
 
   const [currentIndex, setCurrentIndex] = useState(0);
   const [flipped, setFlipped] = useState(false);
@@ -82,11 +86,22 @@ export default function FlashcardMode({ words, onClose, onComplete }: FlashcardM
         setCurrentIndex(prev => prev + 1);
         setDirection(null);
       } else if (onComplete) {
-        // Session complete
-        onComplete(words.length, correctCount + (knew ? 1 : 0));
+        // Session complete - save mode progress
+        const finalCorrect = correctCount + (knew ? 1 : 0);
+        if (user && assignmentId) {
+          void saveModeProgress(user.id, assignmentId, 'flashcards', words.length, finalCorrect, true);
+        }
+        onComplete(words.length, finalCorrect);
       }
     }, 300);
   };
+
+  // Save intermediate progress periodically
+  useEffect(() => {
+    if (user && assignmentId && currentIndex > 0) {
+      void saveModeProgress(user.id, assignmentId, 'flashcards', currentIndex, correctCount, false);
+    }
+  }, [currentIndex, correctCount]);
 
   const speakWord = () => {
     speak(currentWord.word, 'en-US', settings.audioSpeed);

@@ -203,6 +203,7 @@ export default function AssignmentPage({ params }: { params: Promise<{ id: strin
         words={words}
         onClose={() => setMode('overview')}
         onComplete={handleLearningComplete}
+        assignmentId={resolvedParams.id}
       />
     );
   }
@@ -214,28 +215,29 @@ export default function AssignmentPage({ params }: { params: Promise<{ id: strin
         words={words}
         onClose={() => setMode('overview')}
         onComplete={handleLearningComplete}
+        assignmentId={resolvedParams.id}
       />
     );
   }
 
   if (mode === 'fill-in-blank') {
-    return <FillInBlankMode words={words} onClose={() => setMode('overview')} onComplete={handleLearningComplete} />;
+    return <FillInBlankMode words={words} onClose={() => setMode('overview')} onComplete={handleLearningComplete} assignmentId={resolvedParams.id} />;
   }
 
   if (mode === 'matching') {
-    return <MatchingMode words={words} onClose={() => setMode('overview')} onComplete={handleLearningComplete} />;
+    return <MatchingMode words={words} onClose={() => setMode('overview')} onComplete={handleLearningComplete} assignmentId={resolvedParams.id} />;
   }
 
   if (mode === 'story') {
-    return <StoryMode words={words} onClose={() => setMode('overview')} onComplete={handleLearningComplete} />;
+    return <StoryMode words={words} onClose={() => setMode('overview')} onComplete={handleLearningComplete} assignmentId={resolvedParams.id} />;
   }
 
   if (mode === 'spelling') {
-    return <SpellingMode words={words} onClose={() => setMode('overview')} onComplete={handleLearningComplete} />;
+    return <SpellingMode words={words} onClose={() => setMode('overview')} onComplete={handleLearningComplete} assignmentId={resolvedParams.id} />;
   }
 
   if (mode === 'scramble') {
-    return <WordScrambleMode words={words} onClose={() => setMode('overview')} onComplete={handleLearningComplete} />;
+    return <WordScrambleMode words={words} onClose={() => setMode('overview')} onComplete={handleLearningComplete} assignmentId={resolvedParams.id} />;
   }
 
   const getStatusColor = (status: string) => {

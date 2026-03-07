@@ -6,6 +6,8 @@ import { useProgress } from '@/contexts/ProgressContext';
 import { useAccessibility } from '@/contexts/AccessibilityContext';
 import { useVoice } from '@/contexts/VoiceContext';
 import { useDifficultWords } from '@/contexts/DifficultWordsContext';
+import { useAuth } from '@/contexts/AuthContext';
+import { saveModeProgress } from '@/lib/supabase';
 import { unlockQuizAchievement } from '@/contexts/GamificationContext';
 
 interface QuizModeProps {
@@ -16,6 +18,7 @@ interface QuizModeProps {
   }>;
   onClose: () => void;
   onComplete?: (wordsStudied: number, correct: number) => void;
+  assignmentId?: string;
 }
 
 interface Question {
@@ -30,12 +33,13 @@ interface Question {
   };
 }
 
-export default function QuizMode({ words, onClose, onComplete }: QuizModeProps) {
+export default function QuizMode({ words, onClose, onComplete, assignmentId }: QuizModeProps) {
   const { language } = useLanguage();
   const { settings } = useAccessibility();
   const { markWordReviewed } = useProgress();
   const { speak } = useVoice();
   const { addMistake } = useDifficultWords();
+  const { user } = useAuth();
 
   const [questions, setQuestions] = useState<Question[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -51,6 +55,10 @@ export default function QuizMode({ words, onClose, onComplete }: QuizModeProps) 
       completionHandled.current = true;
       const percentage = Math.round((score / questions.length) * 100);
       unlockQuizAchievement(percentage === 100);
+      // Save mode progress
+      if (user && assignmentId) {
+        void saveModeProgress(user.id, assignmentId, 'quiz', questions.length, score, true);
+      }
       if (onComplete) {
         onComplete(questions.length, score);
       }

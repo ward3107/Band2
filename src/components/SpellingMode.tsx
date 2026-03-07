@@ -6,6 +6,8 @@ import { useAccessibility } from '@/contexts/AccessibilityContext';
 import { useProgress } from '@/contexts/ProgressContext';
 import { useDifficultWords } from '@/contexts/DifficultWordsContext';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useAuth } from '@/contexts/AuthContext';
+import { saveModeProgress } from '@/lib/supabase';
 
 interface SpellingModeProps {
   words: Array<{
@@ -15,14 +17,16 @@ interface SpellingModeProps {
   }>;
   onClose: () => void;
   onComplete?: (wordsStudied: number, correct: number) => void;
+  assignmentId?: string;
 }
 
-export default function SpellingMode({ words, onClose, onComplete }: SpellingModeProps) {
+export default function SpellingMode({ words, onClose, onComplete, assignmentId }: SpellingModeProps) {
   const { speak } = useVoice();
   const { settings } = useAccessibility();
   const { markWordReviewed } = useProgress();
   const { addMistake } = useDifficultWords();
   const { language } = useLanguage();
+  const { user } = useAuth();
 
   const wordList = useMemo(() => {
     return [...words].sort(() => Math.random() - 0.5).slice(0, Math.min(10, words.length));
@@ -41,6 +45,10 @@ export default function SpellingMode({ words, onClose, onComplete }: SpellingMod
   useEffect(() => {
     if (currentIndex >= wordList.length && wordList.length > 0 && !completionHandled.current) {
       completionHandled.current = true;
+      // Save mode progress
+      if (user && assignmentId) {
+        void saveModeProgress(user.id, assignmentId, 'spelling', wordList.length, score, true);
+      }
       if (onComplete) onComplete(wordList.length, score);
     }
   }, [currentIndex, wordList.length, score, onComplete]);

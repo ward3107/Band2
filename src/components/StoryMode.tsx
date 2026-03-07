@@ -4,6 +4,8 @@ import { useState, useMemo, useEffect, useRef } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useProgress } from '@/contexts/ProgressContext';
 import { useDifficultWords } from '@/contexts/DifficultWordsContext';
+import { useAuth } from '@/contexts/AuthContext';
+import { saveModeProgress } from '@/lib/supabase';
 import { useVoice } from '@/contexts/VoiceContext';
 import { useAccessibility } from '@/contexts/AccessibilityContext';
 
@@ -16,6 +18,7 @@ interface StoryModeProps {
   }>;
   onClose: () => void;
   onComplete?: (wordsStudied: number, correct: number) => void;
+  assignmentId?: string;
 }
 
 interface ComprehensionQuestion {
@@ -27,10 +30,11 @@ interface ComprehensionQuestion {
   contextSentence?: string;  // The sentence from the story containing this word
 }
 
-export default function StoryMode({ words, onClose, onComplete }: StoryModeProps) {
+export default function StoryMode({ words, onClose, onComplete, assignmentId }: StoryModeProps) {
   const { language } = useLanguage();
   const { markWordReviewed } = useProgress();
   const { addMistake } = useDifficultWords();
+  const { user } = useAuth();
   const { speak } = useVoice();
   const { settings } = useAccessibility();
   const [isReading, setIsReading] = useState(false);
@@ -119,6 +123,10 @@ export default function StoryMode({ words, onClose, onComplete }: StoryModeProps
   useEffect(() => {
     if (phase === 'quiz' && questionIndex >= questions.length && questions.length > 0 && !completionHandled.current) {
       completionHandled.current = true;
+      // Save mode progress
+      if (user && assignmentId) {
+        void saveModeProgress(user.id, assignmentId, 'story', questions.length, score, true);
+      }
       if (onComplete) onComplete(questions.length, score);
     }
   }, [phase, questionIndex, questions.length, score, onComplete]);
