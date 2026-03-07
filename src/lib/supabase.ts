@@ -168,7 +168,7 @@ export async function saveModeProgress(
 ) {
   const { data: existing } = await supabase
     .from('student_mode_progress')
-    .select('id')
+    .select('*')
     .eq('student_id', studentId)
     .eq('assignment_id', assignmentId)
     .eq('mode', mode)

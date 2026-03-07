@@ -136,7 +136,7 @@ export default function MatchingMode({ words, onClose, onComplete, assignmentId 
   // Shuffled translations for the right column
   const shuffledTranslations = useMemo(() => {
     return [...batch].sort(() => Math.random() - 0.5);
-  }, [batch]);
+  }, [batchIndex]);
 
   const handleEnglishClick = (wordId: string) => {
     if (matched.has(wordId)) return;
