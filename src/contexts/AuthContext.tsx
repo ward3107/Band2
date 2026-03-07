@@ -152,7 +152,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setCachedProfile(null);
       const profile = await loadProfile(result.data.user.id);
       // Update last_login timestamp (fire-and-forget, swallow errors)
-      supabase.from('profiles').update({ last_login: new Date().toISOString() }).eq('id', result.data.user.id).then(null, () => {});
+      supabase.from('profiles').update({ last_login: new Date().toISOString() }).eq('id', result.data.user.id).catch(() => {});
       return { ...result, profile };
     }
     return { ...result, profile: null };

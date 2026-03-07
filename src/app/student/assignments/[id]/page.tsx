@@ -87,13 +87,13 @@ export default function AssignmentPage({ params }: { params: Promise<{ id: strin
 
       setAssignment(assignmentWithWords);
 
-      // Load progress
+      // Load progress (use maybeSingle to handle new assignments without progress)
       const { data: progressData } = await supabase
         .from('student_assignment_progress')
         .select('*')
         .eq('student_id', user!.id)
         .eq('assignment_id', resolvedParams.id)
-        .single();
+        .maybeSingle();
 
       setProgress(progressData || {
         status: 'not_started',
