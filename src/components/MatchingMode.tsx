@@ -100,8 +100,7 @@ export default function MatchingMode({ words, onClose, onComplete }: MatchingMod
   // Shuffled translations for the right column
   const shuffledTranslations = useMemo(() => {
     return [...batch].sort(() => Math.random() - 0.5);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [batchIndex]);
+  }, [batch]);
 
   const handleEnglishClick = (wordId: string) => {
     if (matched.has(wordId)) return;

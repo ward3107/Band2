@@ -51,13 +51,13 @@ export default function FlashcardMode({ words, onClose, onComplete }: FlashcardM
   const getTranslation = () => {
     if (language === 'he') return currentWord.translations.hebrew;
     if (language === 'ar') return currentWord.translations.arabic;
-    return currentWord.translations.hebrew;
+    return currentWord.translations.arabic;  // Default to Arabic
   };
 
   const getExample = () => {
     if (language === 'he') return currentWord.example_sentences.hebrew;
     if (language === 'ar') return currentWord.example_sentences.arabic;
-    return currentWord.example_sentences.english;
+    return currentWord.example_sentences.arabic;  // Default to Arabic
   };
 
   const handleSwipe = (knew: boolean) => {
