@@ -54,9 +54,10 @@ export default function WordScrambleMode({ words, onClose, onComplete }: WordScr
   }, [currentIndex, wordList.length, score, onComplete]);
 
   const getTranslation = (w: WordScrambleModeProps['words'][0]) => {
-    return language === 'ar'
-      ? w.translations.arabic.split('،')[0].trim()
-      : w.translations.hebrew.split(',')[0].trim();
+    // Default to Arabic, use Hebrew if explicitly selected
+    return language === 'he'
+      ? w.translations.hebrew.split(',')[0].trim()
+      : w.translations.arabic.split('،')[0].trim();
   };
 
   const initWord = (index: number) => {

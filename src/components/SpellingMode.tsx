@@ -53,9 +53,10 @@ export default function SpellingMode({ words, onClose, onComplete }: SpellingMod
   }, [currentIndex, started]);
 
   const getTranslation = (w: SpellingModeProps['words'][0]) => {
-    return language === 'ar'
-      ? w.translations.arabic.split('،')[0].trim()
-      : w.translations.hebrew.split(',')[0].trim();
+    // Default to Arabic, use Hebrew if explicitly selected
+    return language === 'he'
+      ? w.translations.hebrew.split(',')[0].trim()
+      : w.translations.arabic.split('،')[0].trim();
   };
 
   if (words.length === 0) {
