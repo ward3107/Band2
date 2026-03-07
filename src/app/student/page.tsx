@@ -13,6 +13,13 @@ interface Class {
   grade_level: string | null;
 }
 
+interface ModeProgress {
+  mode: string;
+  words_studied: number;
+  correct_answers: number;
+  completed: boolean;
+}
+
 interface Assignment {
   id: string;
   title: string;
@@ -23,6 +30,7 @@ interface Assignment {
   words_learned: number;
   quiz_score: number | null;
   class_name: string;
+  modeProgress?: ModeProgress[];
 }
 
 export default function StudentDashboardPage() {
@@ -100,7 +108,7 @@ export default function StudentDashboardPage() {
 
       const assignmentIds = Array.from(assignmentMap.keys());
 
-      // Query 3 (small, targeted): Get progress only for this student's assignments
+      // Query 3: Get overall progress for this student's assignments
       const { data: allProgress } = await supabase
         .from('student_assignment_progress')
         .select('assignment_id, status, words_learned, quiz_score')
@@ -114,6 +122,32 @@ export default function StudentDashboardPage() {
           a.words_learned = p.words_learned || 0;
           a.quiz_score = p.quiz_score;
         }
+      });
+
+      // Query 4: Get per-mode progress for all assignments
+      const { data: modeProgressData } = await supabase
+        .from('student_mode_progress')
+        .select('assignment_id, mode, words_studied, correct_answers, completed')
+        .eq('student_id', user!.id)
+        .in('assignment_id', assignmentIds);
+
+      // Group mode progress by assignment
+      const modeProgressByAssignment = new Map<string, ModeProgress[]>();
+      (modeProgressData || []).forEach(mp => {
+        if (!modeProgressByAssignment.has(mp.assignment_id)) {
+          modeProgressByAssignment.set(mp.assignment_id, []);
+        }
+        modeProgressByAssignment.get(mp.assignment_id)!.push({
+          mode: mp.mode,
+          words_studied: mp.words_studied,
+          correct_answers: mp.correct_answers,
+          completed: mp.completed,
+        });
+      });
+
+      // Attach mode progress to assignments
+      assignmentMap.forEach((assignment, id) => {
+        assignment.modeProgress = modeProgressByAssignment.get(id) || [];
       });
 
       const finalAssignments = Array.from(assignmentMap.values())
@@ -147,6 +181,42 @@ export default function StudentDashboardPage() {
     return new Date(deadline) < new Date();
   };
 
+  const getModeIcon = (mode: string) => {
+    const icons: Record<string, string> = {
+      'flashcards': '🎴',
+      'quiz': '🧠',
+      'matching': '🔗',
+      'story': '📖',
+      'spelling': '🔤',
+      'scramble': '🔀',
+      'fill-in-blank': '✏️',
+    };
+    return icons[mode] || '📝';
+  };
+
+  const getModeLabel = (mode: string) => {
+    const labels: Record<string, string> = {
+      'flashcards': 'Flashcards',
+      'quiz': 'Quiz',
+      'matching': 'Matching',
+      'story': 'Story',
+      'spelling': 'Spelling',
+      'scramble': 'Scramble',
+      'fill-in-blank': 'Fill in Blank',
+    };
+    return labels[mode] || mode;
+  };
+
+  const getModeProgressText = (progress: ModeProgress, totalWords: number) => {
+    if (progress.completed) return '✓ Completed';
+    return `${progress.words_studied}/${totalWords}`;
+  };
+
+  const getModeProgressPercent = (progress: ModeProgress, totalWords: number) => {
+    if (totalWords === 0) return 0;
+    return Math.min(100, (progress.words_studied / totalWords) * 100);
+  };
+
   if (guardLoading || loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -170,12 +240,6 @@ export default function StudentDashboardPage() {
               </p>
             </div>
             <div className="flex gap-2">
-              <a
-                href="/"
-                className="px-3 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
-              >
-                {t('practiceMode')}
-              </a>
               <button
                 onClick={async () => { await signOut(); router.push('/'); }}
                 className="px-3 py-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 rounded-lg text-sm text-gray-700 dark:text-gray-300 font-medium"
@@ -243,41 +307,73 @@ export default function StudentDashboardPage() {
               {assignments.map((assignment) => (
                 <div
                   key={assignment.id}
-                  className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow"
+                  className="bg-white dark:bg-gray-800 rounded-xl p-4 sm:p-6 shadow-sm hover:shadow-md transition-shadow"
                 >
-                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex flex-wrap items-center gap-2 mb-2">
-                        <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                          {assignment.title}
-                        </h3>
-                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(assignment.status)}`}>
-                          {getStatusLabel(assignment.status)}
-                        </span>
-                        {isOverdue(assignment.deadline) && assignment.status !== 'completed' && (
-                          <span className="px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300">
-                            {t('assignmentOverdue')}
+                  <div className="flex flex-col gap-3">
+                    {/* Header section */}
+                    <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex flex-wrap items-center gap-2 mb-2">
+                          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                            {assignment.title}
+                          </h3>
+                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(assignment.status)}`}>
+                            {getStatusLabel(assignment.status)}
                           </span>
+                          {isOverdue(assignment.deadline) && assignment.status !== 'completed' && (
+                            <span className="px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300">
+                              {t('assignmentOverdue')}
+                            </span>
+                          )}
+                        </div>
+                        {assignment.description && (
+                          <p className="text-gray-600 dark:text-gray-400 text-sm mb-1">
+                            {assignment.description}
+                          </p>
                         )}
-                      </div>
-                      {assignment.description && (
-                        <p className="text-gray-600 dark:text-gray-400 text-sm mb-2">
-                          {assignment.description}
+                        <p className="text-sm text-gray-500 dark:text-gray-500">
+                          {assignment.class_name} • {assignment.total_words} {t('words')}
                         </p>
-                      )}
-                      <p className="text-sm text-gray-500 dark:text-gray-500">
-                        {assignment.class_name} • {assignment.words_learned}/{assignment.total_words} {t('words')}
-                      </p>
-                      <p className={`text-sm ${isOverdue(assignment.deadline) && assignment.status !== 'completed' ? 'text-red-600 dark:text-red-400 font-medium' : 'text-gray-500 dark:text-gray-500'}`}>
-                        {t('due')}: {new Date(assignment.deadline).toLocaleDateString()}
-                      </p>
+                        <p className={`text-sm ${isOverdue(assignment.deadline) && assignment.status !== 'completed' ? 'text-red-600 dark:text-red-400 font-medium' : 'text-gray-500 dark:text-gray-500'}`}>
+                          {t('due')}: {new Date(assignment.deadline).toLocaleDateString()}
+                        </p>
+                      </div>
+                      <a
+                        href={`/student/assignments/${assignment.id}`}
+                        className="w-full sm:w-auto sm:ml-4 text-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium shrink-0"
+                      >
+                        {assignment.status === 'completed' ? t('reviewAssignment') : t('startAssignment')}
+                      </a>
                     </div>
-                    <a
-                      href={`/student/assignments/${assignment.id}`}
-                      className="w-full sm:w-auto sm:ml-4 text-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium shrink-0"
-                    >
-                      {assignment.status === 'completed' ? t('reviewAssignment') : t('startAssignment')}
-                    </a>
+
+                    {/* Mode Progress Section */}
+                    {assignment.modeProgress && assignment.modeProgress.length > 0 && (
+                      <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+                        <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">{t('progressByMode')}:</p>
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                          {assignment.modeProgress.map((progress) => (
+                            <div
+                              key={progress.mode}
+                              className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-2 text-center"
+                            >
+                              <div className="text-lg mb-1">{getModeIcon(progress.mode)}</div>
+                              <p className="text-xs font-medium text-gray-700 dark:text-gray-300 truncate">
+                                {getModeLabel(progress.mode)}
+                              </p>
+                              <div className="w-full bg-gray-200 dark:bg-gray-600 rounded-full h-1.5 mt-1">
+                                <div
+                                  className="bg-blue-500 h-1.5 rounded-full"
+                                  style={{ width: `${getModeProgressPercent(progress, assignment.total_words)}%` }}
+                                />
+                              </div>
+                              <p className={`text-xs mt-1 ${progress.completed ? 'text-green-600 dark:text-green-400' : 'text-gray-500 dark:text-gray-400'}`}>
+                                {getModeProgressText(progress, assignment.total_words)}
+                              </p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               ))}
