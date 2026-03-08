@@ -37,13 +37,13 @@ async function generateUniqueCode(supabaseAdmin: any): Promise<string> {
 // GET - Check if teacher has permission to reset this student's code
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const auth = await verifyAdminAuth(request);
   if (auth.errorResponse) return auth.errorResponse;
   const { userId, supabaseAdmin } = auth;
 
-  const studentId = params.id;
+  const { id: studentId } = await params;
 
   // Check if the requesting user is a teacher and owns the student's class
   const { data: teacher } = await supabaseAdmin
@@ -86,13 +86,13 @@ export async function GET(
 // POST - Reset student code
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const auth = await verifyAdminAuth(request);
   if (auth.errorResponse) return auth.errorResponse;
   const { userId, supabaseAdmin } = auth;
 
-  const studentId = params.id;
+  const { id: studentId } = await params;
 
   // Check if the requesting user is a teacher and owns the student's class
   const { data: teacher } = await supabaseAdmin
@@ -199,13 +199,13 @@ export async function POST(
 // DELETE - Unlock a locked student account
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const auth = await verifyAdminAuth(request);
   if (auth.errorResponse) return auth.errorResponse;
   const { userId, supabaseAdmin } = auth;
 
-  const studentId = params.id;
+  const { id: studentId } = await params;
 
   // Check if the requesting user is a teacher and owns the student's class
   const { data: teacher } = await supabaseAdmin
