@@ -32,11 +32,30 @@ export default function AuthCallbackPage() {
 
           if (data.session) {
             // Check if user is admin
-            const { data: profile } = await supabase
+            let { data: profile } = await supabase
               .from('profiles')
               .select('is_admin')
               .eq('id', data.session.user.id)
               .maybeSingle();
+
+            // If profile doesn't exist, create it (for Google OAuth users)
+            if (!profile && data.session.user.email) {
+              const isAdmin = data.session.user.email.toLowerCase() === 'wasya92@gmail.com';
+              const { error: insertError } = await supabase
+                .from('profiles')
+                .insert({
+                  id: data.session.user.id,
+                  email: data.session.user.email,
+                  full_name: data.session.user.user_metadata?.full_name || data.session.user.email?.split('@')[0] || 'Admin',
+                  role: 'teacher',
+                  is_admin: isAdmin,
+                });
+
+              if (!insertError) {
+                // Profile created, set is_admin based on email
+                profile = { is_admin: isAdmin };
+              }
+            }
 
             // Redirect admin to admin dashboard, others to home
             if (profile?.is_admin) {
@@ -54,11 +73,29 @@ export default function AuthCallbackPage() {
         // Try to get the session and redirect appropriately
         const { data: { session } } = await supabase.auth.getSession();
         if (session?.user) {
-          const { data: profile } = await supabase
+          let { data: profile } = await supabase
             .from('profiles')
             .select('is_admin')
             .eq('id', session.user.id)
             .maybeSingle();
+
+          // If profile doesn't exist, create it (for Google OAuth users)
+          if (!profile && session.user.email) {
+            const isAdmin = session.user.email.toLowerCase() === 'wasya92@gmail.com';
+            const { error: insertError } = await supabase
+              .from('profiles')
+              .insert({
+                id: session.user.id,
+                email: session.user.email,
+                full_name: session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || 'Admin',
+                role: 'teacher',
+                is_admin: isAdmin,
+              });
+
+            if (!insertError) {
+              profile = { is_admin: isAdmin };
+            }
+          }
 
           if (profile?.is_admin) {
             router.push('/admin/teachers');
