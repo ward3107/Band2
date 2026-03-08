@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { supabase, Profile, getCurrentProfile, signIn, signUp, signOut, signInWithGoogle } from '@/lib/supabase';
 import { User, Session, AuthError } from '@supabase/supabase-js';
 import {
@@ -35,6 +35,7 @@ interface AuthContextType {
   profile: Profile | null;
   session: Session | null;
   loading: boolean;
+  hasOtherSession: boolean;
   signIn: (email: string, password: string) => Promise<SignInResult>;
   signInWithGoogle: () => Promise<SignInWithGoogleResult>;
   signUp: (email: string, password: string, fullName: string, role: 'teacher' | 'student') => Promise<SignUpResult>;
@@ -50,6 +51,40 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [session, setSessionState] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [hasOtherSession, setHasOtherSession] = useState(false);
+  const [channel, setChannel] = useState<BroadcastChannel | null>(null);
+
+  // Initialize broadcast channel for tab sync
+  useEffect(() => {
+    // Check if BroadcastChannel is supported
+    if (typeof BroadcastChannel !== 'undefined') {
+      const authChannel = new BroadcastChannel('vocaband-auth');
+      setChannel(authChannel);
+
+      // Listen for auth events from other tabs
+      authChannel.onmessage = (event) => {
+        const { type, userId, userEmail } = event.data;
+
+        if (type === 'SIGNED_IN') {
+          // Another tab signed in - check if it's a different user
+          if (user && user.id !== userId) {
+            console.log('Another tab signed in with a different user');
+            // Reload the page to get the new session
+            window.location.reload();
+          }
+        } else if (type === 'SIGNED_OUT') {
+          // Another tab signed out
+          console.log('Another tab signed out');
+          // Reload to clear session
+          window.location.reload();
+        }
+      };
+
+      return () => {
+        authChannel.close();
+      };
+    }
+  }, [user]);
 
   useEffect(() => {
     // Safety timeout: if auth never resolves (e.g. Supabase unreachable),
@@ -213,6 +248,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Update last_login timestamp (fire-and-forget, swallow errors)
       void supabase.from('profiles').update({ last_login: new Date().toISOString() }).eq('id', result.data.user.id);
 
+      // Broadcast to other tabs that a new user signed in
+      if (channel) {
+        channel.postMessage({
+          type: 'SIGNED_IN',
+          userId: result.data.user.id,
+          userEmail: result.data.user.email,
+        });
+      }
+
       return {
         ...result,
         profile,
@@ -253,6 +297,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const handleSignOut = async () => {
+    // Broadcast to other tabs before signing out
+    if (channel && user) {
+      channel.postMessage({
+        type: 'SIGNED_OUT',
+        userId: user.id,
+      });
+    }
+
     await signOut();
     setUser(null);
     setProfile(null);
@@ -287,6 +339,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         profile,
         session,
         loading,
+        hasOtherSession,
         signIn: handleSignIn,
         signInWithGoogle: handleSignInWithGoogle,
         signUp: handleSignUp,

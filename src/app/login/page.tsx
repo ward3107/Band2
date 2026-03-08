@@ -111,6 +111,17 @@ export default function LoginPage() {
             </div>
           )}
 
+          {user && (
+            <div className="mb-4 p-3 bg-amber-100 dark:bg-amber-900/30 border border-amber-400 dark:border-amber-600 rounded-lg">
+              <p className="text-amber-800 dark:text-amber-200 text-sm font-medium">
+                ⚠️ Already logged in as {user.email}
+              </p>
+              <p className="text-amber-700 dark:text-amber-300 text-xs mt-1">
+                Logging in here will sign out the current user. Use a different browser profile or incognito mode for multiple accounts.
+              </p>
+            </div>
+          )}
+
           {/* ── Student quick-join shortcut ── */}
           {role === 'student' && (
             <>

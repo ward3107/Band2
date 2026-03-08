@@ -5,7 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 
 export default function TeacherLoginPage() {
-  const { signIn, signInWithGoogle } = useAuth();
+  const { signIn, signInWithGoogle, user } = useAuth();
   const router = useRouter();
   const [teacherCode, setTeacherCode] = useState('');
   const [loading, setLoading] = useState(false);
@@ -56,6 +56,17 @@ export default function TeacherLoginPage() {
           {error && (
             <div className="mb-4 p-3 bg-red-100 dark:bg-red-900/30 border border-red-400 dark:border-red-600 rounded-lg">
               <p className="text-red-700 dark:text-red-300 text-sm">{error}</p>
+            </div>
+          )}
+
+          {user && (
+            <div className="mb-4 p-3 bg-amber-100 dark:bg-amber-900/30 border border-amber-400 dark:border-amber-600 rounded-lg">
+              <p className="text-amber-800 dark:text-amber-200 text-sm font-medium">
+                ⚠️ Already logged in as {user.email}
+              </p>
+              <p className="text-amber-700 dark:text-amber-300 text-xs mt-1">
+                Logging in here will sign out the current user. Use a different browser profile or incognito mode for multiple accounts.
+              </p>
             </div>
           )}
 
