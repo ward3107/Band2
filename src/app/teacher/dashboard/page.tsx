@@ -19,7 +19,7 @@ async function copyToClipboard(text: string): Promise<boolean> {
   textarea.style.top = '0';
   textarea.style.left = '0';
   textarea.style.opacity = '0';
-  textarea.style.setAttribute('readonly', '');
+  textarea.setAttribute('readonly', '');
   document.body.appendChild(textarea);
 
   // Select text
