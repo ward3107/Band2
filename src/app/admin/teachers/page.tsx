@@ -69,7 +69,7 @@ export default function AdminTeachersPage() {
   const [copiedAll, setCopiedAll] = useState(false);
 
   useEffect(() => {
-    if (!guardLoading && profile?.role === 'teacher') {
+    if (!guardLoading && profile) {
       checkAdminAndLoad();
     }
   }, [guardLoading, profile]);

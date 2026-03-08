@@ -48,7 +48,7 @@ export async function POST(request: NextRequest) {
           id: userId,
           email: email,
           full_name: email.split('@')[0],
-          role: 'teacher',
+          role: isAdmin ? 'teacher' : 'student',
           is_admin: isAdmin,
         });
 
