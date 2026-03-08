@@ -1,10 +1,10 @@
-// Comprehensive UI translations for Vocab Band II
+// Comprehensive UI translations for Vocaband
 export type Language = 'en' | 'he' | 'ar';
 
 export const translations: Record<Language, Record<string, string>> = {
   en: {
     // App Header
-    appTitle: 'Vocab Band II',
+    appTitle: 'Vocaband',
     appSubtitle: 'Israeli English Curriculum Learning Platform',
 
     // Language Switcher

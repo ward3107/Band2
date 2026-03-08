@@ -1,4 +1,4 @@
-# Vocab Band II - Israeli English Curriculum Learning Platform
+# Vocaband - Israeli English Curriculum Learning Platform
 
 A web-based vocabulary learning platform designed for Israeli students in grades 7-9, following the national English curriculum. Supports Hebrew and Arabic translations with separate interfaces for teachers and students.
 
@@ -150,6 +150,6 @@ src/
 
 ## License
 
-Copyright 2025 Vocab Band II. All rights reserved.
+Copyright 2025 Vocaband. All rights reserved.
 
 This software is proprietary and confidential. Unauthorized copying, distribution, or use is strictly prohibited. For licensing inquiries, contact the repository owner.

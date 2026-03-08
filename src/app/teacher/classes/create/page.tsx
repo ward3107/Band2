@@ -18,7 +18,7 @@ function generateClassCode(): string {
 // Send class code via WhatsApp
 function sendClassViaWhatsApp(className: string, classCode: string) {
   const joinUrl = typeof window !== 'undefined' ? `${window.location.origin}/join?code=${classCode}` : '';
-  const message = `Hi! Join my English class "${className}" on Vocab Band II.\n\nClass code: *${classCode}*\n\nOr tap this link to join directly: ${joinUrl}`;
+  const message = `Hi! Join my English class "${className}" on Vocaband.\n\nClass code: *${classCode}*\n\nOr tap this link to join directly: ${joinUrl}`;
   window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank');
 }
 

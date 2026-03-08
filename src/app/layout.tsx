@@ -83,7 +83,7 @@ export default async function RootLayout({
                     <div className="flex items-center gap-2 min-w-0 flex-1">
                       <span className="text-2xl shrink-0">📚</span>
                       <h1 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white truncate">
-                        Vocab Band II
+  Vocaband
                       </h1>
                     </div>
                     <div className="shrink-0 ml-2">

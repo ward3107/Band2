@@ -112,7 +112,7 @@ export default function JoinClassPage() {
         {/* Logo */}
         <div className="text-center mb-8">
           <div className="text-6xl mb-2">📚</div>
-          <h1 className="text-3xl font-bold text-white">Vocab Band II</h1>
+          <h1 className="text-3xl font-bold text-white">Vocaband</h1>
           <p className="text-blue-200">Join Your Class</p>
         </div>
 
