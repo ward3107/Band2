@@ -24,44 +24,49 @@ function sendClassViaWhatsApp(className: string, classCode: string) {
 
 // Copy to clipboard with fallback
 async function copyToClipboard(text: string): Promise<boolean> {
-  // Clear any existing selection
-  window.getSelection()?.removeAllRanges();
-
-  // Try modern API first
-  if (navigator.clipboard && window.isSecureContext) {
-    try {
-      await navigator.clipboard.writeText(text);
-      console.log('Clipboard API succeeded, copied:', text);
-      return true;
-    } catch (err) {
-      console.error('Clipboard API failed:', err);
-      // Fall through to fallback method
-    }
-  }
-
-  // Fallback: use textarea method
+  // Create textarea element
   const textarea = document.createElement('textarea');
   textarea.value = text;
+
+  // Style to be invisible but visible to the browser
   textarea.style.position = 'fixed';
-  textarea.style.top = '0';
-  textarea.style.left = '0';
-  textarea.style.opacity = '0';
+  textarea.style.top = '-9999px';
+  textarea.style.left = '-9999px';
+  textarea.style.width = '2em';
+  textarea.style.height = '2em';
+  textarea.style.padding = '0';
+  textarea.style.border = 'none';
+  textarea.style.outline = 'none';
+  textarea.style.boxShadow = 'none';
+  textarea.style.background = 'transparent';
+
   document.body.appendChild(textarea);
 
-  // Clear selection and select the textarea content
+  // Focus and select
   textarea.focus();
+  textarea.select();
   textarea.setSelectionRange(0, textarea.value.length);
 
+  let successful = false;
   try {
-    const successful = document.execCommand('copy');
-    console.log('execCommand copy result:', successful, 'text copied:', text);
-    document.body.removeChild(textarea);
-    return successful;
+    successful = document.execCommand('copy');
   } catch (err) {
-    console.error('Copy failed:', err);
-    document.body.removeChild(textarea);
-    return false;
+    console.error('execCommand copy failed:', err);
   }
+
+  // Remove from DOM
+  document.body.removeChild(textarea);
+
+  // Return focus to body
+  (document.activeElement as HTMLElement)?.blur();
+
+  if (successful) {
+    console.log('✓ Copied successfully:', text.substring(0, 50) + '...');
+    return true;
+  }
+
+  console.error('✗ Copy failed');
+  return false;
 }
 
 export default function CreateClassPage() {
