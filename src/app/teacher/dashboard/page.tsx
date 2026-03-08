@@ -303,9 +303,9 @@ export default function TeacherDashboardPage() {
     }
   };
 
-  const handleCopyStudentCode = (code: string) => {
+  const handleCopyStudentCode = async (code: string) => {
     const text = `Student Code: ${code}`;
-    if (copyToClipboard(text)) {
+    if (await copyToClipboard(text)) {
       setCopiedClassCode(code);
       setTimeout(() => setCopiedClassCode(null), 2000);
     }
