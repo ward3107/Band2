@@ -11,18 +11,20 @@ function sendClassViaWhatsApp(className: string, classCode: string) {
   window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank');
 }
 
-function copyToClipboard(text: string): boolean {
+async function copyToClipboard(text: string): Promise<boolean> {
   // Clear any existing selection
   window.getSelection()?.removeAllRanges();
 
   // Try modern API first
   if (navigator.clipboard && window.isSecureContext) {
-    navigator.clipboard.writeText(text).then(() => {
+    try {
+      await navigator.clipboard.writeText(text);
       console.log('Clipboard API succeeded, copied:', text);
-    }).catch(err => {
+      return true;
+    } catch (err) {
       console.error('Clipboard API failed:', err);
-    });
-    return true;
+      // Fall through to fallback method
+    }
   }
 
   // Fallback: use textarea method
@@ -441,11 +443,11 @@ export default function TeacherDashboardPage() {
                       WhatsApp
                     </button>
                     <button
-                      onClick={() => {
+                      onClick={async () => {
                         const joinUrl = `${window.location.origin}/join?code=${cls.class_code}`;
                         const text = `📚 Join my English class!\n\nClass Code: ${cls.class_code}\n\nLink: ${joinUrl}`;
                         console.log('Copying to clipboard:', text);
-                        if (copyToClipboard(text)) {
+                        if (await copyToClipboard(text)) {
                           console.log('Copy successful!');
                           setCopiedClassCode(cls.class_code);
                           setTimeout(() => setCopiedClassCode(null), 2000);

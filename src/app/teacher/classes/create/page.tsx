@@ -23,18 +23,20 @@ function sendClassViaWhatsApp(className: string, classCode: string) {
 }
 
 // Copy to clipboard with fallback
-function copyToClipboard(text: string): boolean {
+async function copyToClipboard(text: string): Promise<boolean> {
   // Clear any existing selection
   window.getSelection()?.removeAllRanges();
 
   // Try modern API first
   if (navigator.clipboard && window.isSecureContext) {
-    navigator.clipboard.writeText(text).then(() => {
+    try {
+      await navigator.clipboard.writeText(text);
       console.log('Clipboard API succeeded, copied:', text);
-    }).catch(err => {
+      return true;
+    } catch (err) {
       console.error('Clipboard API failed:', err);
-    });
-    return true;
+      // Fall through to fallback method
+    }
   }
 
   // Fallback: use textarea method
@@ -137,10 +139,10 @@ export default function CreateClassPage() {
     }
   };
 
-  const handleCopyCode = () => {
+  const handleCopyCode = async () => {
     const joinUrl = `${window.location.origin}/join?code=${createdClass!.code}`;
     const text = `Join my English class on Vocab Band II!\n\nClass code: ${createdClass!.code}\n\nOr join directly: ${joinUrl}`;
-    if (copyToClipboard(text)) {
+    if (await copyToClipboard(text)) {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } else {
