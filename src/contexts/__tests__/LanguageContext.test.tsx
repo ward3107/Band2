@@ -112,7 +112,7 @@ describe('t() — translation function', () => {
 
   it('returns a known English translation', () => {
     renderWithProvider();
-    expect(screen.getByTestId('title').textContent).toBe('Vocab Band II');
+    expect(screen.getByTestId('title').textContent).toBe('Vocaband');
   });
 
   it('falls back to the key when the key is unknown', () => {

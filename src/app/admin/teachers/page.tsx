@@ -37,14 +37,14 @@ function downloadCSV(teachers: { full_name: string; code: string }[]) {
 
 function sendViaWhatsApp(name: string, code: string) {
   const loginUrl = `${window.location.origin}/teacher/login`;
-  const message = `Hi! Here are your Vocab Band II teacher login details:\n\nName: ${name}\nCode: ${code}\n\nLogin at: ${loginUrl}`;
+  const message = `Hi! Here are your Vocaband teacher login details:\n\nName: ${name}\nCode: ${code}\n\nLogin at: ${loginUrl}`;
   window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank');
 }
 
 function copyAllForWhatsApp(teachers: { full_name: string; code: string }[]) {
   const loginUrl = `${window.location.origin}/teacher/login`;
   const lines = teachers.map((t) => `${t.full_name} — ${t.code}`).join('\n');
-  const message = `Vocab Band II Teacher Login Codes:\n\n${lines}\n\nLogin at: ${loginUrl}`;
+  const message = `Vocaband Teacher Login Codes:\n\n${lines}\n\nLogin at: ${loginUrl}`;
   navigator.clipboard.writeText(message);
 }
 

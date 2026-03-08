@@ -43,7 +43,7 @@ export default function TeacherLoginPage() {
         {/* Logo */}
         <div className="text-center mb-8">
           <div className="text-4xl sm:text-6xl mb-2">👩‍🏫</div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-white">Vocab Band II</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold text-white">Vocaband</h1>
           <p className="text-indigo-200">Teacher Portal</p>
         </div>
 

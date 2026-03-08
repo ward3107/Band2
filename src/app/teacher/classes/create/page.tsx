@@ -18,7 +18,7 @@ function generateClassCode(): string {
 // Send class code via WhatsApp
 function sendClassViaWhatsApp(className: string, classCode: string) {
   const joinUrl = typeof window !== 'undefined' ? `${window.location.origin}/join?code=${classCode}` : '';
-  const message = `Hi! Join my English class "${className}" on Vocab Band II.\n\nClass code: *${classCode}*\n\nOr tap this link to join directly: ${joinUrl}`;
+  const message = `Hi! Join my English class "${className}" on Vocaband.\n\nClass code: *${classCode}*\n\nOr tap this link to join directly: ${joinUrl}`;
   window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank');
 }
 
@@ -145,13 +145,12 @@ export default function CreateClassPage() {
   };
 
   const handleCopyCode = async () => {
-    const joinUrl = `${window.location.origin}/join?code=${createdClass!.code}`;
-    const text = `Join my English class on Vocab Band II!\n\nClass code: ${createdClass!.code}\n\nOr join directly: ${joinUrl}`;
-    if (await copyToClipboard(text)) {
+    // Copy only the class code
+    if (await copyToClipboard(createdClass!.code)) {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } else {
-      alert('Failed to copy. Please copy manually:\n\n' + text);
+      alert('Failed to copy. Class code: ' + createdClass!.code);
     }
   };
 

@@ -7,7 +7,7 @@ import { useRoleGuard } from '@/hooks/useRoleGuard';
 
 function sendClassViaWhatsApp(className: string, classCode: string) {
   const joinUrl = `${window.location.origin}/join?code=${classCode}`;
-  const message = `Hi! Join my English class "${className}" on Vocab Band II.\n\nClass code: *${classCode}*\n\nOr tap this link to join directly: ${joinUrl}`;
+  const message = `Hi! Join my English class "${className}" on Vocaband.\n\nClass code: *${classCode}*\n\nOr tap this link to join directly: ${joinUrl}`;
   window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank');
 }
 
@@ -449,10 +449,9 @@ export default function TeacherDashboardPage() {
                     </button>
                     <button
                       onClick={async () => {
-                        const joinUrl = `${window.location.origin}/join?code=${cls.class_code}`;
-                        const text = `📚 Join my English class!\n\nClass Code: ${cls.class_code}\n\nLink: ${joinUrl}`;
-                        console.log('Copying to clipboard:', text);
-                        if (await copyToClipboard(text)) {
+                        // Copy only the class code, not the full message
+                        console.log('Copying class code:', cls.class_code);
+                        if (await copyToClipboard(cls.class_code)) {
                           console.log('Copy successful!');
                           setCopiedClassCode(cls.class_code);
                           setTimeout(() => setCopiedClassCode(null), 2000);
