@@ -72,7 +72,7 @@ export default function AdminLoginPage() {
         {/* Warning */}
         <div className="mb-6 p-4 bg-amber-500/20 border border-amber-500/50 rounded-lg">
           <p className="text-amber-200 text-sm text-center">
-            ⚠️ This page is for the administrator only ({ADMIN_EMAIL}). Teachers should use their code at{' '}
+            ⚠️ This page is for administrators only. Teachers should use their code at{' '}
             <a href="/teacher/login" className="underline hover:text-amber-100">/teacher/login</a>
           </p>
         </div>
@@ -101,7 +101,7 @@ export default function AdminLoginPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-gray-500 focus:border-transparent"
-                placeholder={ADMIN_EMAIL}
+                placeholder="admin@example.com"
                 required
                 autoComplete="username"
               />
