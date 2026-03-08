@@ -32,6 +32,8 @@ export default function HomePage() {
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [isNewDevice, setIsNewDevice] = useState(false);
+  const [showDeviceAlert, setShowDeviceAlert] = useState(false);
 
   // Read OAuth error from URL params (set by /auth/callback on failure)
   useEffect(() => {
@@ -124,13 +126,25 @@ export default function HomePage() {
     e.preventDefault();
     setError('');
     setLoading(true);
+    setIsNewDevice(false);
+    setShowDeviceAlert(false);
     const code = teacherCode.trim().toUpperCase();
     if (!code) { setError('Please enter your teacher code.'); setLoading(false); return; }
     try {
       const result = await signIn(`${code}@teacher.band2.app`, code);
       if (result.error) {
-        setError('Invalid teacher code. Please check your code and try again.');
+        // Check if account is locked
+        if (result.error?.includes('locked')) {
+          setError(result.error);
+        } else {
+          setError('Invalid teacher code. Please check your code and try again.');
+        }
       } else {
+        // Check for new device
+        if (result.isNewDevice) {
+          setIsNewDevice(true);
+          setShowDeviceAlert(true);
+        }
         router.push('/teacher/dashboard');
       }
     } catch (err: any) {
@@ -144,13 +158,25 @@ export default function HomePage() {
     e.preventDefault();
     setError('');
     setLoading(true);
+    setIsNewDevice(false);
+    setShowDeviceAlert(false);
     const code = returningCode.trim().toUpperCase();
     if (!code) { setError('Please enter your personal code.'); setLoading(false); return; }
     try {
       const result = await signIn(`s_${code.toLowerCase()}@student.band2.app`, code);
       if (result.error) {
-        setError('Invalid code. Please check your personal code and try again.');
+        // Check if account is locked
+        if (result.error?.includes('locked')) {
+          setError(result.error);
+        } else {
+          setError('Invalid code. Please check your personal code and try again.');
+        }
       } else {
+        // Check for new device
+        if (result.isNewDevice) {
+          setIsNewDevice(true);
+          setShowDeviceAlert(true);
+        }
         router.push('/student');
       }
     } catch (err: any) {
@@ -227,6 +253,17 @@ export default function HomePage() {
           {error && (
             <div className="mb-4 p-3 bg-red-100 dark:bg-red-900/30 border border-red-400 dark:border-red-600 rounded-lg">
               <p className="text-red-700 dark:text-red-300 text-sm">{error}</p>
+            </div>
+          )}
+
+          {showDeviceAlert && isNewDevice && (
+            <div className="mb-4 p-3 bg-yellow-100 dark:bg-yellow-900/30 border border-yellow-400 dark:border-yellow-600 rounded-lg">
+              <p className="text-yellow-800 dark:text-yellow-200 text-sm font-medium">
+                🔔 New Device Detected
+              </p>
+              <p className="text-yellow-700 dark:text-yellow-300 text-xs mt-1">
+                You're logging in from a new device. If this wasn't you, please contact your teacher.
+              </p>
             </div>
           )}
 

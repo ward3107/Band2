@@ -3,11 +3,21 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { supabase, Profile, getCurrentProfile, signIn, signUp, signOut, signInWithGoogle } from '@/lib/supabase';
 import { User, Session, AuthError } from '@supabase/supabase-js';
+import {
+  isAccountLocked,
+  logLoginAttempt,
+  recordDevice,
+  incrementFailedAttempts,
+  resetFailedAttempts,
+  generateDeviceHash,
+  getDeviceInfo,
+} from '@/lib/code-auth';
 
 interface SignInResult {
   data: { user: User | null; session: Session | null } | null;
   error: string | null;
   profile?: Profile | null;
+  isNewDevice?: boolean;
 }
 
 interface SignUpResult {
@@ -142,8 +152,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const handleSignIn = async (email: string, password: string) => {
+    // Extract code prefix for logging (first part of email)
+    const codePrefix = email.split('@')[0] || '';
+
+    // Get IP and device info for logging
+    const deviceHash = generateDeviceHash();
+    const deviceInfo = getDeviceInfo();
+    // Note: In production, get real IP from headers via server action
+    const ipAddress = 'client-side'; // Will be updated by server if needed
+
+    // Log the login attempt
+    await logLoginAttempt({
+      code_prefix: codePrefix,
+      ip_address: ipAddress,
+      user_agent: deviceInfo.userAgent,
+      success: false, // Will update to true on success
+    });
+
     const result = await signIn(email, password);
+
     if (result.data?.user) {
+      // Check if account is locked BEFORE proceeding
+      const lockCheck = await isAccountLocked(result.data.user.id);
+      if (lockCheck.locked) {
+        return {
+          ...result,
+          error: lockCheck.message || 'Account is locked. Please try again later.',
+          profile: null,
+        };
+      }
+
       // Set user and session immediately so guards don't see a null user
       // before onAuthStateChange fires asynchronously.
       setUser(result.data.user);
@@ -151,10 +189,57 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Clear stale profile cache before loading fresh data
       setCachedProfile(null);
       const profile = await loadProfile(result.data.user.id);
+
+      // Reset failed attempts on successful login
+      await resetFailedAttempts(result.data.user.id);
+
+      // Update login attempt to success
+      await logLoginAttempt({
+        user_id: result.data.user.id,
+        code_prefix: codePrefix,
+        ip_address: ipAddress,
+        user_agent: deviceInfo.userAgent,
+        success: true,
+      });
+
+      // Record/trust this device
+      const deviceResult = await recordDevice(
+        result.data.user.id,
+        deviceHash,
+        deviceInfo.userAgent,
+        ipAddress
+      );
+
       // Update last_login timestamp (fire-and-forget, swallow errors)
       void supabase.from('profiles').update({ last_login: new Date().toISOString() }).eq('id', result.data.user.id);
-      return { ...result, profile };
+
+      return {
+        ...result,
+        profile,
+        isNewDevice: deviceResult.isNew,
+      };
     }
+
+    // Login failed - increment failed attempts
+    // Note: We don't have user_id yet, so we track by IP/code prefix
+    // The actual increment will happen server-side if we can identify the user
+    if (result.error) {
+      // For code-based auth, try to find the user by email to increment attempts
+      try {
+        const { data: userProfile } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('email', email)
+          .maybeSingle();
+
+        if (userProfile) {
+          await incrementFailedAttempts(userProfile.id);
+        }
+      } catch {
+        // Ignore errors on failed attempt tracking
+      }
+    }
+
     return { ...result, profile: null };
   };
 
