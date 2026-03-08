@@ -24,44 +24,49 @@ function sendClassViaWhatsApp(className: string, classCode: string) {
 
 // Copy to clipboard with fallback
 async function copyToClipboard(text: string): Promise<boolean> {
-  // Clear any existing selection
-  window.getSelection()?.removeAllRanges();
-
-  // Try modern API first
-  if (navigator.clipboard && window.isSecureContext) {
-    try {
-      await navigator.clipboard.writeText(text);
-      console.log('Clipboard API succeeded, copied:', text);
-      return true;
-    } catch (err) {
-      console.error('Clipboard API failed:', err);
-      // Fall through to fallback method
-    }
-  }
-
-  // Fallback: use textarea method
+  // Use fallback method first (more reliable)
   const textarea = document.createElement('textarea');
   textarea.value = text;
   textarea.style.position = 'fixed';
   textarea.style.top = '0';
   textarea.style.left = '0';
   textarea.style.opacity = '0';
+  textarea.style.setAttribute('readonly', '');
   document.body.appendChild(textarea);
 
-  // Clear selection and select the textarea content
+  // Select text
   textarea.focus();
   textarea.setSelectionRange(0, textarea.value.length);
 
+  let successful = false;
   try {
-    const successful = document.execCommand('copy');
-    console.log('execCommand copy result:', successful, 'text copied:', text);
-    document.body.removeChild(textarea);
-    return successful;
+    successful = document.execCommand('copy');
+    console.log('execCommand copy result:', successful);
   } catch (err) {
-    console.error('Copy failed:', err);
-    document.body.removeChild(textarea);
-    return false;
+    console.error('execCommand copy failed:', err);
   }
+
+  document.body.removeChild(textarea);
+
+  // If fallback worked, return success
+  if (successful) {
+    console.log('Copied via execCommand:', text);
+    return true;
+  }
+
+  // Fallback to Clipboard API (less reliable but may work in some cases)
+  if (navigator.clipboard && window.isSecureContext) {
+    try {
+      await navigator.clipboard.writeText(text);
+      console.log('Copied via Clipboard API:', text);
+      return true;
+    } catch (err) {
+      console.error('Clipboard API also failed:', err);
+      return false;
+    }
+  }
+
+  return false;
 }
 
 export default function CreateClassPage() {
