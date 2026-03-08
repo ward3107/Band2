@@ -1,15 +1,18 @@
 ﻿import http from 'k6/http';
+import {
+    check,
+    sleep
+} from 'k6';
 
 export let options = {
-    vus: 1, // רק משתמש אחד
-    iterations: 1 // רק פעם אחת
+    vus: 300, // 300 virtual users
+    duration: '5m', // Run for 5 minutes
 };
 
 export default function() {
-    console.log('🚀 Starting request...');
-
-    let res = http.get('https://band2.vercel.app');
-
-    console.log('📥 Status:', res.status);
-    console.log('📦 Bytes Received:', res.bytes);
+    let res = http.get('https://vocaband.com');
+    check(res, {
+        'status is 200': (r) => r.status === 200
+    });
+    sleep(1); // Wait 1 second between requests
 }
