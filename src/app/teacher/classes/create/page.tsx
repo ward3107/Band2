@@ -24,48 +24,48 @@ function sendClassViaWhatsApp(className: string, classCode: string) {
 
 // Copy to clipboard with fallback
 async function copyToClipboard(text: string): Promise<boolean> {
-  // Use fallback method first (more reliable)
+  // Create textarea element
   const textarea = document.createElement('textarea');
   textarea.value = text;
+
+  // Style to be invisible but visible to the browser
   textarea.style.position = 'fixed';
-  textarea.style.top = '0';
-  textarea.style.left = '0';
-  textarea.style.opacity = '0';
-  textarea.setAttribute('readonly', '');
+  textarea.style.top = '-9999px';
+  textarea.style.left = '-9999px';
+  textarea.style.width = '2em';
+  textarea.style.height = '2em';
+  textarea.style.padding = '0';
+  textarea.style.border = 'none';
+  textarea.style.outline = 'none';
+  textarea.style.boxShadow = 'none';
+  textarea.style.background = 'transparent';
+
   document.body.appendChild(textarea);
 
-  // Select text
+  // Focus and select
   textarea.focus();
+  textarea.select();
   textarea.setSelectionRange(0, textarea.value.length);
 
   let successful = false;
   try {
     successful = document.execCommand('copy');
-    console.log('execCommand copy result:', successful);
   } catch (err) {
     console.error('execCommand copy failed:', err);
   }
 
+  // Remove from DOM
   document.body.removeChild(textarea);
 
-  // If fallback worked, return success
+  // Return focus to body
+  (document.activeElement as HTMLElement)?.blur();
+
   if (successful) {
-    console.log('Copied via execCommand:', text);
+    console.log('✓ Copied successfully:', text.substring(0, 50) + '...');
     return true;
   }
 
-  // Fallback to Clipboard API (less reliable but may work in some cases)
-  if (navigator.clipboard && window.isSecureContext) {
-    try {
-      await navigator.clipboard.writeText(text);
-      console.log('Copied via Clipboard API:', text);
-      return true;
-    } catch (err) {
-      console.error('Clipboard API also failed:', err);
-      return false;
-    }
-  }
-
+  console.error('✗ Copy failed');
   return false;
 }
 
