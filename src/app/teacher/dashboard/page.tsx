@@ -58,6 +58,18 @@ interface ActiveStudent {
   class_name: string;
 }
 
+interface StudentWithCode {
+  id: string;
+  full_name: string | null;
+  email: string;
+  student_code: string | null;
+  last_login: string | null;
+  class_name: string;
+  class_id: string;
+  failed_login_attempts: number | null;
+  locked_until: string | null;
+}
+
 export default function TeacherDashboardPage() {
   const { profile, signOut, loading: guardLoading } = useRoleGuard('teacher', {
     loginRedirect: '/teacher/login',
@@ -77,6 +89,9 @@ export default function TeacherDashboardPage() {
   }, [guardLoading, profile]);
 
   const [totalStudents, setTotalStudents] = useState(0);
+  const [allStudents, setAllStudents] = useState<StudentWithCode[]>([]);
+  const [showStudentsModal, setShowStudentsModal] = useState(false);
+  const [resettingStudentId, setResettingStudentId] = useState<string | null>(null);
 
   const loadData = async () => {
     if (!profile) return;
@@ -136,6 +151,30 @@ export default function TeacherDashboardPage() {
 
         students.sort((a, b) => (b.last_login || '').localeCompare(a.last_login || ''));
         setActiveStudents(students);
+
+        // Fetch all students with their codes
+        const allStudentsData = await Promise.all(
+          classIds.map(async (classId) => {
+            const { data: enrollments } = await supabase
+              .from('class_enrollments')
+              .select('student_id, profiles!inner(id, full_name, email, student_code, last_login, failed_login_attempts, locked_until)')
+              .eq('class_id', classId);
+
+            return (enrollments || []).map((e: Record<string, unknown>) => ({
+              id: (e.profiles as Record<string, unknown>).id as string,
+              full_name: (e.profiles as Record<string, unknown>).full_name as string | null,
+              email: (e.profiles as Record<string, unknown>).email as string,
+              student_code: (e.profiles as Record<string, unknown>).student_code as string | null,
+              last_login: (e.profiles as Record<string, unknown>).last_login as string | null,
+              failed_login_attempts: (e.profiles as Record<string, unknown>).failed_login_attempts as number | null,
+              locked_until: (e.profiles as Record<string, unknown>).locked_until as string | null,
+              class_name: classNameById.get(classId) || '',
+              class_id: classId,
+            }));
+          })
+        );
+
+        setAllStudents(allStudentsData.flat());
       }
     } catch (err) {
       console.error('Failed to load dashboard data:', err);
@@ -208,6 +247,71 @@ export default function TeacherDashboardPage() {
       alert('Failed to delete assignment. Please try again.');
     }
     setDeletingId(null);
+  };
+
+  const handleResetStudentCode = async (studentId: string, studentName: string) => {
+    if (!confirm(`Reset the login code for "${studentName}"? The old code will stop working immediately.`)) return;
+
+    setResettingStudentId(studentId);
+    try {
+      const res = await fetch(`/api/students/${studentId}/reset-code`, {
+        method: 'POST',
+      });
+      const json = await res.json();
+
+      if (!res.ok) {
+        alert(json.error || 'Failed to reset code');
+        setResettingStudentId(null);
+        return;
+      }
+
+      // Update the local state with the new code
+      setAllStudents(prev =>
+        prev.map(s => s.id === studentId ? { ...s, student_code: json.newCode, failed_login_attempts: 0, locked_until: null } : s)
+      );
+
+      alert(`✅ New code: ${json.newCode}\n\nShare this with the student. The old code no longer works.`);
+    } catch (err) {
+      console.error('Failed to reset code:', err);
+      alert('Failed to reset code. Please try again.');
+    }
+    setResettingStudentId(null);
+  };
+
+  const handleUnlockAccount = async (studentId: string) => {
+    try {
+      const res = await fetch(`/api/students/${studentId}/reset-code`, {
+        method: 'DELETE',
+      });
+      const json = await res.json();
+
+      if (!res.ok) {
+        alert(json.error || 'Failed to unlock account');
+        return;
+      }
+
+      setAllStudents(prev =>
+        prev.map(s => s.id === studentId ? { ...s, failed_login_attempts: 0, locked_until: null } : s)
+      );
+
+      alert('Account unlocked successfully!');
+    } catch (err) {
+      console.error('Failed to unlock account:', err);
+      alert('Failed to unlock account. Please try again.');
+    }
+  };
+
+  const handleCopyStudentCode = (code: string) => {
+    const text = `Student Code: ${code}`;
+    if (copyToClipboard(text)) {
+      setCopiedClassCode(code);
+      setTimeout(() => setCopiedClassCode(null), 2000);
+    }
+  };
+
+  const isAccountLocked = (lockedUntil: string | null) => {
+    if (!lockedUntil) return false;
+    return new Date(lockedUntil) > new Date();
   };
 
   if (loading || guardLoading) {
@@ -370,6 +474,122 @@ export default function TeacherDashboardPage() {
                   </div>
                 </div>
               ))}
+            </div>
+          )}
+        </section>
+
+        {/* My Students */}
+        <section className="mb-8">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-white">My Students</h2>
+            <span className="text-sm text-gray-600 dark:text-gray-400">
+              {allStudents.length} student{allStudents.length !== 1 ? 's' : ''} across {classes.length} class{classes.length !== 1 ? 'es' : ''}
+            </span>
+          </div>
+
+          {allStudents.length === 0 ? (
+            <div className="bg-white dark:bg-gray-800 rounded-xl p-8 text-center">
+              <div className="text-4xl mb-2">👨‍🎓</div>
+              <p className="text-gray-600 dark:text-gray-400 mb-4">No students yet. Share your class codes to get started!</p>
+            </div>
+          ) : (
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead className="bg-gray-50 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-600">
+                    <tr>
+                      <th className="px-4 py-3 text-left font-semibold text-gray-700 dark:text-gray-300">Student</th>
+                      <th className="px-4 py-3 text-left font-semibold text-gray-700 dark:text-gray-300">Class</th>
+                      <th className="px-4 py-3 text-left font-semibold text-gray-700 dark:text-gray-300">Login Code</th>
+                      <th className="px-4 py-3 text-left font-semibold text-gray-700 dark:text-gray-300">Last Login</th>
+                      <th className="px-4 py-3 text-left font-semibold text-gray-700 dark:text-gray-300">Status</th>
+                      <th className="px-4 py-3 text-right font-semibold text-gray-700 dark:text-gray-300">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                    {allStudents.map((student) => {
+                      const locked = isAccountLocked(student.locked_until);
+                      return (
+                        <tr key={student.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                          <td className="px-4 py-3">
+                            <div className="font-medium text-gray-900 dark:text-white">
+                              {student.full_name || 'Unknown'}
+                            </div>
+                            <div className="text-xs text-gray-500 dark:text-gray-400 truncate max-w-[150px]">
+                              {student.email}
+                            </div>
+                          </td>
+                          <td className="px-4 py-3 text-gray-600 dark:text-gray-400">
+                            {student.class_name}
+                          </td>
+                          <td className="px-4 py-3">
+                            <div className="flex items-center gap-2">
+                              <code className="bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded text-xs font-mono">
+                                {student.student_code || 'N/A'}
+                              </code>
+                              <button
+                                onClick={() => student.student_code && handleCopyStudentCode(student.student_code)}
+                                disabled={!student.student_code}
+                                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 disabled:opacity-30"
+                                title="Copy code"
+                              >
+                                <svg viewBox="0 0 24 24" className="w-4 h-4 fill-current" xmlns="http://www.w3.org/2000/svg">
+                                  <path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/>
+                                </svg>
+                              </button>
+                              {copiedClassCode === student.student_code && (
+                                <span className="text-xs text-green-600 dark:text-green-400">✓</span>
+                              )}
+                            </div>
+                          </td>
+                          <td className="px-4 py-3 text-gray-600 dark:text-gray-400">
+                            {student.last_login
+                              ? new Date(student.last_login).toLocaleDateString()
+                              : 'Never'
+                            }
+                          </td>
+                          <td className="px-4 py-3">
+                            {locked ? (
+                              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300">
+                                🔒 Locked
+                              </span>
+                            ) : student.failed_login_attempts && student.failed_login_attempts > 0 ? (
+                              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300">
+                                ⚠️ {student.failed_login_attempts} failed
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300">
+                                ✅ Active
+                              </span>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 text-right">
+                            <div className="flex items-center justify-end gap-2">
+                              {locked && (
+                                <button
+                                  onClick={() => handleUnlockAccount(student.id)}
+                                  className="px-2 py-1 text-xs bg-yellow-500 hover:bg-yellow-600 text-white rounded"
+                                  title="Unlock account"
+                                >
+                                  Unlock
+                                </button>
+                              )}
+                              <button
+                                onClick={() => handleResetStudentCode(student.id, student.full_name || 'this student')}
+                                disabled={resettingStudentId === student.id}
+                                className="px-2 py-1 text-xs bg-indigo-500 hover:bg-indigo-600 disabled:bg-gray-400 text-white rounded"
+                                title="Reset login code"
+                              >
+                                {resettingStudentId === student.id ? '...' : 'Reset Code'}
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
             </div>
           )}
         </section>
