@@ -44,8 +44,8 @@ interface VocabularyWord {
 export default function AssignmentPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
   const { user, profile, loading: guardLoading } = useRoleGuard('student', {
-    loginRedirect: '/login?redirect=/student/assignments/' + resolvedParams.id,
-    unauthorizedRedirect: '/teacher/dashboard',
+    loginRedirect: '/join',
+    unauthorizedRedirect: '/join',
   });
   const router = useRouter();
   const { t } = useLanguage();

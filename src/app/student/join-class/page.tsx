@@ -16,7 +16,7 @@ export default function JoinClassPage() {
   // Redirect unauthenticated users to the student login
   useEffect(() => {
     if (!authLoading && !user) {
-      router.push('/login?redirect=/student/join-class');
+      router.push('/join');
     }
   }, [user, authLoading, router]);
 

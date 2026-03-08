@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useLanguage } from '@/contexts/LanguageContext';
 
 export default function HomePage() {
-  const { signIn, signUp, signInWithGoogle } = useAuth();
+  const { signIn } = useAuth();
   const { t } = useLanguage();
   const router = useRouter();
 
@@ -23,32 +23,13 @@ export default function HomePage() {
   const [returningCode, setReturningCode] = useState('');
   const [showReturning, setShowReturning] = useState(false);
 
-  // ── Student/Teacher: sign-in flow ──
-  const [isLogin, setIsLogin] = useState(true);
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [fullName, setFullName] = useState('');
+  // ── Teacher: code login ──
   const [teacherCode, setTeacherCode] = useState('');
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [isNewDevice, setIsNewDevice] = useState(false);
   const [showDeviceAlert, setShowDeviceAlert] = useState(false);
-
-  // Read OAuth error from URL params (set by /auth/callback on failure)
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const urlError = params.get('error');
-    if (urlError) {
-      const messages: Record<string, string> = {
-        access_denied: 'Google sign-in was cancelled.',
-        session_failed: 'Failed to establish session. Please try again.',
-        callback_failed: 'Sign-in failed. Please try again.',
-      };
-      setError(messages[urlError] || 'Sign-in failed. Please try again.');
-      window.history.replaceState({}, '', window.location.pathname);
-    }
-  }, []);
 
   const handleJoinSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -69,55 +50,18 @@ export default function HomePage() {
         setLoading(false);
         return;
       }
-      // Use AuthContext signIn so state is updated before navigation,
-      // and router.push so the auth lock is released cleanly (no page reload).
       const result = await signIn(json.credentials.email, json.credentials.password);
       if (result.error) {
         setError('Joined class but could not sign in. Please refresh and try again.');
         setLoading(false);
         return;
       }
-      // Show the personal code to the student before redirecting
       setJoinedClassName(json.className || '');
       setJoinedPersonalCode(json.studentCode || '');
       setStudentView('success');
       setLoading(false);
     } catch {
       setError('An unexpected error occurred. Please try again.');
-      setLoading(false);
-    }
-  };
-
-  const handleSignInSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-    setLoading(true);
-    try {
-      if (isLogin) {
-        const result = await signIn(email, password);
-        if (result.error) {
-          setError(result.error);
-        } else {
-          // Profile is already loaded by handleSignIn in AuthContext — use it directly
-          const userRole = result.profile?.role;
-          if (userRole === 'teacher') {
-            router.push('/teacher/dashboard');
-          } else {
-            router.push('/student');
-          }
-        }
-      } else {
-        if (!fullName.trim()) { setError(t('nameRequired')); setLoading(false); return; }
-        const result = await signUp(email, password, fullName, role);
-        if (result.error) {
-          setError(result.error);
-        } else {
-          router.push(role === 'teacher' ? '/teacher/dashboard' : '/student/join-class');
-        }
-      }
-    } catch (err: any) {
-      setError(err?.message || t('errorOccurred'));
-    } finally {
       setLoading(false);
     }
   };
@@ -133,14 +77,12 @@ export default function HomePage() {
     try {
       const result = await signIn(`${code}@teacher.band2.app`, code);
       if (result.error) {
-        // Check if account is locked
         if (result.error?.includes('locked')) {
           setError(result.error);
         } else {
           setError('Invalid teacher code. Please check your code and try again.');
         }
       } else {
-        // Check for new device
         if (result.isNewDevice) {
           setIsNewDevice(true);
           setShowDeviceAlert(true);
@@ -165,14 +107,12 @@ export default function HomePage() {
     try {
       const result = await signIn(`s_${code.toLowerCase()}@student.band2.app`, code);
       if (result.error) {
-        // Check if account is locked
         if (result.error?.includes('locked')) {
           setError(result.error);
         } else {
           setError('Invalid code. Please check your personal code and try again.');
         }
       } else {
-        // Check for new device
         if (result.isNewDevice) {
           setIsNewDevice(true);
           setShowDeviceAlert(true);
@@ -186,22 +126,10 @@ export default function HomePage() {
     }
   };
 
-  // Memoize Google SVG to prevent re-creation on every render
-  const googleSVG = useMemo(() => (
-    <svg className="w-5 h-5" viewBox="0 0 24 24">
-      <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-      <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-      <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-      <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-    </svg>
-  ), []);
-
-  // Memoize role change handlers
   const handleSetStudent = useCallback(() => { setRole('student'); setError(''); }, []);
   const handleSetTeacher = useCallback(() => { setRole('teacher'); setError(''); }, []);
   const handleToggleStudentView = useCallback(() => { setStudentView('signin'); setError(''); }, []);
   const handleBackToJoin = useCallback(() => { setStudentView('join'); setError(''); }, []);
-  const handleToggleLogin = useCallback(() => { setIsLogin(!isLogin); setError(''); }, [isLogin]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-600 to-purple-700 flex items-start lg:items-center justify-center p-4 py-6 sm:py-8">
@@ -301,22 +229,6 @@ export default function HomePage() {
               >
                 {loading ? t('loading') : 'Sign In'}
               </button>
-              <div className="relative my-2">
-                <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-gray-300 dark:border-gray-600"></div></div>
-                <div className="relative flex justify-center text-sm"><span className="px-2 bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400">Admin?</span></div>
-              </div>
-              <button
-                type="button"
-                onClick={async () => {
-                  setError(''); setLoading(true);
-                  const { error } = await signInWithGoogle();
-                  if (error) { setError(error.message || 'Failed to sign in with Google'); setLoading(false); }
-                }}
-                disabled={loading}
-                className="w-full flex items-center justify-center gap-3 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 font-semibold py-3 px-4 rounded-lg transition-colors"
-              >
-                {googleSVG} Sign in with Google
-              </button>
             </form>
 
           ) : studentView === 'success' ? (
@@ -394,7 +306,7 @@ export default function HomePage() {
               </form>
 
               <div className="mt-5 text-center text-sm text-gray-400">
-                Already have an account?{' '}
+                Already have a personal code?{' '}
                 <button
                   onClick={handleToggleStudentView}
                   className="text-blue-600 dark:text-blue-400 hover:underline font-medium"
@@ -405,123 +317,45 @@ export default function HomePage() {
             </>
 
           ) : (
-            /* ── Student: SIGN IN (secondary view) ── */
+            /* ── Student: SIGN IN with personal code (secondary view) ── */
             <>
               <div className="flex items-center gap-3 mb-5">
                 <span className="text-4xl">🎓</span>
                 <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
-                  {isLogin ? 'Student Sign In' : 'Create Account'}
+                  Student Sign In
                 </h2>
               </div>
 
-              {/* Returning student: personal code login */}
-              {isLogin && (
-                <div className="mb-4">
-                  <button
-                    type="button"
-                    onClick={() => { setShowReturning(!showReturning); setError(''); }}
-                    className="w-full flex items-center justify-between p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-xl text-sm font-medium text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/40 transition-colors"
-                  >
-                    <span>🔑 Returning student? Use your personal code</span>
-                    <span>{showReturning ? '▲' : '▼'}</span>
-                  </button>
-                  {showReturning && (
-                    <form onSubmit={handleReturningStudentSubmit} className="mt-3 space-y-3">
-                      <input
-                        type="text"
-                        value={returningCode}
-                        onChange={(e) => setReturningCode(e.target.value.toUpperCase())}
-                        className="w-full px-4 py-3 rounded-xl border-2 border-blue-300 dark:border-blue-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-center text-2xl font-mono tracking-[0.2em] focus:border-blue-500 focus:outline-none transition-colors"
-                        placeholder="AB3X7QKP"
-                        maxLength={8}
-                        autoComplete="off"
-                        autoCapitalize="characters"
-                      />
-                      <button
-                        type="submit"
-                        disabled={loading || returningCode.length < 6}
-                        className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 dark:disabled:bg-gray-600 disabled:cursor-not-allowed text-white font-semibold py-2.5 rounded-xl transition-colors"
-                      >
-                        {loading ? 'Signing in...' : 'Sign In with Code →'}
-                      </button>
-                    </form>
-                  )}
-                  <div className="relative mt-4">
-                    <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-gray-200 dark:border-gray-600"></div></div>
-                    <div className="relative flex justify-center text-xs"><span className="px-2 bg-white dark:bg-gray-800 text-gray-400">or sign in with email</span></div>
-                  </div>
-                </div>
-              )}
-
-              <form onSubmit={handleSignInSubmit} className="space-y-4 flex-1">
-                {!isLogin && (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('fullName')}</label>
-                    <input
-                      type="text"
-                      value={fullName}
-                      onChange={(e) => setFullName(e.target.value)}
-                      className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder={t('namePlaceholder')}
-                      required={!isLogin}
-                    />
-                  </div>
-                )}
+              <form onSubmit={handleReturningStudentSubmit} className="space-y-4 flex-1">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('email')}</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Your Personal Code
+                  </label>
                   <input
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder={t('emailPlaceholder')}
+                    type="text"
+                    value={returningCode}
+                    onChange={(e) => setReturningCode(e.target.value.toUpperCase())}
+                    className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-center text-2xl font-mono tracking-[0.2em] focus:border-blue-500 focus:outline-none transition-colors"
+                    placeholder="AB3X7QKP"
+                    maxLength={8}
+                    autoComplete="off"
+                    autoCapitalize="characters"
                     required
-                    autoComplete="username"
                   />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('password')}</label>
-                  <input
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder={t('passwordPlaceholder')}
-                    required
-                    minLength={6}
-                    autoComplete={isLogin ? 'current-password' : 'new-password'}
-                  />
+                  <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
+                    Enter the 8-character code you received when you joined
+                  </p>
                 </div>
                 <button
                   type="submit"
-                  disabled={loading}
-                  className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-semibold py-3 px-4 rounded-lg transition-colors"
+                  disabled={loading || returningCode.length < 6}
+                  className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 dark:disabled:bg-gray-600 disabled:cursor-not-allowed text-white font-semibold py-3 rounded-xl transition-colors"
                 >
-                  {loading ? t('loading') : isLogin ? t('signIn') : t('signUp')}
+                  {loading ? 'Signing in...' : 'Sign In →'}
                 </button>
               </form>
 
-              <div className="relative my-4">
-                <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-gray-300 dark:border-gray-600"></div></div>
-                <div className="relative flex justify-center text-sm"><span className="px-2 bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400">Or</span></div>
-              </div>
-
-              <button
-                onClick={async () => {
-                  setError(''); setLoading(true);
-                  const { error } = await signInWithGoogle();
-                  if (error) { setError(error.message || 'Failed to sign in with Google'); setLoading(false); }
-                }}
-                disabled={loading}
-                className="w-full flex items-center justify-center gap-3 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 font-semibold py-3 px-4 rounded-lg transition-colors"
-              >
-                {googleSVG} Sign in with Google
-              </button>
-
-              <div className="mt-4 flex flex-col items-center gap-2 text-sm">
-                <button onClick={handleToggleLogin} className="text-blue-600 dark:text-blue-400 hover:underline">
-                  {isLogin ? t('noAccount') : t('hasAccount')}
-                </button>
+              <div className="mt-6 flex flex-col items-center gap-2 text-sm">
                 <button onClick={handleBackToJoin} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 text-xs">
                   ← Join with class code instead
                 </button>
@@ -533,4 +367,3 @@ export default function HomePage() {
     </div>
   );
 }
-
