@@ -50,7 +50,7 @@ function copyAllForWhatsApp(teachers: { full_name: string; code: string }[]) {
 
 export default function AdminTeachersPage() {
   const { profile, session, signOut, loading: guardLoading } = useRoleGuard('teacher', {
-    loginRedirect: '/teacher/login',
+    loginRedirect: '/admin/login',
   });
   const router = useRouter();
   const [isAdmin, setIsAdmin] = useState(false);
@@ -250,7 +250,7 @@ export default function AdminTeachersPage() {
                 Back to Dashboard
               </button>
               <button
-                onClick={async () => { await signOut(); router.push('/teacher/login'); }}
+                onClick={async () => { await signOut(); router.push('/admin/login'); }}
                 className="px-3 py-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 rounded-lg text-sm text-gray-700 dark:text-gray-300 font-medium"
               >
                 Sign Out
