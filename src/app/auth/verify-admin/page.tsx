@@ -126,6 +126,7 @@ export default function VerifyAdminPage() {
               type="email"
               value={user?.email || ''}
               disabled
+              autoComplete="username"
               className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed"
             />
           </div>

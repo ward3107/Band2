@@ -21,6 +21,7 @@ const PROTECTED_ROUTES = [
 // Routes that are exempt from CSRF check (e.g., webhook endpoints, public endpoints)
 const EXEMPT_ROUTES = [
   '/api/auth/callback',
+  '/api/admin/setup-profile', // OAuth callback needs to create profile
 ];
 
 function isProtectedRoute(pathname: string): boolean {

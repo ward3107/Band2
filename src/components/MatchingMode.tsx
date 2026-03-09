@@ -42,8 +42,22 @@ export default function MatchingMode({ words, onClose, onComplete, assignmentId 
   const [totalCorrect, setTotalCorrect] = useState(0);
   const [totalAttempted, setTotalAttempted] = useState(0);
   const [started, setStarted] = useState(false);
-  const [translationLang, setTranslationLang] = useState<'he' | 'ar'>('ar');  // Local toggle for translations
   const completionHandled = useRef(false);
+
+  // Helper to get translation based on current language
+  const getTranslation = (w: MatchingModeProps['words'][0]) => {
+    if (language === 'ar') return w.translations.arabic.split('،')[0].trim();
+    if (language === 'he') return w.translations.hebrew.split(',')[0].trim();
+    // Default to Hebrew for English
+    return w.translations.hebrew.split(',')[0].trim();
+  };
+
+  // Helper to get the translation language label
+  const getTranslationLabel = () => {
+    if (language === 'ar') return 'Arabic';
+    if (language === 'he') return 'Hebrew';
+    return 'Hebrew'; // Default for English
+  };
 
   useEffect(() => {
     if (started && batchIndex >= batches.length && !completionHandled.current) {
@@ -55,13 +69,6 @@ export default function MatchingMode({ words, onClose, onComplete, assignmentId 
       if (onComplete) onComplete(totalAttempted, totalCorrect);
     }
   }, [batchIndex, batches.length, started, totalAttempted, totalCorrect, onComplete]);
-
-  const getTranslation = (w: MatchingModeProps['words'][0]) => {
-    // Use local toggle state for translations
-    return translationLang === 'ar'
-      ? w.translations.arabic.split('،')[0].trim()
-      : w.translations.hebrew.split(',')[0].trim();
-  };
 
   if (words.length === 0) {
     return (
@@ -84,32 +91,6 @@ export default function MatchingMode({ words, onClose, onComplete, assignmentId 
           <p className="text-gray-600 dark:text-gray-400 mb-4">
             Tap an English word, then tap its translation to make a match. {words.length} words in batches of {BATCH_SIZE}.
           </p>
-          {/* Translation language toggle */}
-          <div className="mb-6">
-            <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">Translation language:</p>
-            <div className="flex justify-center gap-2">
-              <button
-                onClick={() => setTranslationLang('ar')}
-                className={`px-4 py-2 rounded-lg font-medium transition-all ${
-                  translationLang === 'ar'
-                    ? 'bg-green-500 text-white'
-                    : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
-                }`}
-              >
-                Arabic (عربي)
-              </button>
-              <button
-                onClick={() => setTranslationLang('he')}
-                className={`px-4 py-2 rounded-lg font-medium transition-all ${
-                  translationLang === 'he'
-                    ? 'bg-purple-500 text-white'
-                    : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
-                }`}
-              >
-                Hebrew (עברית)
-              </button>
-            </div>
-          </div>
           <button onClick={() => setStarted(true)} className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg">Start</button>
         </div>
       </div>
@@ -228,7 +209,7 @@ export default function MatchingMode({ words, onClose, onComplete, assignmentId 
           {/* Translation column */}
           <div className="space-y-2 sm:space-y-3">
             <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase text-center mb-1">
-              {translationLang === 'ar' ? 'Arabic' : 'Hebrew'}
+              {getTranslationLabel()}
             </p>
             {shuffledTranslations.map(w => {
               const isMatched = matched.has(w.id);

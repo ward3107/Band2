@@ -35,7 +35,6 @@ export default function FlashcardMode({ words, onClose, onComplete, assignmentId
   const [flipped, setFlipped] = useState(false);
   const [direction, setDirection] = useState<'left' | 'right' | null>(null);
   const [correctCount, setCorrectCount] = useState(0);
-  const [translationLang, setTranslationLang] = useState<'he' | 'ar'>('ar');  // Local toggle for translations
 
   if (words.length === 0) {
     return (
@@ -54,8 +53,11 @@ export default function FlashcardMode({ words, onClose, onComplete, assignmentId
   const progress = Math.round(((currentIndex + (direction === 'right' ? 1 : 0)) / words.length) * 100);
 
   const getTranslation = () => {
-    // Use local toggle state for translations
-    return translationLang === 'he' ? currentWord.translations.hebrew : currentWord.translations.arabic;
+    // Use global language setting for translations
+    if (language === 'he') return currentWord.translations.hebrew;
+    if (language === 'ar') return currentWord.translations.arabic;
+    // Default to Hebrew for English
+    return currentWord.translations.hebrew;
   };
 
   const getExample = () => {
@@ -155,18 +157,6 @@ export default function FlashcardMode({ words, onClose, onComplete, assignmentId
             </button>
             <div className="flex items-center gap-2">
               <VoiceSelector />
-              {/* Translation language toggle */}
-              <button
-                onClick={() => setTranslationLang(translationLang === 'ar' ? 'he' : 'ar')}
-                className={`px-2 py-1 rounded-lg text-xs font-medium transition-colors ${
-                  translationLang === 'ar'
-                    ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300'
-                    : 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300'
-                }`}
-                title={`Switch to ${translationLang === 'ar' ? 'Hebrew' : 'Arabic'} translation`}
-              >
-                {translationLang === 'ar' ? 'עב' : 'عربي'}
-              </button>
               <span className="text-sm font-medium text-gray-600 dark:text-gray-400">
                 {currentIndex + 1} / {words.length}
               </span>

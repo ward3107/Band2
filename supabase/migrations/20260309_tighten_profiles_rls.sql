@@ -46,15 +46,12 @@ USING (
 );
 
 -- 4. Admins can view all profiles (needed for management)
+-- Note: This checks if the CURRENT user is an admin by looking up their own is_admin field
 CREATE POLICY "Admins can view all profiles"
 ON profiles
 FOR SELECT
 USING (
-  EXISTS (
-    SELECT 1 FROM profiles
-    WHERE profiles.id = auth.uid()
-    AND profiles.is_admin = true
-  )
+  (SELECT is_admin FROM profiles WHERE id = auth.uid()) = true
 );
 
 -- 5. Users can update their own profile

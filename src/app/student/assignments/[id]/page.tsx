@@ -48,12 +48,20 @@ export default function AssignmentPage({ params }: { params: Promise<{ id: strin
     unauthorizedRedirect: '/join',
   });
   const router = useRouter();
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const [assignment, setAssignment] = useState<Assignment | null>(null);
   const [progress, setProgress] = useState<Progress | null>(null);
   const [words, setWords] = useState<VocabularyWord[]>([]);
   const [loading, setLoading] = useState(true);
   const [mode, setMode] = useState<'overview' | 'flashcards' | 'quiz' | 'fill-in-blank' | 'matching' | 'story' | 'spelling' | 'scramble'>('overview');
+
+  // Helper to get translation based on current language
+  const getTranslation = (word: VocabularyWord) => {
+    if (language === 'he') return word.translations.hebrew;
+    if (language === 'ar') return word.translations.arabic;
+    // Default to Hebrew for English
+    return word.translations.hebrew;
+  };
 
   useEffect(() => {
     if (user && profile?.role === 'student') {
@@ -376,7 +384,7 @@ export default function AssignmentPage({ params }: { params: Promise<{ id: strin
                   <span className="text-xs text-gray-500 dark:text-gray-400">{word.ipa}</span>
                 </div>
                 <p className="text-sm text-blue-600 dark:text-blue-400">
-                  {word.translations.hebrew.split(',')[0]}
+                  {getTranslation(word).split(language === 'ar' ? '،' : ',')[0]}
                 </p>
               </div>
             ))}

@@ -35,7 +35,7 @@ interface Assignment {
 
 export default function StudentDashboardPage() {
   const { user, profile, signOut, loading: guardLoading } = useRoleGuard('student', {
-    loginRedirect: '/join',
+    loginRedirect: '/',
     unauthorizedRedirect: '/join',
   });
   const router = useRouter();

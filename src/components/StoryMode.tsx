@@ -53,18 +53,18 @@ export default function StoryMode({ words, onClose, onComplete, assignmentId }: 
 
     // Build comprehension questions — "What does X mean?"
     const qs: ComprehensionQuestion[] = selected.map(w => {
-      // Default to Arabic, use Hebrew if explicitly selected
-      const correctTranslation = language === 'he'
-        ? w.translations.hebrew.split(',')[0].trim()
-        : w.translations.arabic.split('،')[0].trim();
+      // Use global language setting for translations
+      const correctTranslation = language === 'ar'
+        ? w.translations.arabic.split('،')[0].trim()
+        : w.translations.hebrew.split(',')[0].trim();
 
       const wrong = words
         .filter(other => other.id !== w.id)
         .sort(() => Math.random() - 0.5)
         .slice(0, 3)
-        .map(other => language === 'he'
-          ? other.translations.hebrew.split(',')[0].trim()
-          : other.translations.arabic.split('،')[0].trim()
+        .map(other => language === 'ar'
+          ? other.translations.arabic.split('،')[0].trim()
+          : other.translations.hebrew.split(',')[0].trim()
         );
 
       return {
