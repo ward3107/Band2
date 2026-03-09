@@ -60,8 +60,9 @@ export default function HomePage() {
       setJoinedPersonalCode(json.studentCode || '');
       setStudentView('success');
       setLoading(false);
-    } catch {
-      setError('An unexpected error occurred. Please try again.');
+    } catch (err: any) {
+      console.error('Join class error:', err);
+      setError(err?.message || 'An unexpected error occurred. Please try again.');
       setLoading(false);
     }
   };

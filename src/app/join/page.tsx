@@ -65,8 +65,9 @@ function JoinForm() {
       setJoinedPersonalCode(json.studentCode || '');
       setShowSuccess(true);
       setLoading(false);
-    } catch {
-      setError('An unexpected error occurred. Please try again.');
+    } catch (err: any) {
+      console.error('Join class error:', err);
+      setError(err?.message || 'An unexpected error occurred. Please try again.');
       setLoading(false);
     }
   };
