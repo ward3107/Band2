@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { HelpDropdown } from '@/components/HelpDropdown';
 
 export default function HomePage() {
   const { signIn } = useAuth();
@@ -176,6 +177,11 @@ export default function HomePage() {
             >
               🔐 Admin
             </button>
+          </div>
+
+          {/* Help Dropdown */}
+          <div className="mt-6 flex justify-center">
+            <HelpDropdown buttonLabel="Get Help" />
           </div>
 
           <div className="mt-auto pt-8 text-center text-gray-600 dark:text-gray-400 text-sm">
@@ -400,6 +406,20 @@ export default function HomePage() {
             </>
           )}
         </div>
+      </div>
+
+      {/* Contact Support Footer */}
+      <div className="mt-8 text-center">
+        <a
+          href="mailto:contact@vocaband.com?subject=Support%20Request%20-%20Vocaband&body=Hi%2C%20I%20need%20help%20with%3A%20%5Bplease%20describe%5D"
+          className="inline-flex items-center gap-2 text-gray-400 dark:text-gray-500 hover:text-blue-500 dark:hover:text-blue-400 text-sm transition-colors"
+          aria-label="Contact Vocaband Support"
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+          </svg>
+          Need Help? Contact Support
+        </a>
       </div>
     </div>
   );
