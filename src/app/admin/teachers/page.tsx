@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
-import { useRoleGuard } from '@/hooks/useRoleGuard';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface ApprovedTeacher {
   id: string;
@@ -49,9 +49,7 @@ function copyAllForWhatsApp(teachers: { full_name: string; code: string }[]) {
 }
 
 export default function AdminTeachersPage() {
-  const { profile, session, signOut, loading: guardLoading } = useRoleGuard('teacher', {
-    loginRedirect: '/admin/login',
-  });
+  const { profile, session, signOut, loading: authLoading } = useAuth();
   const router = useRouter();
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -68,32 +66,28 @@ export default function AdminTeachersPage() {
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
   const [copiedAll, setCopiedAll] = useState(false);
 
+  // Check if user is admin and redirect if not
   useEffect(() => {
-    if (!guardLoading && profile) {
-      checkAdminAndLoad();
-    }
-  }, [guardLoading, profile]);
+    if (authLoading) return;
 
-  const checkAdminAndLoad = () => {
     if (!profile) {
-      setLoading(false);
+      router.push('/admin/login');
       return;
     }
 
     if (!profile.is_admin) {
-      setLoading(false);
-      router.push('/teacher/dashboard');
+      router.push('/');
       return;
     }
 
     setIsAdmin(true);
+    setLoading(false);
     loadTeachers();
-  };
+  }, [authLoading, profile, router]);
 
   const loadTeachers = async () => {
     const token = session?.access_token;
     if (!token) {
-      setLoading(false);
       return;
     }
 
@@ -210,7 +204,7 @@ export default function AdminTeachersPage() {
     setTimeout(() => setCopiedAll(false), 2000);
   };
 
-  if (loading || guardLoading) {
+  if (loading || authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-gray-600">Loading...</div>
