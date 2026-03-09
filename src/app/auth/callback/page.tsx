@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
+import { validateAdminEmail } from '@/lib/admin';
 
 export default function AuthCallbackPage() {
   const router = useRouter();
@@ -30,24 +31,22 @@ export default function AuthCallbackPage() {
             return;
           }
 
-          if (data.session) {
-            const userEmail = data.session.user.email?.toLowerCase() || '';
-            const isAdmin = userEmail === 'wasya92@gmail.com';
+          if (data.session && data.session.user.email) {
+            // Check if email is admin via server-side API
+            const { isAdmin: isAdminEmail } = await validateAdminEmail(data.session.user.email);
 
-            // Call setup-profile API
-            if (data.session.user.email) {
-              try {
-                await fetch('/api/admin/setup-profile', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({
-                    userId: data.session.user.id,
-                    email: data.session.user.email,
-                  }),
-                });
-              } catch (apiError) {
-                // Silently fail - will check profile below
-              }
+            // Create/update profile WITHOUT granting admin automatically
+            try {
+              await fetch('/api/admin/setup-profile', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  userId: data.session.user.id,
+                  email: data.session.user.email,
+                }),
+              });
+            } catch (apiError) {
+              // Silently fail - will check profile below
             }
 
             // Wait for profile to be created/updated
@@ -61,9 +60,14 @@ export default function AuthCallbackPage() {
               .maybeSingle();
 
             // Redirect based on admin status
-            if (profile?.is_admin) {
+            if (isAdminEmail && !profile?.is_admin) {
+              // Admin email but not verified - send to password verification
+              router.push('/auth/verify-admin');
+            } else if (profile?.is_admin) {
+              // Already verified admin
               router.push('/admin/teachers');
             } else {
+              // Not an admin
               router.push('/?not-admin=true');
             }
           }
@@ -74,7 +78,10 @@ export default function AuthCallbackPage() {
         // No code and no error - might be a page reload after auth
         // Try to get the session and redirect appropriately
         const { data: { session } } = await supabase.auth.getSession();
-        if (session?.user) {
+        if (session?.user && session.user.email) {
+          // Check if email is admin via server-side API
+          const { isAdmin: isAdminEmail } = await validateAdminEmail(session.user.email);
+
           // Call setup-profile API
           if (session.user.email) {
             try {
@@ -101,9 +108,15 @@ export default function AuthCallbackPage() {
             .eq('id', session.user.id)
             .maybeSingle();
 
-          if (profile?.is_admin) {
+          // Redirect based on admin status
+          if (isAdminEmail && !profile?.is_admin) {
+            // Admin email but not verified - send to password verification
+            router.push('/auth/verify-admin');
+          } else if (profile?.is_admin) {
+            // Already verified admin
             router.push('/admin/teachers');
           } else {
+            // Not an admin
             router.push('/');
           }
         } else {

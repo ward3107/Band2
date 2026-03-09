@@ -1,15 +1,96 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { cookies } from 'next/headers';
+import { getServerAdminEmail } from '@/lib/admin';
+import { isIPWhitelisted, isIPWhitelistEnabled } from '@/lib/ip-whitelist';
 
-// Admin email - must match to grant admin access
-const ADMIN_EMAIL = 'wasya92@gmail.com';
-
-// Use service role client to bypass RLS
+// Supabase configuration
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+
+// Service role client to bypass RLS (only used AFTER auth verification)
 const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 
+// Rate limiting configuration
+const RATE_LIMIT = 10; // Max requests per window
+const RATE_WINDOW_MS = 15 * 60 * 1000; // 15 minutes
+
+// In-memory rate limit store (for production, use Redis or similar)
+interface RateLimitEntry {
+  count: number;
+  resetTime: number;
+}
+const rateLimitStore = new Map<string, RateLimitEntry>();
+
+// Clean up expired entries periodically
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, entry] of rateLimitStore.entries()) {
+    if (now > entry.resetTime) {
+      rateLimitStore.delete(key);
+    }
+  }
+}, 60 * 1000); // Clean every minute
+
+/**
+ * Check rate limit for a given identifier
+ * @returns true if rate limited, false otherwise
+ */
+function checkRateLimit(identifier: string): { limited: boolean; resetTime?: number } {
+  const now = Date.now();
+  const entry = rateLimitStore.get(identifier);
+
+  if (!entry || now > entry.resetTime) {
+    // First request or window expired - create new entry
+    rateLimitStore.set(identifier, {
+      count: 1,
+      resetTime: now + RATE_WINDOW_MS,
+    });
+    return { limited: false };
+  }
+
+  if (entry.count >= RATE_LIMIT) {
+    // Rate limit exceeded
+    return { limited: true, resetTime: entry.resetTime };
+  }
+
+  // Increment counter
+  entry.count++;
+  return { limited: false };
+}
+
 export async function POST(request: NextRequest) {
+  // Get client IP for rate limiting
+  const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+             request.headers.get('x-real-ip') ||
+             'unknown';
+
+  // Check IP whitelist (if enabled) - only for admin profile setup
+  if (isIPWhitelistEnabled() && !isIPWhitelisted(ip, process.env.ADMIN_IP_WHITELIST)) {
+    return NextResponse.json({
+      error: 'Access Denied',
+      message: 'Admin access is restricted to specific IP addresses',
+    }, { status: 403 });
+  }
+
+  // Check rate limit
+  const rateLimit = checkRateLimit(ip);
+  if (rateLimit.limited) {
+    return NextResponse.json({
+      error: 'Too many requests',
+      message: 'Rate limit exceeded. Please try again later.',
+    }, {
+      status: 429,
+      headers: {
+        'X-RateLimit-Limit': RATE_LIMIT.toString(),
+        'X-RateLimit-Remaining': '0',
+        'X-RateLimit-Reset': new Date(rateLimit.resetTime!).toISOString(),
+        'Retry-After': Math.ceil((rateLimit.resetTime! - Date.now()) / 1000).toString(),
+      },
+    });
+  }
+
   try {
     const { userId, email } = await request.json();
 
@@ -17,22 +98,69 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Missing userId or email' }, { status: 400 });
     }
 
-    // Only grant admin to the specific email
-    const isAdmin = email.toLowerCase() === ADMIN_EMAIL.toLowerCase();
+    // AUTHENTICATION CHECK: Verify the user is authenticated before using service role
+    const cookieStore = await cookies();
+    const supabaseAuth = createClient(supabaseUrl, supabaseAnonKey, {
+      auth: {
+        storage: {
+          getItem: async (key: string) => {
+            const cookie = cookieStore.get(key);
+            return cookie?.value ?? null;
+          },
+          setItem: () => {},
+          removeItem: () => {},
+        },
+      },
+    });
+
+    // Verify the user's session
+    const { data: { session }, error: sessionError } = await supabaseAuth.auth.getSession();
+
+    if (sessionError || !session || !session.user) {
+      return NextResponse.json({
+        error: 'Unauthorized',
+        message: 'You must be logged in to perform this action',
+      }, { status: 401 });
+    }
+
+    // CRITICAL: Ensure the userId in the request matches the authenticated user
+    if (session.user.id !== userId) {
+      return NextResponse.json({
+        error: 'Forbidden',
+        message: 'You can only set up your own profile',
+      }, { status: 403 });
+    }
+
+    // Verify the email matches the authenticated user's email
+    const sessionEmail = session.user.email?.toLowerCase();
+    const requestEmail = email.toLowerCase();
+
+    if (sessionEmail !== requestEmail) {
+      return NextResponse.json({
+        error: 'Forbidden',
+        message: 'Email mismatch',
+      }, { status: 403 });
+    }
+
+    // Authentication verified - now safe to use service role key
+    // Check if this is the admin email (for role assignment)
+    const isAdminEmail = email.toLowerCase() === getServerAdminEmail().toLowerCase();
 
     // Check if profile exists using service role
     const { data: existing } = await supabaseAdmin
       .from('profiles')
-      .select('id, is_admin')
+      .select('id, is_admin, role')
       .eq('id', userId)
       .maybeSingle();
 
     if (existing) {
-      // Update is_admin if not already set
-      if (!existing.is_admin && isAdmin) {
+      // Profile exists - do NOT automatically grant admin access
+      // Admin access must be granted through password verification
+      // Only update the role if it's the admin email
+      if (isAdminEmail && existing.role !== 'teacher') {
         const { error: updateError } = await supabaseAdmin
           .from('profiles')
-          .update({ is_admin: true })
+          .update({ role: 'teacher' })
           .eq('id', userId);
 
         if (updateError) {
@@ -41,15 +169,16 @@ export async function POST(request: NextRequest) {
         }
       }
     } else {
-      // Create new profile with admin status using service role
+      // Create new profile WITHOUT admin status
+      // Admin access must be granted through password verification
       const { error: insertError } = await supabaseAdmin
         .from('profiles')
         .insert({
           id: userId,
           email: email,
           full_name: email.split('@')[0],
-          role: isAdmin ? 'teacher' : 'student',
-          is_admin: isAdmin,
+          role: isAdminEmail ? 'teacher' : 'student',
+          is_admin: false, // Always false - requires password verification
         });
 
       if (insertError) {
@@ -60,8 +189,11 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      isAdmin,
-      message: isAdmin ? 'Admin access granted' : 'Access denied'
+      isAdmin: false, // Always false - requires password verification
+      isPendingAdmin: isAdminEmail && !existing?.is_admin,
+      message: isAdminEmail
+        ? 'Admin email detected. Please complete password verification.'
+        : 'Profile created successfully'
     });
 
   } catch (error: any) {

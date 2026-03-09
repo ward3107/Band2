@@ -13,6 +13,7 @@
     "test:coverage": "jest --coverage"
   },
   "dependencies": {
+    "@sentry/nextjs": "^10.42.0",
     "@supabase/supabase-js": "^2.98.0",
     "@tailwindcss/typography": "^0.5.19",
     "next": "16.1.6",

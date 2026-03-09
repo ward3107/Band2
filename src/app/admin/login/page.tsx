@@ -1,11 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
-
-// Admin email - only this email can use the admin login
-const ADMIN_EMAIL = 'wasya92@gmail.com';
+import { validateAdminEmail } from '@/lib/admin';
+import { fetchWithCsrf } from '@/lib/csrf';
+import { useRecaptcha } from '@/components/Recaptcha';
+import { getRecaptchaSiteKey } from '@/lib/captcha';
 
 export default function AdminLoginPage() {
   const { signIn, signInWithGoogle } = useAuth();
@@ -14,13 +15,27 @@ export default function AdminLoginPage() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [requiresCaptcha, setRequiresCaptcha] = useState(false);
+  const [failedAttempts, setFailedAttempts] = useState(0);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const recaptchaSiteKey = getRecaptchaSiteKey();
+  const { token: captchaToken, error: captchaError, execute: executeRecaptcha, Component: RecaptchaComponent } = useRecaptcha(recaptchaSiteKey);
+
+  // Execute CAPTCHA when ready if needed
+  useEffect(() => {
+    if (requiresCaptcha && captchaToken) {
+      submitForm(captchaToken);
+    }
+  }, [captchaToken, requiresCaptcha]);
+
+  const submitForm = async (recaptchaToken?: string) => {
     setError('');
     setLoading(true);
 
-    if (email.toLowerCase() !== ADMIN_EMAIL.toLowerCase()) {
+    // Check if email is admin via server-side API
+    const { isAdmin } = await validateAdminEmail(email);
+
+    if (!isAdmin) {
       setError('Access denied. Only the administrator can log in here.');
       setLoading(false);
       return;
@@ -30,16 +45,50 @@ export default function AdminLoginPage() {
       const result = await signIn(email, password);
       if (result.error) {
         setError('Invalid email or password.');
-      } else if (result.profile?.is_admin) {
-        // Admin verified, redirect to admin page
+        setLoading(false);
+        return;
+      }
+
+      // For email/password login, verify password and grant admin access
+      // since password was already provided
+      const verifyResponse = await fetchWithCsrf('/api/admin/verify-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          password,
+          recaptchaToken,
+        }),
+      });
+
+      const data = await verifyResponse.json();
+
+      if (verifyResponse.ok) {
+        // Password verified and admin granted
         router.push('/admin/teachers');
+      } else if (data.requiresCaptcha) {
+        // CAPTCHA required after failed attempts
+        setRequiresCaptcha(true);
+        setFailedAttempts((data.failedAttempts || 3));
+        setError('');
+        setLoading(false);
+        executeRecaptcha();
       } else {
-        setError('Access denied. Administrator privileges required.');
+        setError(data.message || data.error || 'Verification failed');
+        setLoading(false);
       }
     } catch (err: any) {
       setError(err?.message || 'An error occurred. Please try again.');
-    } finally {
       setLoading(false);
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (requiresCaptcha) {
+      executeRecaptcha();
+    } else {
+      submitForm();
     }
   };
 
@@ -76,6 +125,18 @@ export default function AdminLoginPage() {
             <a href="/teacher/login" className="underline hover:text-amber-100">/teacher/login</a>
           </p>
         </div>
+
+        {/* CAPTCHA Warning */}
+        {requiresCaptcha && (
+          <div className="mb-6 p-4 bg-blue-500/20 border border-blue-500/50 rounded-lg">
+            <p className="text-blue-200 text-sm text-center">
+              🔒 Multiple failed login attempts detected. Please complete the security verification.
+            </p>
+          </div>
+        )}
+
+        {/* Recaptcha Component */}
+        {recaptchaSiteKey && <RecaptchaComponent action="admin_login" />}
 
         {/* Form Card */}
         <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-5 sm:p-8">
