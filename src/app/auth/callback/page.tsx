@@ -34,12 +34,10 @@ export default function AuthCallbackPage() {
             const userEmail = data.session.user.email?.toLowerCase() || '';
             const isAdmin = userEmail === 'wasya92@gmail.com';
 
-            console.log('OAuth callback - User email:', userEmail, 'Is admin:', isAdmin);
-
             // Call setup-profile API
             if (data.session.user.email) {
               try {
-                const apiResponse = await fetch('/api/admin/setup-profile', {
+                await fetch('/api/admin/setup-profile', {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({
@@ -47,35 +45,25 @@ export default function AuthCallbackPage() {
                     email: data.session.user.email,
                   }),
                 });
-                const apiData = await apiResponse.json();
-                console.log('Profile setup API response:', apiData);
-
-                if (!apiData.success) {
-                  console.error('API failed:', apiData);
-                }
               } catch (apiError) {
-                console.error('Failed to call setup-profile API:', apiError);
+                // Silently fail - will check profile below
               }
             }
 
-            // Wait and then check profile from database
+            // Wait for profile to be created/updated
             await new Promise(resolve => setTimeout(resolve, 1000));
 
+            // Check if user is admin
             let { data: profile } = await supabase
               .from('profiles')
-              .select('is_admin, email, role')
+              .select('is_admin')
               .eq('id', data.session.user.id)
               .maybeSingle();
 
-            console.log('Final profile check:', profile);
-
             // Redirect based on admin status
             if (profile?.is_admin) {
-              console.log('Redirecting to admin dashboard');
               router.push('/admin/teachers');
             } else {
-              console.log('Not admin, redirecting to home');
-              // Not an admin - redirect to home with a message
               router.push('/?not-admin=true');
             }
           }
@@ -87,15 +75,10 @@ export default function AuthCallbackPage() {
         // Try to get the session and redirect appropriately
         const { data: { session } } = await supabase.auth.getSession();
         if (session?.user) {
-          const userEmail = session.user.email?.toLowerCase() || '';
-          const isAdmin = userEmail === 'wasya92@gmail.com';
-
-          console.log('Session check - User email:', userEmail, 'Is admin:', isAdmin);
-
           // Call setup-profile API
           if (session.user.email) {
             try {
-              const apiResponse = await fetch('/api/admin/setup-profile', {
+              await fetch('/api/admin/setup-profile', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -103,33 +86,24 @@ export default function AuthCallbackPage() {
                   email: session.user.email,
                 }),
               });
-              const apiData = await apiResponse.json();
-              console.log('Profile setup API response:', apiData);
-
-              if (!apiData.success) {
-                console.error('API failed:', apiData);
-              }
             } catch (apiError) {
-              console.error('Failed to call setup-profile API:', apiError);
+              // Silently fail - will check profile below
             }
           }
 
-          // Wait and then check profile from database
+          // Wait for profile to be created/updated
           await new Promise(resolve => setTimeout(resolve, 1000));
 
+          // Check if user is admin
           let { data: profile } = await supabase
             .from('profiles')
-            .select('is_admin, email, role')
+            .select('is_admin')
             .eq('id', session.user.id)
             .maybeSingle();
 
-          console.log('Final profile check:', profile);
-
           if (profile?.is_admin) {
-            console.log('Redirecting to admin dashboard');
             router.push('/admin/teachers');
           } else {
-            console.log('Not admin, redirecting to home');
             router.push('/');
           }
         } else {
