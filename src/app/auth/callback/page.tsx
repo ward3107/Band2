@@ -34,7 +34,7 @@ export default function AuthCallbackPage() {
             // First, try to set up the profile via API (bypasses RLS issues)
             if (data.session.user.email) {
               try {
-                await fetch('/api/admin/setup-profile', {
+                const apiResponse = await fetch('/api/admin/setup-profile', {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({
@@ -42,10 +42,15 @@ export default function AuthCallbackPage() {
                     email: data.session.user.email,
                   }),
                 });
+                const apiData = await apiResponse.json();
+                console.log('Profile setup API response:', apiData);
               } catch (apiError) {
                 console.error('Failed to call setup-profile API:', apiError);
               }
             }
+
+            // Wait a bit for the profile to be created/updated
+            await new Promise(resolve => setTimeout(resolve, 500));
 
             // Check if user is admin
             let { data: profile } = await supabase
@@ -53,6 +58,8 @@ export default function AuthCallbackPage() {
               .select('is_admin')
               .eq('id', data.session.user.id)
               .maybeSingle();
+
+            console.log('Profile check:', profile);
 
             // Redirect admin to admin dashboard, others to home
             if (profile?.is_admin) {
@@ -73,7 +80,7 @@ export default function AuthCallbackPage() {
           // First, try to set up the profile via API (bypasses RLS issues)
           if (session.user.email) {
             try {
-              await fetch('/api/admin/setup-profile', {
+              const apiResponse = await fetch('/api/admin/setup-profile', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -81,16 +88,23 @@ export default function AuthCallbackPage() {
                   email: session.user.email,
                 }),
               });
+              const apiData = await apiResponse.json();
+              console.log('Profile setup API response:', apiData);
             } catch (apiError) {
               console.error('Failed to call setup-profile API:', apiError);
             }
           }
+
+          // Wait a bit for the profile to be created/updated
+          await new Promise(resolve => setTimeout(resolve, 500));
 
           let { data: profile } = await supabase
             .from('profiles')
             .select('is_admin')
             .eq('id', session.user.id)
             .maybeSingle();
+
+          console.log('Profile check:', profile);
 
           if (profile?.is_admin) {
             router.push('/admin/teachers');
