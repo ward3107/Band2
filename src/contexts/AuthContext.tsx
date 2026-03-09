@@ -250,11 +250,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       // Broadcast to other tabs that a new user signed in
       if (channel) {
-        channel.postMessage({
-          type: 'SIGNED_IN',
-          userId: result.data.user.id,
-          userEmail: result.data.user.email,
-        });
+        try {
+          channel.postMessage({
+            type: 'SIGNED_IN',
+            userId: result.data.user.id,
+            userEmail: result.data.user.email,
+          });
+        } catch {
+          // Channel closed, ignore
+        }
       }
 
       return {
@@ -299,10 +303,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const handleSignOut = async () => {
     // Broadcast to other tabs before signing out
     if (channel && user) {
-      channel.postMessage({
-        type: 'SIGNED_OUT',
-        userId: user.id,
-      });
+      try {
+        channel.postMessage({
+          type: 'SIGNED_OUT',
+          userId: user.id,
+        });
+      } catch {
+        // Channel closed, ignore
+      }
     }
 
     await signOut();
