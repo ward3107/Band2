@@ -35,6 +35,8 @@ interface Assignment {
 }
 
 export default function StudentDashboardPage() {
+  console.log('StudentDashboard: Component rendering');
+
   const { user, profile, signOut, loading: guardLoading } = useRoleGuard('student', {
     loginRedirect: '/',
     unauthorizedRedirect: '/join',
