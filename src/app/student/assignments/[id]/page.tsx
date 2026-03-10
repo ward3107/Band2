@@ -96,7 +96,7 @@ export default function AssignmentPage({ params }: { params: Promise<{ id: strin
       setAssignment(assignmentWithWords);
 
       // Load progress (use maybeSingle to handle new assignments without progress)
-      const { data: progressData } = await supabase
+      const { data: progressData } = await supabaseStudent
         .from('student_assignment_progress')
         .select('*')
         .eq('student_id', user!.id)
@@ -157,7 +157,7 @@ export default function AssignmentPage({ params }: { params: Promise<{ id: strin
         if (error) console.error('Failed to create progress:', error);
       } else {
         // Update existing progress
-        const { error } = await supabase
+        const { error } = await supabaseStudent
           .from('student_assignment_progress')
           .update({
             status,
