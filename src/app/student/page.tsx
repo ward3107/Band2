@@ -46,10 +46,12 @@ export default function StudentDashboardPage() {
   const [loading, setLoading] = useState(true);
 
   // Track student presence (online status) when dashboard is loaded
-  const classIds = classes.map(c => c.id);
-  useStudentPresence(user?.id || '', classIds);
+  // TODO: Temporarily disabled to debug assignment loading issue
+  // const classIds = classes.map(c => c.id);
+  // useStudentPresence(user?.id || '', classIds);
 
   useEffect(() => {
+    console.log('Student dashboard: useEffect triggered', { user: user?.id, profile: profile?.role, loading: guardLoading });
     if (user && profile?.role === 'student') {
       loadData();
     }
@@ -73,8 +75,10 @@ export default function StudentDashboardPage() {
         .filter((c): c is Class => c !== null);
 
       setClasses(enrolledClasses);
+      console.log('Student enrolled in classes:', enrolledClasses.length, enrolledClasses.map(c => c.name));
 
       if (enrolledClasses.length === 0) {
+        console.log('Student not enrolled in any classes');
         setLoading(false);
         return;
       }
@@ -83,12 +87,23 @@ export default function StudentDashboardPage() {
       const classNameById = new Map(enrolledClasses.map(c => [c.id, c.name]));
 
       // Query 2: Get assignments with class mapping and student progress in one join
-      const { data: assignmentLinks } = await supabaseStudent
+      console.log('Fetching assignments for class IDs:', classIds);
+      const { data: assignmentLinks, error: assignError } = await supabaseStudent
         .from('assignment_classes')
         .select('class_id, assignments(id, title, description, total_words, deadline)')
         .in('class_id', classIds);
 
+      if (assignError) {
+        console.error('Error fetching assignments:', assignError);
+        alert('Error fetching assignments: ' + assignError.message);
+        setLoading(false);
+        return;
+      }
+
+      console.log('Assignment links found:', assignmentLinks?.length || 0);
+
       if (!assignmentLinks || assignmentLinks.length === 0) {
+        console.log('No assignments found for enrolled classes');
         setLoading(false);
         return;
       }
