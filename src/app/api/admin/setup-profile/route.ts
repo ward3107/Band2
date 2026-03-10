@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { cookies } from 'next/headers';
 import { getServerAdminEmail } from '@/lib/admin';
 import { isIPWhitelisted, isIPWhitelistEnabled } from '@/lib/ip-whitelist';
 
@@ -98,33 +97,31 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Missing userId or email' }, { status: 400 });
     }
 
-    // AUTHENTICATION CHECK: Verify the user is authenticated before using service role
-    const cookieStore = await cookies();
-    const supabaseAuth = createClient(supabaseUrl, supabaseAnonKey, {
-      auth: {
-        storage: {
-          getItem: async (key: string) => {
-            const cookie = cookieStore.get(key);
-            return cookie?.value ?? null;
-          },
-          setItem: () => {},
-          removeItem: () => {},
-        },
-      },
-    });
+    // AUTHENTICATION CHECK: Verify the user is authenticated before using service role.
+    // The Supabase client stores sessions in localStorage (not cookies), so we verify
+    // the Bearer token passed in the Authorization header instead.
+    const authHeader = request.headers.get('authorization');
+    const accessToken = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null;
 
-    // Verify the user's session
-    const { data: { session }, error: sessionError } = await supabaseAuth.auth.getSession();
-
-    if (sessionError || !session || !session.user) {
+    if (!accessToken) {
       return NextResponse.json({
         error: 'Unauthorized',
         message: 'You must be logged in to perform this action',
       }, { status: 401 });
     }
 
+    // Verify the access token using the service role client
+    const { data: { user: tokenUser }, error: tokenError } = await supabaseAdmin.auth.getUser(accessToken);
+
+    if (tokenError || !tokenUser) {
+      return NextResponse.json({
+        error: 'Unauthorized',
+        message: 'Invalid or expired access token',
+      }, { status: 401 });
+    }
+
     // CRITICAL: Ensure the userId in the request matches the authenticated user
-    if (session.user.id !== userId) {
+    if (tokenUser.id !== userId) {
       return NextResponse.json({
         error: 'Forbidden',
         message: 'You can only set up your own profile',
@@ -132,7 +129,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Verify the email matches the authenticated user's email
-    const sessionEmail = session.user.email?.toLowerCase();
+    const sessionEmail = tokenUser.email?.toLowerCase();
     const requestEmail = email.toLowerCase();
 
     if (sessionEmail !== requestEmail) {

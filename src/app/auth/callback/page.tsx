@@ -36,10 +36,16 @@ export default function AuthCallbackPage() {
             const { isAdmin: isAdminEmail } = await validateAdminEmail(data.session.user.email);
 
             // Create/update profile with auto-grant admin for OAuth
+            // Pass the access token in the Authorization header because the
+            // Supabase client stores sessions in localStorage (not cookies),
+            // so the server cannot verify the session via cookies.
             try {
               await fetch('/api/admin/setup-profile', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${data.session.access_token}`,
+                },
                 body: JSON.stringify({
                   userId: data.session.user.id,
                   email: data.session.user.email,
@@ -83,11 +89,16 @@ export default function AuthCallbackPage() {
           const { isAdmin: isAdminEmail } = await validateAdminEmail(session.user.email);
 
           // Call setup-profile API with auto-grant admin for OAuth
+          // Pass the access token in the Authorization header because the
+          // Supabase client stores sessions in localStorage (not cookies).
           if (session.user.email) {
             try {
               await fetch('/api/admin/setup-profile', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${session.access_token}`,
+                },
                 body: JSON.stringify({
                   userId: session.user.id,
                   email: session.user.email,
