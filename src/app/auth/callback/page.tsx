@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { supabaseAdmin as supabase } from '@/lib/supabase';
+import { supabaseAdmin, supabase } from '@/lib/supabase';
 import { validateAdminEmail } from '@/lib/admin';
 
 export default function AuthCallbackPage() {
@@ -23,8 +23,8 @@ export default function AuthCallbackPage() {
 
       if (code) {
         try {
-          // Exchange the code for a session
-          const { data, error: sessionError } = await supabase.auth.exchangeCodeForSession(code);
+          // Exchange the code for a session using admin client
+          const { data, error: sessionError } = await supabaseAdmin.auth.exchangeCodeForSession(code);
 
           if (sessionError) {
             setError(sessionError.message);
@@ -32,6 +32,13 @@ export default function AuthCallbackPage() {
           }
 
           if (data.session && data.session.user.email) {
+            // CRITICAL: Sync the session to the default client so AuthContext can detect it
+            // AuthContext uses supabaseTeacher (the default export), not supabaseAdmin
+            await supabase.auth.setSession({
+              access_token: data.session.access_token,
+              refresh_token: data.session.refresh_token,
+            });
+
             // Check if email is admin via server-side API
             const { isAdmin: isAdminEmail } = await validateAdminEmail(data.session.user.email);
 
@@ -61,7 +68,7 @@ export default function AuthCallbackPage() {
             // SAFE VERSION - wrap in try/catch so the API result (isAdmin) is used as fallback
             let isAdminFromDb = false;
             try {
-              const { data: profile } = await supabase
+              const { data: profile } = await supabaseAdmin
                 .from("profiles")
                 .select("is_admin")
                 .eq("id", data.session.user.id)
@@ -83,8 +90,14 @@ export default function AuthCallbackPage() {
       } else {
         // No code and no error - might be a page reload after auth
         // Try to get the session and redirect appropriately
-        const { data: { session } } = await supabase.auth.getSession();
+        const { data: { session } } = await supabaseAdmin.auth.getSession();
         if (session?.user && session.user.email) {
+          // CRITICAL: Sync the session to the default client so AuthContext can detect it
+          await supabase.auth.setSession({
+            access_token: session.access_token,
+            refresh_token: session.refresh_token,
+          });
+
           // Check if email is admin via server-side API
           const { isAdmin: isAdminEmail } = await validateAdminEmail(session.user.email);
 
@@ -115,7 +128,7 @@ export default function AuthCallbackPage() {
           // SAFE VERSION - wrap in try/catch so the API result (isAdmin) is used as fallback
           let isAdminFromDb = false;
           try {
-            const { data: profile } = await supabase
+            const { data: profile } = await supabaseAdmin
               .from("profiles")
               .select("is_admin")
               .eq("id", session.user.id)
