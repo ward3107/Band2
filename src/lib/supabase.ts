@@ -26,6 +26,13 @@ export const supabaseStudent = createClient(URL, KEY, {
   auth: { ...baseConfig.auth, storageKey: "band2-student-auth" }
 });
 
+// Helper to pick the right client based on email domain
+function getClientForEmail(email: string) {
+  if (email.endsWith('@teacher.band2.app')) return supabaseTeacher;
+  if (email.endsWith('@student.band2.app')) return supabaseStudent;
+  return supabaseAdmin; // Google OAuth / admin
+}
+
 // Keep backwards compatible default export
 export const supabase = supabaseTeacher;
 export default supabase;
@@ -131,7 +138,9 @@ export async function signUp(email: string, password: string, fullName: string, 
 }
 
 export async function signIn(email: string, password: string) {
-  const result = await supabase.auth.signInWithPassword({
+  // Pick the right client based on email domain
+  const client = getClientForEmail(email);
+  const result = await client.auth.signInWithPassword({
     email,
     password,
   });
