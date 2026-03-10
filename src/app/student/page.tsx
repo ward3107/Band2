@@ -161,6 +161,8 @@ export default function StudentDashboardPage() {
       setAssignments(finalAssignments);
     } catch (err) {
       console.error('Failed to load dashboard data:', err);
+      console.error('Error details:', JSON.stringify(err));
+      alert('Error loading dashboard: ' + (err instanceof Error ? err.message : JSON.stringify(err)));
     }
 
     setLoading(false);
