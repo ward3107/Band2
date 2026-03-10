@@ -35,7 +35,7 @@ export default function AuthCallbackPage() {
             // Check if email is admin via server-side API
             const { isAdmin: isAdminEmail } = await validateAdminEmail(data.session.user.email);
 
-            // Create/update profile WITHOUT granting admin automatically
+            // Create/update profile with auto-grant admin for OAuth
             try {
               await fetch('/api/admin/setup-profile', {
                 method: 'POST',
@@ -59,12 +59,12 @@ export default function AuthCallbackPage() {
               .eq('id', data.session.user.id)
               .maybeSingle();
 
-            // Redirect based on admin status
-            if (isAdminEmail && !profile?.is_admin) {
-              // Admin email but not verified - send to password verification
-              router.push('/auth/verify-admin');
-            } else if (profile?.is_admin) {
-              // Already verified admin
+            // Redirect based on admin status (OAuth auto-grants admin access)
+            if (profile?.is_admin) {
+              // Admin access granted via OAuth
+              router.push('/admin/teachers');
+            } else if (isAdminEmail) {
+              // Admin email detected - should have been granted, redirect to admin
               router.push('/admin/teachers');
             } else {
               // Not an admin
@@ -82,7 +82,7 @@ export default function AuthCallbackPage() {
           // Check if email is admin via server-side API
           const { isAdmin: isAdminEmail } = await validateAdminEmail(session.user.email);
 
-          // Call setup-profile API
+          // Call setup-profile API with auto-grant admin for OAuth
           if (session.user.email) {
             try {
               await fetch('/api/admin/setup-profile', {
@@ -108,12 +108,12 @@ export default function AuthCallbackPage() {
             .eq('id', session.user.id)
             .maybeSingle();
 
-          // Redirect based on admin status
-          if (isAdminEmail && !profile?.is_admin) {
-            // Admin email but not verified - send to password verification
-            router.push('/auth/verify-admin');
-          } else if (profile?.is_admin) {
-            // Already verified admin
+          // Redirect based on admin status (OAuth auto-grants admin access)
+          if (profile?.is_admin) {
+            // Admin access granted via OAuth
+            router.push('/admin/teachers');
+          } else if (isAdminEmail) {
+            // Admin email detected - should have been granted, redirect to admin
             router.push('/admin/teachers');
           } else {
             // Not an admin

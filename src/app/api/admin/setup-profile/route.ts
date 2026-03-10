@@ -154,10 +154,19 @@ export async function POST(request: NextRequest) {
       .maybeSingle();
 
     if (existing) {
-      // Profile exists - do NOT automatically grant admin access
-      // Admin access must be granted through password verification
-      // Only update the role if it's the admin email
-      if (isAdminEmail && existing.role !== 'teacher') {
+      // Profile exists - for OAuth, automatically grant admin access if it's the admin email
+      if (isAdminEmail && !existing.is_admin) {
+        const { error: updateError } = await supabaseAdmin
+          .from('profiles')
+          .update({ role: 'teacher', is_admin: true })
+          .eq('id', userId);
+
+        if (updateError) {
+          console.error('Profile update error:', updateError);
+          return NextResponse.json({ error: 'Failed to update profile', details: updateError.message }, { status: 500 });
+        }
+      } else if (isAdminEmail && existing.role !== 'teacher') {
+        // Update role if needed but admin already set
         const { error: updateError } = await supabaseAdmin
           .from('profiles')
           .update({ role: 'teacher' })
@@ -169,8 +178,7 @@ export async function POST(request: NextRequest) {
         }
       }
     } else {
-      // Create new profile WITHOUT admin status
-      // Admin access must be granted through password verification
+      // Create new profile - for OAuth, automatically grant admin access if it's the admin email
       const { error: insertError } = await supabaseAdmin
         .from('profiles')
         .insert({
@@ -178,7 +186,7 @@ export async function POST(request: NextRequest) {
           email: email,
           full_name: email.split('@')[0],
           role: isAdminEmail ? 'teacher' : 'student',
-          is_admin: false, // Always false - requires password verification
+          is_admin: isAdminEmail, // Auto-grant admin for OAuth
         });
 
       if (insertError) {
@@ -189,10 +197,10 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      isAdmin: false, // Always false - requires password verification
-      isPendingAdmin: isAdminEmail && !existing?.is_admin,
+      isAdmin: isAdminEmail,
+      isPendingAdmin: false,
       message: isAdminEmail
-        ? 'Admin email detected. Please complete password verification.'
+        ? 'Admin access granted via Google authentication.'
         : 'Profile created successfully'
     });
 
