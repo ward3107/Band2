@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
-import { supabase, Profile, signIn, signUp, signOut, signInWithGoogle } from '@/lib/supabase';
+import { supabase, supabaseAdmin, supabaseTeacher, supabaseStudent, Profile, signIn, signUp, signOut, signInWithGoogle } from '@/lib/supabase';
 import { User, Session, AuthError } from '@supabase/supabase-js';
 import {
   isAccountLocked,
@@ -50,6 +50,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [session, setSessionState] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [activeClient, setActiveClient] = useState<'admin' | 'teacher' | 'student' | null>(null);
 
   useEffect(() => {
     // Safety timeout: if auth never resolves (e.g. Supabase unreachable),
@@ -61,36 +62,144 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
     }, 10_000);
 
-    // Use onAuthStateChange as the single source of truth. INITIAL_SESSION
-    // fires synchronously with the cached/stored session, so there is no need
-    // for a separate getSession() call — which can race and cause navigator
-    // lock contention (the "Lock not released within 5000ms" error).
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((event, session) => {
-      setSessionState(session);
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        // On fresh sign-in, clear cached profile to avoid stale data
-        // (e.g. missing is_admin flag from a previous session)
-        if (event === 'SIGNED_IN') {
-          setCachedProfile(null);
+    // Track which client has the active session (admin has priority)
+    // Use a ref for the callback to access the current value
+    let currentActiveClient: 'admin' | 'teacher' | 'student' | null = activeClient;
+
+    // Initialize: check all clients for active sessions and determine which one to use
+    const initializeAuth = async () => {
+      try {
+        // Check all three clients for active sessions
+        const { data: { session: adminSession } } = await supabaseAdmin.auth.getSession();
+        const { data: { session: studentSession } } = await supabaseStudent.auth.getSession();
+        const { data: { session: teacherSession } } = await supabase.auth.getSession(); // Default is teacher
+
+        console.log('Auth init - admin:', !!adminSession?.user, 'student:', !!studentSession?.user, 'teacher:', !!teacherSession?.user);
+
+        // Priority: admin > teacher > student
+        let activeSession: Session | null = null;
+        let newActiveClient: 'admin' | 'teacher' | 'student' | null = null;
+
+        if (adminSession?.user) {
+          activeSession = adminSession;
+          newActiveClient = 'admin';
+          console.log('Using admin session:', adminSession.user.email);
+        } else if (teacherSession?.user) {
+          activeSession = teacherSession;
+          newActiveClient = 'teacher';
+          console.log('Using teacher session:', teacherSession.user.email);
+        } else if (studentSession?.user) {
+          activeSession = studentSession;
+          newActiveClient = 'student';
+          console.log('Using student session:', studentSession.user.email);
+        } else {
+          console.log('No session found in any client');
         }
-        // Do NOT await — the callback runs inside the navigator lock.
-        // Awaiting a REST call here holds the lock open and causes the
-        // "Lock not released within 5000ms" timeout.
-        loadProfile(session.user.id);
-      } else {
-        setProfile(null);
-        setCachedProfile(null);
+
+        // Update the active client state
+        setActiveClient(newActiveClient);
+        currentActiveClient = newActiveClient;
+
+        // Set the state with the active session
+        if (activeSession?.user) {
+          setSessionState(activeSession);
+          setUser(activeSession.user);
+          setCachedProfile(null);
+          loadProfile(activeSession.user.id);
+        } else {
+          setSessionState(null);
+          setUser(null);
+          setProfile(null);
+          setLoading(false);
+        }
+      } catch (err) {
+        console.error('Error during auth initialization:', err);
         setLoading(false);
+      }
+    };
+
+    // Start initialization
+    initializeAuth();
+
+    // Helper to determine if a client should update state
+    // Admin always takes priority, then teacher, then student
+    const shouldUpdateState = (client: 'admin' | 'teacher' | 'student', hasSession: boolean): boolean => {
+      if (!hasSession) return currentActiveClient === client; // Only clear if this was the active client
+      if (client === 'admin') return true; // Admin always wins
+      if (client === 'teacher') return currentActiveClient !== 'admin'; // Teacher wins unless admin is active
+      if (client === 'student') return currentActiveClient === null; // Student only wins if no one else is active
+      return false;
+    };
+
+    // Set up listeners for ALL THREE clients
+    const { data: { subscription: adminSub } } = supabaseAdmin.auth.onAuthStateChange((event, session) => {
+      console.log('Admin auth state changed:', event, 'user:', session?.user?.email || 'none');
+      const hasUser = !!session?.user;
+      if (shouldUpdateState('admin', hasUser)) {
+        const newActiveClient = hasUser ? 'admin' : null;
+        setActiveClient(newActiveClient);
+        currentActiveClient = newActiveClient;
+        setSessionState(session);
+        setUser(session?.user ?? null);
+        if (session?.user) {
+          if (event === 'SIGNED_IN') setCachedProfile(null);
+          loadProfile(session.user.id);
+        } else {
+          setProfile(null);
+          setCachedProfile(null);
+          setLoading(false);
+        }
+      }
+      clearTimeout(safetyTimeout);
+    });
+
+    const { data: { subscription: teacherSub } } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log('Teacher auth state changed:', event, 'user:', session?.user?.email || 'none');
+      const hasUser = !!session?.user;
+      if (shouldUpdateState('teacher', hasUser)) {
+        const newActiveClient = hasUser ? 'teacher' : null;
+        setActiveClient(newActiveClient);
+        currentActiveClient = newActiveClient;
+        setSessionState(session);
+        setUser(session?.user ?? null);
+        if (session?.user) {
+          if (event === 'SIGNED_IN') setCachedProfile(null);
+          loadProfile(session.user.id);
+        } else {
+          setProfile(null);
+          setCachedProfile(null);
+          setLoading(false);
+        }
+      }
+      clearTimeout(safetyTimeout);
+    });
+
+    const { data: { subscription: studentSub } } = supabaseStudent.auth.onAuthStateChange((event, session) => {
+      console.log('Student auth state changed:', event, 'user:', session?.user?.email || 'none');
+      const hasUser = !!session?.user;
+      if (shouldUpdateState('student', hasUser)) {
+        const newActiveClient = hasUser ? 'student' : null;
+        setActiveClient(newActiveClient);
+        currentActiveClient = newActiveClient;
+        setSessionState(session);
+        setUser(session?.user ?? null);
+        if (session?.user) {
+          if (event === 'SIGNED_IN') setCachedProfile(null);
+          loadProfile(session.user.id);
+        } else {
+          setProfile(null);
+          setCachedProfile(null);
+          setLoading(false);
+        }
       }
       clearTimeout(safetyTimeout);
     });
 
     return () => {
       clearTimeout(safetyTimeout);
-      subscription.unsubscribe();
+      adminSub.unsubscribe();
+      teacherSub.unsubscribe();
+      studentSub.unsubscribe();
     };
   }, []);
 
@@ -127,8 +236,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     let profileData: Profile | null = null;
     try {
+      // Use the correct client based on which user type is logged in
+      // Note: supabase default is now supabaseAdmin (for OAuth PKCE compatibility)
+      const client = activeClient === 'student' ? supabaseStudent :
+                    activeClient === 'teacher' ? supabaseTeacher :
+                    supabase; // admin (default)
+
+      console.log('Loading profile using client:', activeClient || 'admin (default)');
+
       // Race the profile query against an 8s timeout to prevent hanging
-      const query = supabase
+      const query = client
         .from('profiles')
         .select('*')
         .eq('id', userId)
@@ -181,6 +298,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           profile: null,
         };
       }
+
+      // NOTE: We NO LONGER sync sessions between clients
+      // Each user type (admin, teacher, student) has their own client
+      // The AuthContext watches all three and uses the active one
 
       // Set user and session immediately so guards don't see a null user
       // before onAuthStateChange fires asynchronously.
@@ -253,7 +374,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const handleSignOut = async () => {
-    await signOut();
+    // Sign out from all clients to ensure complete logout
+    await Promise.all([
+      signOut(), // Default client
+      supabaseAdmin.auth.signOut({ scope: 'local' }),
+      supabaseStudent.auth.signOut({ scope: 'local' }),
+    ]);
     setUser(null);
     setProfile(null);
     setSessionState(null);

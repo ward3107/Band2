@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { supabase } from '@/lib/supabase';
+import { supabaseAdmin, supabase } from '@/lib/supabase';
 import { validateAdminEmail } from '@/lib/admin';
 
 export default function AuthCallbackPage() {
@@ -23,8 +23,8 @@ export default function AuthCallbackPage() {
 
       if (code) {
         try {
-          // Exchange the code for a session
-          const { data, error: sessionError } = await supabase.auth.exchangeCodeForSession(code);
+          // Exchange the code for a session using supabaseAdmin (matching the OAuth sign-in)
+          const { data, error: sessionError } = await supabaseAdmin.auth.exchangeCodeForSession(code);
 
           if (sessionError) {
             setError(sessionError.message);
@@ -58,7 +58,7 @@ export default function AuthCallbackPage() {
             // Check if user is admin from database
             let isAdminFromDb = false;
             try {
-              const { data: profile } = await supabase
+              const { data: profile } = await supabaseAdmin
                 .from("profiles")
                 .select("is_admin")
                 .eq("id", data.session.user.id)
@@ -68,6 +68,9 @@ export default function AuthCallbackPage() {
               console.error("profiles query failed, falling back to API check:", err);
               isAdminFromDb = false;
             }
+
+            // NOTE: No longer syncing admin session to default client
+            // The AuthContext now watches all three clients directly
 
             // Redirect based on admin status
             isAdminFromDb || isAdminEmail
@@ -79,8 +82,10 @@ export default function AuthCallbackPage() {
         }
       } else {
         // No code and no error - might be a page reload after auth
-        // Try to get the session and redirect appropriately
-        const { data: { session } } = await supabase.auth.getSession();
+        // Check supabaseAdmin first (for OAuth users), then fallback to default client
+        const { data: { session: adminSession } } = await supabaseAdmin.auth.getSession();
+        const session = adminSession || (await supabase.auth.getSession()).data.session;
+
         if (session?.user && session.user.email) {
           // Check if email is admin via server-side API
           const { isAdmin: isAdminEmail } = await validateAdminEmail(session.user.email);
@@ -108,7 +113,7 @@ export default function AuthCallbackPage() {
           // Check if user is admin from database
           let isAdminFromDb = false;
           try {
-            const { data: profile } = await supabase
+            const { data: profile } = await supabaseAdmin
               .from("profiles")
               .select("is_admin")
               .eq("id", session.user.id)
@@ -118,6 +123,9 @@ export default function AuthCallbackPage() {
             console.error("profiles query failed, falling back to API check:", err);
             isAdminFromDb = false;
           }
+
+          // NOTE: No longer syncing admin session to default client
+          // The AuthContext now watches all three clients directly
 
           // Redirect based on admin status
           isAdminFromDb || isAdminEmail

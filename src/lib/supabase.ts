@@ -25,9 +25,10 @@ export const supabaseStudent = createClient(URL, KEY, {
   auth: { ...baseConfig.auth, storageKey: "band2-student-auth" }
 });
 
-// Default export (for backwards compatibility)
-export const supabase = supabaseTeacher;
-export default supabaseTeacher;
+// Default export - use admin as the default to fix OAuth PKCE flow
+// This ensures the callback uses the same client that initiated OAuth
+export const supabase = supabaseAdmin;
+export default supabaseAdmin;
 
 // Database types
 export interface Profile {
