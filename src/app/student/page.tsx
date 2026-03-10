@@ -53,11 +53,19 @@ export default function StudentDashboardPage() {
   // useStudentPresence(user?.id || '', classIds);
 
   useEffect(() => {
-    console.log('Student dashboard: useEffect triggered', { user: user?.id, profile: profile?.role, loading: guardLoading });
+    console.log('Student dashboard: useEffect triggered', { user: user?.id, profile: profile?.role, guardLoading });
+
+    // Wait for guard to finish loading
+    if (guardLoading) {
+      console.log('Student dashboard: Still loading auth...');
+      return;
+    }
+
     if (user && profile?.role === 'student') {
+      console.log('Student dashboard: Loading data...');
       loadData();
     }
-  }, [user, profile]);
+  }, [guardLoading, user?.id, profile?.id]);
 
   const loadData = async () => {
     try {
