@@ -287,14 +287,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         .eq('id', userId)
         .maybeSingle();
 
+      console.log('Executing profile query for user:', userId);
+
       const result = await Promise.race([
         query,
         new Promise<{ data: null; error: { message: string } }>((resolve) =>
-          setTimeout(() => resolve({ data: null, error: { message: 'Profile load timed out' } }), 8_000)
+          setTimeout(() => {
+            console.error('Profile query timed out after 8s!');
+            resolve({ data: null, error: { message: 'Profile load timed out' } });
+          }, 8_000)
         ),
       ]);
 
+      console.log('Profile query result:', result);
+
       profileData = result.error ? null : result.data as Profile | null;
+      console.log('Profile data after query:', profileData);
+
+      if (result.error) {
+        console.error('Profile query error:', result.error);
+      }
+
       setProfile(profileData);
       setCachedProfile(profileData);
     } catch {
