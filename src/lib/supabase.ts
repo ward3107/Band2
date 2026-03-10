@@ -1,25 +1,33 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
 const URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
-// SINGLE UNIFIED CLIENT for all users
-// This solves the session isolation problem
-export const supabase = createClient(URL, KEY, {
+const baseConfig = {
   auth: {
     persistSession: true,
     detectSessionInUrl: false,
-    flowType: "pkce" as const,
-    storageKey: "band2-auth"  // Single storage key for ALL users
+    flowType: "pkce" as const
   }
+};
+
+// THREE SEPARATE CLIENTS with different storage keys
+// This allows multiple users to be logged in simultaneously (admin + teacher + student)
+export const supabaseAdmin = createClient(URL, KEY, {
+  auth: { ...baseConfig.auth, storageKey: "band2-admin-auth" }
 });
 
-export default supabase;
+export const supabaseTeacher = createClient(URL, KEY, {
+  auth: { ...baseConfig.auth, storageKey: "band2-teacher-auth" }
+});
 
-// Keep these as aliases for backwards compatibility (they all point to the same client now)
-export const supabaseAdmin = supabase;
-export const supabaseTeacher = supabase;
-export const supabaseStudent = supabase;
+export const supabaseStudent = createClient(URL, KEY, {
+  auth: { ...baseConfig.auth, storageKey: "band2-student-auth" }
+});
+
+// Default export (for backwards compatibility)
+export const supabase = supabaseTeacher;
+export default supabaseTeacher;
 
 // Database types
 export interface Profile {
@@ -77,6 +85,27 @@ export interface ClassEnrollment {
   enrolled_at: string;
 }
 
+/**
+ * Get the appropriate client based on email domain
+ */
+export function getClientForEmail(email: string): SupabaseClient {
+  if (email.endsWith('@teacher.band2.app')) return supabaseTeacher;
+  if (email.endsWith('@student.band2.app')) return supabaseStudent;
+  return supabaseAdmin; // Google OAuth / admin
+}
+
+/**
+ * Get the appropriate client based on user role
+ */
+export function getClientForRole(role: 'admin' | 'teacher' | 'student'): SupabaseClient {
+  switch (role) {
+    case 'admin': return supabaseAdmin;
+    case 'teacher': return supabaseTeacher;
+    case 'student': return supabaseStudent;
+    default: return supabaseTeacher;
+  }
+}
+
 // Helper functions
 export async function getCurrentUser() {
   const { data: { user } } = await supabase.auth.getUser();
@@ -96,8 +125,35 @@ export async function getCurrentProfile() {
   return data as Profile | null;
 }
 
+/**
+ * Check all three clients for an active session
+ * Returns the first active session found (priority: admin > teacher > student)
+ */
+export async function getActiveSession(): Promise<{ session: any; client: SupabaseClient; role: string } | null> {
+  // Check admin first
+  const { data: { session: adminSession } } = await supabaseAdmin.auth.getSession();
+  if (adminSession) {
+    return { session: adminSession, client: supabaseAdmin, role: 'admin' };
+  }
+
+  // Check teacher
+  const { data: { session: teacherSession } } = await supabaseTeacher.auth.getSession();
+  if (teacherSession) {
+    return { session: teacherSession, client: supabaseTeacher, role: 'teacher' };
+  }
+
+  // Check student
+  const { data: { session: studentSession } } = await supabaseStudent.auth.getSession();
+  if (studentSession) {
+    return { session: studentSession, client: supabaseStudent, role: 'student' };
+  }
+
+  return null;
+}
+
 export async function signUp(email: string, password: string, fullName: string, role: 'teacher' | 'student') {
-  const { data, error } = await supabase.auth.signUp({
+  const client = getClientForEmail(email);
+  const { data, error } = await client.auth.signUp({
     email,
     password,
   });
@@ -106,7 +162,7 @@ export async function signUp(email: string, password: string, fullName: string, 
 
   // Create profile
   if (data.user) {
-    const { error: profileError } = await supabase
+    const { error: profileError } = await client
       .from('profiles')
       .insert({
         id: data.user.id,
@@ -122,7 +178,9 @@ export async function signUp(email: string, password: string, fullName: string, 
 }
 
 export async function signIn(email: string, password: string) {
-  const result = await supabase.auth.signInWithPassword({
+  // Pick the right client based on email domain
+  const client = getClientForEmail(email);
+  const result = await client.auth.signInWithPassword({
     email,
     password,
   });
@@ -135,6 +193,17 @@ export async function signIn(email: string, password: string) {
   return result;
 }
 
+/**
+ * Sign out from a specific client (by role)
+ */
+export async function signOutFromRole(role: 'admin' | 'teacher' | 'student') {
+  const client = getClientForRole(role);
+  return await client.auth.signOut({ scope: 'local' });
+}
+
+/**
+ * Sign out from the default client (backwards compatible)
+ */
 export async function signOut() {
   return await supabase.auth.signOut({ scope: 'local' });
 }
@@ -142,7 +211,7 @@ export async function signOut() {
 export async function signInWithGoogle() {
   const redirectUrl = `${window.location.origin}/auth/callback`;
 
-  const { data, error } = await supabase.auth.signInWithOAuth({
+  const { data, error } = await supabaseAdmin.auth.signInWithOAuth({
     provider: 'google',
     options: {
       redirectTo: redirectUrl,
