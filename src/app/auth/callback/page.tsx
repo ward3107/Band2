@@ -58,24 +58,24 @@ export default function AuthCallbackPage() {
             // Wait for profile to be created/updated
             await new Promise(resolve => setTimeout(resolve, 1000));
 
-            // Check if user is admin
-            let { data: profile } = await supabase
-              .from('profiles')
-              .select('is_admin')
-              .eq('id', data.session.user.id)
-              .maybeSingle();
-
-            // Redirect based on admin status (OAuth auto-grants admin access)
-            if (profile?.is_admin) {
-              // Admin access granted via OAuth
-              router.push('/admin/teachers');
-            } else if (isAdminEmail) {
-              // Admin email detected - should have been granted, redirect to admin
-              router.push('/admin/teachers');
-            } else {
-              // Not an admin
-              router.push('/?not-admin=true');
+            // SAFE VERSION - wrap in try/catch so the API result (isAdmin) is used as fallback
+            let isAdminFromDb = false;
+            try {
+              const { data: profile } = await supabase
+                .from("profiles")
+                .select("is_admin")
+                .eq("id", data.session.user.id)
+                .maybeSingle();
+              isAdminFromDb = profile?.is_admin ?? false;
+            } catch (err) {
+              console.error("profiles query failed, falling back to API check:", err);
+              isAdminFromDb = false;
             }
+
+            // isAdmin = result from /api/admin/validate-email (already works correctly)
+            isAdminFromDb || isAdminEmail
+              ? router.push("/admin/teachers")
+              : router.push("/?not-admin=true");
           }
         } catch (err: any) {
           setError(err?.message || 'Authentication failed');
@@ -112,24 +112,24 @@ export default function AuthCallbackPage() {
           // Wait for profile to be created/updated
           await new Promise(resolve => setTimeout(resolve, 1000));
 
-          // Check if user is admin
-          let { data: profile } = await supabase
-            .from('profiles')
-            .select('is_admin')
-            .eq('id', session.user.id)
-            .maybeSingle();
-
-          // Redirect based on admin status (OAuth auto-grants admin access)
-          if (profile?.is_admin) {
-            // Admin access granted via OAuth
-            router.push('/admin/teachers');
-          } else if (isAdminEmail) {
-            // Admin email detected - should have been granted, redirect to admin
-            router.push('/admin/teachers');
-          } else {
-            // Not an admin
-            router.push('/');
+          // SAFE VERSION - wrap in try/catch so the API result (isAdmin) is used as fallback
+          let isAdminFromDb = false;
+          try {
+            const { data: profile } = await supabase
+              .from("profiles")
+              .select("is_admin")
+              .eq("id", session.user.id)
+              .maybeSingle();
+            isAdminFromDb = profile?.is_admin ?? false;
+          } catch (err) {
+            console.error("profiles query failed, falling back to API check:", err);
+            isAdminFromDb = false;
           }
+
+          // isAdmin = result from /api/admin/validate-email (already works correctly)
+          isAdminFromDb || isAdminEmail
+            ? router.push("/admin/teachers")
+            : router.push("/");
         } else {
           router.push('/admin/login');
         }
