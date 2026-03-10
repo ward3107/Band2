@@ -22,7 +22,19 @@ export default function CreateAssignmentPage() {
 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [deadline, setDeadline] = useState('');
+  // Set default deadline to 7 days from now at 11:59 PM
+  const [deadline, setDeadline] = useState(() => {
+    const defaultDate = new Date();
+    defaultDate.setDate(defaultDate.getDate() + 7);
+    defaultDate.setHours(23, 59, 0, 0);
+    // Format for datetime-local input: YYYY-MM-DDTHH:mm
+    const year = defaultDate.getFullYear();
+    const month = String(defaultDate.getMonth() + 1).padStart(2, '0');
+    const day = String(defaultDate.getDate()).padStart(2, '0');
+    const hours = String(defaultDate.getHours()).padStart(2, '0');
+    const minutes = String(defaultDate.getMinutes()).padStart(2, '0');
+    return `${year}-${month}-${day}T${hours}:${minutes}`;
+  });
   const [selectedWords, setSelectedWords] = useState<Set<string>>(new Set());
   const [selectedClasses, setSelectedClasses] = useState<Set<string>>(new Set());
 

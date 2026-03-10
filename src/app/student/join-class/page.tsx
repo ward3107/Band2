@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
-import { supabase } from '@/lib/supabase';
+import { supabaseStudent } from '@/lib/supabase';
 
 export default function JoinClassPage() {
   const { user, profile, loading: authLoading } = useAuth();
@@ -37,7 +37,7 @@ export default function JoinClassPage() {
     // Ensure profile exists with student role
     if (!profile || profile.role !== 'student') {
       // Create or update profile as student
-      const { error: profileError } = await supabase
+      const { error: profileError } = await supabaseStudent
         .from('profiles')
         .upsert({
           id: user.id,
@@ -55,7 +55,7 @@ export default function JoinClassPage() {
 
     try {
       // Find class by code
-      const { data: classData, error: classError } = await supabase
+      const { data: classData, error: classError } = await supabaseStudent
         .from('classes')
         .select('*')
         .eq('class_code', classCode.toUpperCase().trim())
@@ -68,7 +68,7 @@ export default function JoinClassPage() {
       }
 
       // Check if already enrolled
-      const { data: existingEnrollment } = await supabase
+      const { data: existingEnrollment } = await supabaseStudent
         .from('class_enrollments')
         .select('*')
         .eq('class_id', classData.id)
@@ -82,7 +82,7 @@ export default function JoinClassPage() {
       }
 
       // Enroll in class
-      const { error: enrollError } = await supabase
+      const { error: enrollError } = await supabaseStudent
         .from('class_enrollments')
         .insert({
           class_id: classData.id,

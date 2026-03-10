@@ -65,6 +65,13 @@ interface ActiveStudent {
   class_name: string;
 }
 
+interface OnlineStudent {
+  student_id: string;
+  full_name: string;
+  last_seen: string;
+  class_name: string;
+}
+
 interface StudentWithCode {
   id: string;
   full_name: string | null;
@@ -87,6 +94,7 @@ export default function TeacherDashboardPage() {
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
   const [activeStudents, setActiveStudents] = useState<ActiveStudent[]>([]);
+  const [onlineStudents, setOnlineStudents] = useState<OnlineStudent[]>([]);
   const [copiedClassCode, setCopiedClassCode] = useState<string | null>(null);
 
   useEffect(() => {
@@ -94,6 +102,47 @@ export default function TeacherDashboardPage() {
       loadData();
     }
   }, [guardLoading, profile]);
+
+  // Poll for online students every 30 seconds
+  useEffect(() => {
+    if (classes.length === 0) return;
+
+    const classIds = classes.map(c => c.id);
+    const classNameById = new Map(classes.map(c => [c.id, c.name]));
+
+    const fetchOnlineStudents = async () => {
+      try {
+        const { data } = await supabase
+          .from('student_presence')
+          .select('student_id, profiles!inner(full_name), last_seen, class_id')
+          .in('class_id', classIds)
+          .eq('is_online', true)
+          .gte('last_seen', new Date(Date.now() - 2 * 60 * 1000).toISOString()); // Active in last 2 minutes
+
+        if (data) {
+          const students: OnlineStudent[] = data.map(item => ({
+            student_id: item.student_id,
+            full_name: (item.profiles as any).full_name,
+            last_seen: item.last_seen,
+            class_name: classNameById.get(item.class_id) || 'Unknown Class',
+          }));
+          setOnlineStudents(students);
+        } else {
+          setOnlineStudents([]);
+        }
+      } catch (err) {
+        console.error('Failed to fetch online students:', err);
+      }
+    };
+
+    // Fetch immediately
+    fetchOnlineStudents();
+
+    // Poll every 30 seconds
+    const interval = setInterval(fetchOnlineStudents, 30000);
+
+    return () => clearInterval(interval);
+  }, [classes]);
 
   const [totalStudents, setTotalStudents] = useState(0);
   const [allStudents, setAllStudents] = useState<StudentWithCode[]>([]);
@@ -406,6 +455,35 @@ export default function TeacherDashboardPage() {
             </div>
           </div>
         </div>
+
+        {/* Online Students */}
+        {onlineStudents.length > 0 && (
+          <section className="mb-8">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                <span className="relative flex h-3 w-3">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
+                </span>
+                Online Now ({onlineStudents.length})
+              </h2>
+            </div>
+            <div className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm">
+              <div className="flex flex-wrap gap-3">
+                {onlineStudents.map((student) => (
+                  <div
+                    key={student.student_id}
+                    className="flex items-center gap-2 bg-green-50 dark:bg-green-900/20 px-3 py-2 rounded-lg"
+                  >
+                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                    <span className="font-medium text-gray-900 dark:text-white">{student.full_name}</span>
+                    <span className="text-xs text-gray-500 dark:text-gray-400">• {student.class_name}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </section>
+        )}
 
         {/* My Classes */}
         <section className="mb-8">
