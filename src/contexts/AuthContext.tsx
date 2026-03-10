@@ -234,16 +234,41 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return cached;
     }
 
+    // Determine which client has the session for this user
+    // If activeClient is not set, check all clients to find the session
+    let client = supabase; // default (teacher)
+    if (activeClient) {
+      client = activeClient === 'student' ? supabaseStudent :
+              activeClient === 'teacher' ? supabaseTeacher :
+              supabase; // admin (default, which is teacher)
+    } else {
+      // activeClient not set - detect which client has this user's session
+      console.log('Active client not set, detecting session for user:', userId);
+      const { data: { session: adminSess } } = await supabaseAdmin.auth.getSession();
+      const { data: { session: studentSess } } = await supabaseStudent.auth.getSession();
+      const { data: { session: teacherSess } } = await supabase.auth.getSession();
+
+      if (adminSess?.user?.id === userId) {
+        client = supabaseAdmin;
+        setActiveClient('admin');
+        console.log('Detected admin session, setting activeClient');
+      } else if (teacherSess?.user?.id === userId) {
+        client = supabase;
+        setActiveClient('teacher');
+        console.log('Detected teacher session, setting activeClient');
+      } else if (studentSess?.user?.id === userId) {
+        client = supabaseStudent;
+        setActiveClient('student');
+        console.log('Detected student session, setting activeClient');
+      } else {
+        console.log('No session found for user, using default client');
+      }
+    }
+
+    console.log('Loading profile using client:', activeClient || 'detected');
+
     let profileData: Profile | null = null;
     try {
-      // Use the correct client based on which user type is logged in
-      // Note: supabase default is now supabaseAdmin (for OAuth PKCE compatibility)
-      const client = activeClient === 'student' ? supabaseStudent :
-                    activeClient === 'teacher' ? supabaseTeacher :
-                    supabase; // admin (default)
-
-      console.log('Loading profile using client:', activeClient || 'admin (default)');
-
       // Race the profile query against an 8s timeout to prevent hanging
       const query = client
         .from('profiles')
