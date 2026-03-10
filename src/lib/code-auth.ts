@@ -1,5 +1,4 @@
-import { supabaseAdmin, supabaseTeacher, supabaseStudent } from './supabase';
-import type { SupabaseClient } from '@supabase/supabase-js';
+import { supabase } from './supabase';
 
 // Device fingerprinting options
 export interface DeviceInfo {
@@ -8,36 +7,6 @@ export interface DeviceInfo {
   screen: string;
   timezone: number;
   platform: string;
-}
-
-/**
- * Pick the right Supabase client based on email domain
- * This ensures isolated storage per user type
- */
-function getClientForEmail(email: string): SupabaseClient {
-  if (email.endsWith('@teacher.band2.app')) return supabaseTeacher;
-  if (email.endsWith('@student.band2.app')) return supabaseStudent;
-  return supabaseAdmin; // Google OAuth / admin
-}
-
-/**
- * Get the appropriate client for a user ID
- * Queries profiles to determine user type
- */
-async function getClientForUserId(userId: string): Promise<SupabaseClient> {
-  try {
-    const { data } = await supabaseAdmin
-      .from('profiles')
-      .select('role')
-      .eq('id', userId)
-      .maybeSingle();
-
-    if (data?.role === 'student') return supabaseStudent;
-    if (data?.role === 'teacher') return supabaseTeacher;
-  } catch {
-    // Fallback to admin client on error
-  }
-  return supabaseAdmin;
 }
 
 /**
@@ -96,8 +65,7 @@ export function getDeviceInfo(): DeviceInfo {
  * Also auto-unlocks if the lock period has expired
  */
 export async function isAccountLocked(userId: string): Promise<{ locked: boolean; message?: string }> {
-  const client = await getClientForUserId(userId);
-  const { data, error } = await client
+  const { data, error } = await supabase
     .from('profiles')
     .select('locked_until, failed_login_attempts')
     .eq('id', userId)
@@ -121,7 +89,7 @@ export async function isAccountLocked(userId: string): Promise<{ locked: boolean
       };
     } else {
       // Lock period expired - reset
-      await client
+      await supabase
         .from('profiles')
         .update({
           locked_until: null,
@@ -145,8 +113,7 @@ export async function logLoginAttempt(data: {
   success: boolean;
 }): Promise<void> {
   try {
-    const client = data.user_id ? await getClientForUserId(data.user_id) : supabaseAdmin;
-    await client.from('login_attempts').insert({
+    await supabase.from('login_attempts').insert({
       user_id: data.user_id,
       code_prefix: data.code_prefix.substring(0, 3), // Only store first 3 chars for privacy
       ip_address: data.ip_address,
@@ -170,10 +137,8 @@ export async function recordDevice(
   ipAddress: string
 ): Promise<{ isNew: boolean; deviceId?: string }> {
   try {
-    const client = await getClientForUserId(userId);
-
     // Check if device exists
-    const { data: existing } = await client
+    const { data: existing } = await supabase
       .from('user_devices')
       .select('id')
       .eq('user_id', userId)
@@ -182,7 +147,7 @@ export async function recordDevice(
 
     if (existing) {
       // Update last_seen and mark as not new
-      await client
+      await supabase
         .from('user_devices')
         .update({
           last_seen: new Date().toISOString(),
@@ -194,7 +159,7 @@ export async function recordDevice(
       return { isNew: false, deviceId: existing.id };
     } else {
       // Insert new device
-      const { data: newDevice } = await client
+      const { data: newDevice } = await supabase
         .from('user_devices')
         .insert({
           user_id: userId,
@@ -219,9 +184,7 @@ export async function recordDevice(
  * Locks account after 5 failed attempts
  */
 export async function incrementFailedAttempts(userId: string): Promise<{ locked: boolean }> {
-  const client = await getClientForUserId(userId);
-
-  const { data: current } = await client
+  const { data: current } = await supabase
     .from('profiles')
     .select('failed_login_attempts')
     .eq('id', userId)
@@ -230,7 +193,7 @@ export async function incrementFailedAttempts(userId: string): Promise<{ locked:
   const attempts = (current?.failed_login_attempts || 0) + 1;
   const lockedUntil = attempts >= 5 ? new Date(Date.now() + 15 * 60 * 1000).toISOString() : null;
 
-  await client
+  await supabase
     .from('profiles')
     .update({
       failed_login_attempts: attempts,
@@ -246,8 +209,7 @@ export async function incrementFailedAttempts(userId: string): Promise<{ locked:
  */
 export async function resetFailedAttempts(userId: string): Promise<void> {
   try {
-    const client = await getClientForUserId(userId);
-    await client
+    await supabase
       .from('profiles')
       .update({
         failed_login_attempts: 0,
@@ -266,9 +228,7 @@ export async function getUserLoginHistory(
   userId: string,
   limit: number = 20
 ): Promise<Array<{ attempted_at: string; success: boolean; ip_address: string | null }>> {
-  const client = await getClientForUserId(userId);
-
-  const { data, error } = await client
+  const { data, error } = await supabase
     .from('login_attempts')
     .select('attempted_at, success, ip_address')
     .eq('user_id', userId)
@@ -295,9 +255,7 @@ export async function getUserDevices(userId: string): Promise<
     is_new_device: boolean;
   }>
 > {
-  const client = await getClientForUserId(userId);
-
-  const { data, error } = await client
+  const { data, error } = await supabase
     .from('user_devices')
     .select('id, user_agent, last_seen, created_at, is_new_device')
     .eq('user_id', userId)

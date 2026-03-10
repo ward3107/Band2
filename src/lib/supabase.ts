@@ -3,39 +3,23 @@ import { createClient } from '@supabase/supabase-js';
 const URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
-const baseConfig = {
+// SINGLE UNIFIED CLIENT for all users
+// This solves the session isolation problem
+export const supabase = createClient(URL, KEY, {
   auth: {
     persistSession: true,
     detectSessionInUrl: false,
-    flowType: "pkce" as const
+    flowType: "pkce" as const,
+    storageKey: "band2-auth"  // Single storage key for ALL users
   }
-};
-
-// One admin — Google OAuth
-export const supabaseAdmin = createClient(URL, KEY, {
-  auth: { ...baseConfig.auth, storageKey: "band2-admin-auth" }
 });
 
-// Many teachers — code login
-export const supabaseTeacher = createClient(URL, KEY, {
-  auth: { ...baseConfig.auth, storageKey: "band2-teacher-auth" }
-});
-
-// Many students — code login
-export const supabaseStudent = createClient(URL, KEY, {
-  auth: { ...baseConfig.auth, storageKey: "band2-student-auth" }
-});
-
-// Helper to pick the right client based on email domain
-function getClientForEmail(email: string) {
-  if (email.endsWith('@teacher.band2.app')) return supabaseTeacher;
-  if (email.endsWith('@student.band2.app')) return supabaseStudent;
-  return supabaseAdmin; // Google OAuth / admin
-}
-
-// Keep backwards compatible default export
-export const supabase = supabaseTeacher;
 export default supabase;
+
+// Keep these as aliases for backwards compatibility (they all point to the same client now)
+export const supabaseAdmin = supabase;
+export const supabaseTeacher = supabase;
+export const supabaseStudent = supabase;
 
 // Database types
 export interface Profile {
@@ -138,9 +122,7 @@ export async function signUp(email: string, password: string, fullName: string, 
 }
 
 export async function signIn(email: string, password: string) {
-  // Pick the right client based on email domain
-  const client = getClientForEmail(email);
-  const result = await client.auth.signInWithPassword({
+  const result = await supabase.auth.signInWithPassword({
     email,
     password,
   });
@@ -160,7 +142,7 @@ export async function signOut() {
 export async function signInWithGoogle() {
   const redirectUrl = `${window.location.origin}/auth/callback`;
 
-  const { data, error } = await supabaseAdmin.auth.signInWithOAuth({
+  const { data, error } = await supabase.auth.signInWithOAuth({
     provider: 'google',
     options: {
       redirectTo: redirectUrl,
