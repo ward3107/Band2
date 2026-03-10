@@ -1,26 +1,34 @@
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+const URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
-if (!supabaseUrl) throw new Error('Missing environment variable: NEXT_PUBLIC_SUPABASE_URL');
-if (!supabaseAnonKey) throw new Error('Missing environment variable: NEXT_PUBLIC_SUPABASE_ANON_KEY');
-
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+const baseConfig = {
   auth: {
     persistSession: true,
-    // We handle code exchange manually in /auth/callback to avoid
-    // two onAuthStateChange listeners fighting over navigator.locks
-    // (the "Lock not released within 5000ms" error).
     detectSessionInUrl: false,
-    flowType: 'pkce',
-  },
-  global: {
-    headers: {
-      'apikey': supabaseAnonKey,
-    },
-  },
+    flowType: "pkce" as const
+  }
+};
+
+// One admin — Google OAuth
+export const supabaseAdmin = createClient(URL, KEY, {
+  auth: { ...baseConfig.auth, storageKey: "band2-admin-auth" }
 });
+
+// Many teachers — code login
+export const supabaseTeacher = createClient(URL, KEY, {
+  auth: { ...baseConfig.auth, storageKey: "band2-teacher-auth" }
+});
+
+// Many students — code login
+export const supabaseStudent = createClient(URL, KEY, {
+  auth: { ...baseConfig.auth, storageKey: "band2-student-auth" }
+});
+
+// Keep backwards compatible default export
+export const supabase = supabaseTeacher;
+export default supabase;
 
 // Database types
 export interface Profile {
