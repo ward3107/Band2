@@ -1,4 +1,5 @@
-import { supabaseAdmin, supabaseTeacher, supabaseStudent, type SupabaseClient } from './supabase';
+import { supabaseAdmin, supabaseTeacher, supabaseStudent } from './supabase';
+import type { SupabaseClient } from '@supabase/supabase-js';
 
 // Device fingerprinting options
 export interface DeviceInfo {
