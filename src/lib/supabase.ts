@@ -151,7 +151,7 @@ export async function signOut() {
 export async function signInWithGoogle() {
   const redirectUrl = `${window.location.origin}/auth/callback`;
 
-  const { data, error } = await supabase.auth.signInWithOAuth({
+  const { data, error } = await supabaseAdmin.auth.signInWithOAuth({
     provider: 'google',
     options: {
       redirectTo: redirectUrl,
