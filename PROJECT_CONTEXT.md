@@ -389,26 +389,29 @@ RLS: admins can manage all rows; any authenticated user can SELECT their own ema
 
 ---
 
-### Table: `public.student_mode_progress` ⚠️ schema gap
+### Table: `public.student_mode_progress`
 
-Referenced in `src/lib/supabase.ts:saveModeProgress()` but **not defined in schema.sql**.
+Defined in `supabase/migrations/20260307_add_student_mode_progress.sql`. RLS enabled.
 
-| Field | Type | Inferred From Code | Notes |
+| Field | Type | Constraints | Notes |
 |---|---|---|---|
-| `id` | `UUID` | PK | |
-| `student_id` | `UUID` | FK → `profiles(id)` | |
-| `assignment_id` | `UUID` | FK → `assignments(id)` | |
-| `mode` | `TEXT` | `'flashcards'`, `'quiz'`, `'matching'`, `'story'`, `'spelling'`, `'scramble'`, `'fill-in-blank'` | |
-| `words_studied` | `INT` | | |
-| `correct_answers` | `INT` | | |
-| `completed` | `BOOLEAN` | | |
-| `last_activity` | `TIMESTAMPTZ` | | |
+| `id` | `UUID` | PK, DEFAULT uuid_generate_v4() | |
+| `student_id` | `UUID` | NOT NULL, FK → `profiles(id)` ON DELETE CASCADE | |
+| `assignment_id` | `UUID` | NOT NULL, FK → `assignments(id)` ON DELETE CASCADE | |
+| `mode` | `TEXT` | NOT NULL, CHECK IN `('flashcards','quiz','matching','story','spelling','scramble','fill-in-blank')` | |
+| `words_studied` | `INT` | DEFAULT 0 | |
+| `correct_answers` | `INT` | DEFAULT 0 | |
+| `completed` | `BOOLEAN` | DEFAULT FALSE | |
+| `last_activity` | `TIMESTAMPTZ` | DEFAULT NOW() | |
+| — | — | UNIQUE(student_id, assignment_id, mode) | |
+
+RLS: students can SELECT/INSERT/UPDATE own rows; teachers can SELECT for their assignments.
 
 ---
 
-### Table: `public.login_attempts` ⚠️ schema gap
+### Table: `public.login_attempts`
 
-Referenced in `src/lib/code-auth.ts:logLoginAttempt()` and `src/app/api/students/[id]/reset-code/route.ts` but **not defined in schema.sql**.
+Defined in `supabase/migrations/20260307_code_based_auth_security.sql` (not in `schema.sql`).
 
 | Field | Type | Inferred From Code | Notes |
 |---|---|---|---|
@@ -422,9 +425,9 @@ Referenced in `src/lib/code-auth.ts:logLoginAttempt()` and `src/app/api/students
 
 ---
 
-### Table: `public.user_devices` ⚠️ schema gap
+### Table: `public.user_devices`
 
-Referenced in `src/lib/code-auth.ts:recordDevice()` but **not defined in schema.sql**.
+Defined in `supabase/migrations/20260307_code_based_auth_security.sql` (not in `schema.sql`).
 
 | Field | Type | Inferred From Code | Notes |
 |---|---|---|---|
@@ -469,6 +472,7 @@ All routes are Next.js App Router Route Handlers under `src/app/api/`.
 | `GET` | `/api/students/[id]/reset-code` | `api/students/[id]/reset-code/route.ts` | Yes — Bearer + teacher/admin; ownership-checked | No | Returns student info for the reset-code flow |
 | `POST` | `/api/students/[id]/reset-code` | `api/students/[id]/reset-code/route.ts` | Yes — Bearer + teacher/admin; ownership-checked | No | Generates new student code; updates auth user email+password + profile; logs to `login_attempts` |
 | `DELETE` | `/api/students/[id]/reset-code` | `api/students/[id]/reset-code/route.ts` | Yes — Bearer + teacher/admin; ownership-checked | No | Unlocks a locked student account (`failed_login_attempts=0`, `locked_until=null`) |
+| `POST` | `/api/teacher/login` | `api/teacher/login/route.ts` | No (issues session) | 10/15min per IP | Signs in teacher by code; constructs email `{code}@teacher.band2.app`, calls `signInWithPassword`; returns `{ session: { access_token, refresh_token } }` |
 
 **Ownership check** on student routes: if caller is a teacher (not admin), verifies student is enrolled in one of that teacher's classes via `class_enrollments → classes.teacher_id`.
 
@@ -566,7 +570,24 @@ Error tracking via `@sentry/nextjs ^10.42.0`. Tunnel route: `/monitoring` (bypas
 
 ---
 
-## 6. APPLICATION DOMAIN NOTES
+## 6. DATABASE MIGRATIONS
+
+All migration files live in `supabase/migrations/`. Applied in filename order (date-prefixed).
+
+| File | What It Does |
+|---|---|
+| `20260305_add_assignment_modes_and_custom_words.sql` | Adds `assignment_type`, `allowed_modes TEXT[]`, `custom_words JSONB` columns to `assignments` |
+| `20260307_add_student_mode_progress.sql` | Creates `student_mode_progress` table with RLS + 3 indexes |
+| `20260307_add_update_last_login_function.sql` | Adds DB function/trigger to update `profiles.last_login` |
+| `20260307_code_based_auth_security.sql` | Adds `failed_login_attempts INT`, `locked_until TIMESTAMPTZ` to `profiles`; creates `login_attempts` and `user_devices` tables |
+| `20260309_tighten_profiles_rls.sql` | Tightens RLS policies on `profiles` table |
+| `20260310_fix_profiles_insert_policy.sql` | Patches the `INSERT` policy on `profiles` for OAuth callback flow |
+
+> **Note:** `login_attempts` and `user_devices` tables are created by `20260307_code_based_auth_security.sql` — they are **not** schema gaps; they are just absent from `schema.sql` (which predates the migrations).
+
+---
+
+## 7. APPLICATION DOMAIN NOTES
 
 - **App name:** Vocaband (PWA manifest) / Band2 (repo name)
 - **Purpose:** English vocabulary learning platform for grades 7–9 with Hebrew and Arabic translations
