@@ -72,7 +72,7 @@ export default function AssignmentPage({ params }: { params: Promise<{ id: strin
   const loadData = async () => {
     try {
       // Load assignment with progress
-      const { data: assignmentData } = await supabase
+      const { data: assignmentData } = await supabaseStudent
         .from('assignments')
         .select('*')
         .eq('id', resolvedParams.id)

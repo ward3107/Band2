@@ -141,7 +141,15 @@
       "Bash(git commit -m \"$\\(cat <<''EOF''\nDebug: Add logging and disable presence hook temporarily\n\n- Add console.log to track when student dashboard renders\n- Temporarily disable presence tracking to isolate assignment loading issue\n- Add detailed error logging for assignment queries\n\nCo-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>\nEOF\n\\)\")",
       "Bash(git commit -m \"$\\(cat <<''EOF''\nDebug: Add logging to useRoleGuard and student dashboard\n\n- Add console.log at component render to see if it''s being called\n- Add detailed logging to useRoleGuard to debug redirect issues\n- This will help identify where the student dashboard is getting stuck\n\nCo-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>\nEOF\n\\)\")",
       "Bash(git commit -m \"$\\(cat <<''EOF''\nFix: Prevent infinite re-render in student dashboard\n\n- Fix useEffect dependencies to prevent infinite loop\n- Wait for guardLoading to finish before loading data\n- Only trigger data load when user ID or profile ID actually changes\n\nCo-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>\nEOF\n\\)\")",
-      "Bash(git commit -m \"$\\(cat <<''EOF''\nDebug: Add detailed logging to profile loading in AuthContext\n\n- Add logging to track profile query execution and results\n- Add timeout error logging\n- This will help identify why profile is timing out\n\nCo-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>\nEOF\n\\)\")"
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nDebug: Add detailed logging to profile loading in AuthContext\n\n- Add logging to track profile query execution and results\n- Add timeout error logging\n- This will help identify why profile is timing out\n\nCo-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(npm install --save-dev @types/node@^22)",
+      "Bash(npm install --save-dev jest@^30 jest-environment-jsdom@^30)",
+      "Bash(npm audit)",
+      "Bash(npm outdated)",
+      "Bash(npm install @types/jest@^30 react@^19 react-dom@^19)",
+      "Bash(git add package.json package-lock.json)",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nChore: Update testing and core dependencies\n\n- Add jest@30 and jest-environment-jsdom@30 for testing\n- Update @types/jest to 30.x to match jest version\n- Update @types/node to 22.x for better type support\n- Update react and react-dom to 19.2.4 \\(patch\\)\n\nCo-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nFix: Use supabaseStudent instead of undefined supabase\n\n- Fix TypeScript error in assignment page\n- Replace bare ''supabase'' with imported ''supabaseStudent''\n\nCo-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>\nEOF\n\\)\")"
     ]
   }
 }
