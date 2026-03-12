@@ -4,11 +4,13 @@ import { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { supabaseAdmin, supabase } from '@/lib/supabase';
 import { validateAdminEmail } from '@/lib/admin';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function AuthCallbackPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [error, setError] = useState<string | null>(null);
+  const { refreshProfile } = useAuth();
 
   useEffect(() => {
     const handleCallback = async () => {
@@ -54,6 +56,9 @@ export default function AuthCallbackPage() {
 
             // Wait for profile to be created/updated
             await new Promise(resolve => setTimeout(resolve, 1000));
+
+            // Refresh the profile in AuthContext so it picks up the updated is_admin flag
+            await refreshProfile();
 
             // Check if user is admin from database
             let isAdminFromDb = false;
@@ -109,6 +114,9 @@ export default function AuthCallbackPage() {
 
           // Wait for profile to be created/updated
           await new Promise(resolve => setTimeout(resolve, 1000));
+
+          // Refresh the profile in AuthContext so it picks up the updated is_admin flag
+          await refreshProfile();
 
           // Check if user is admin from database
           let isAdminFromDb = false;
