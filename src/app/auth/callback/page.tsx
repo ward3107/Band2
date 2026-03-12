@@ -45,11 +45,21 @@ export default function AuthCallbackPage() {
             const { data, error: sessionError } = await supabaseAdmin.auth.exchangeCodeForSession(code);
 
             if (sessionError) {
-              setError(sessionError.message);
-              return;
+              // The PKCE verifier may have been cleaned up by Supabase during
+              // session recovery (_recoverAndRefresh removes orphaned verifiers).
+              // Try getSession one more time — the session may have been refreshed
+              // asynchronously after our first check completed.
+              const { data: { session: recoveredSession } } = await supabaseAdmin.auth.getSession();
+              if (recoveredSession) {
+                session = recoveredSession;
+              } else {
+                // No session at all — redirect to login for a fresh OAuth flow
+                router.push('/admin/login');
+                return;
+              }
+            } else {
+              session = data.session;
             }
-
-            session = data.session;
           }
 
           if (session && session.user.email) {
