@@ -149,7 +149,11 @@
       "Bash(npm install @types/jest@^30 react@^19 react-dom@^19)",
       "Bash(git add package.json package-lock.json)",
       "Bash(git commit -m \"$\\(cat <<''EOF''\nChore: Update testing and core dependencies\n\n- Add jest@30 and jest-environment-jsdom@30 for testing\n- Update @types/jest to 30.x to match jest version\n- Update @types/node to 22.x for better type support\n- Update react and react-dom to 19.2.4 \\(patch\\)\n\nCo-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>\nEOF\n\\)\")",
-      "Bash(git commit -m \"$\\(cat <<''EOF''\nFix: Use supabaseStudent instead of undefined supabase\n\n- Fix TypeScript error in assignment page\n- Replace bare ''supabase'' with imported ''supabaseStudent''\n\nCo-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>\nEOF\n\\)\")"
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nFix: Use supabaseStudent instead of undefined supabase\n\n- Fix TypeScript error in assignment page\n- Replace bare ''supabase'' with imported ''supabaseStudent''\n\nCo-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(git fetch origin)",
+      "Bash(git show origin/master:src/app/student/assignments/[id]/page.tsx)",
+      "Bash(git commit --allow-empty -m \"Trigger Vercel redeploy - pick up latest commit\")",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nFix: Add proper TypeScript types for usePollingPresence\n\n- Add PresenceResult interface to properly type Supabase query result\n- Fix TypeScript error accessing profiles.full_name\n\nCo-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>\nEOF\n\\)\")"
     ]
   }
 }

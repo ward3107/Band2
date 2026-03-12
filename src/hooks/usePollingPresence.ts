@@ -10,6 +10,14 @@ interface OnlineStudent {
   last_seen: string
 }
 
+interface PresenceResult {
+  student_id: string
+  profiles: {
+    full_name: string
+  }
+  last_seen: string
+}
+
 export function usePollingPresence(classId: string, intervalSeconds: number = 30) {
   const [onlineStudents, setOnlineStudents] = useState<Map<string, OnlineStudent>>(new Map())
   const [loading, setLoading] = useState(false)
@@ -27,6 +35,8 @@ export function usePollingPresence(classId: string, intervalSeconds: number = 30
           .gte('last_seen', new Date(Date.now() - 2 * 60 * 1000).toISOString()) // Active in last 2 minutes
 
         if (data) {
+          const map = new Map<string, OnlineStudent>()
+          data.forEach((item: PresenceResult) => {
           const map = new Map<string, OnlineStudent>()
           data.forEach(item => {
             map.set(item.student_id, {
