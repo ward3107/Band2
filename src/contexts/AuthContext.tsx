@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef, ReactNode, useCallback } from 'react';
 import { supabase, supabaseAdmin, supabaseTeacher, supabaseStudent, Profile, signIn, signUp, signOut, signInWithGoogle } from '@/lib/supabase';
 import { User, Session, AuthError } from '@supabase/supabase-js';
 import {
@@ -52,6 +52,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [activeClient, setActiveClient] = useState<'admin' | 'teacher' | 'student' | null>(null);
 
+  // Ref to track the active client immediately (state updates are async)
+  const activeClientRef = useRef<'admin' | 'teacher' | 'student' | null>(null);
+
   useEffect(() => {
     // Safety timeout: if auth never resolves (e.g. Supabase unreachable),
     // stop loading after 10 seconds so the UI doesn't hang forever.
@@ -98,6 +101,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         // Update the active client state
         setActiveClient(newActiveClient);
+        activeClientRef.current = newActiveClient;
         currentActiveClient = newActiveClient;
 
         // Set the state with the active session
@@ -138,6 +142,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (shouldUpdateState('admin', hasUser)) {
         const newActiveClient = hasUser ? 'admin' : null;
         setActiveClient(newActiveClient);
+        activeClientRef.current = newActiveClient;
         currentActiveClient = newActiveClient;
         setSessionState(session);
         setUser(session?.user ?? null);
@@ -159,6 +164,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (shouldUpdateState('teacher', hasUser)) {
         const newActiveClient = hasUser ? 'teacher' : null;
         setActiveClient(newActiveClient);
+        activeClientRef.current = newActiveClient;
         currentActiveClient = newActiveClient;
         setSessionState(session);
         setUser(session?.user ?? null);
@@ -180,6 +186,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (shouldUpdateState('student', hasUser)) {
         const newActiveClient = hasUser ? 'student' : null;
         setActiveClient(newActiveClient);
+        activeClientRef.current = newActiveClient;
         currentActiveClient = newActiveClient;
         setSessionState(session);
         setUser(session?.user ?? null);
@@ -234,38 +241,42 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return cached;
     }
 
-    // Determine which client has the session for this user
-    // If activeClient is not set, check all clients to find the session
+    // Use the ref value for immediate access (state updates are async)
+    // Detect which client has this user's session if not already set
     let client = supabase; // default (teacher)
-    if (activeClient) {
-      client = activeClient === 'student' ? supabaseStudent :
-              activeClient === 'teacher' ? supabaseTeacher :
-              supabase; // admin (default, which is teacher)
-    } else {
-      // activeClient not set - detect which client has this user's session
-      console.log('Active client not set, detecting session for user:', userId);
+    let detectedClient = activeClientRef.current;
+
+    if (!detectedClient) {
+      // One-time detection: check all clients for this user's session
+      // We DO NOT setActiveClient here to avoid infinite loop
+      // Just detect and use the right client for this query
       const { data: { session: adminSess } } = await supabaseAdmin.auth.getSession();
       const { data: { session: studentSess } } = await supabaseStudent.auth.getSession();
       const { data: { session: teacherSess } } = await supabase.auth.getSession();
 
       if (adminSess?.user?.id === userId) {
         client = supabaseAdmin;
-        setActiveClient('admin');
-        console.log('Detected admin session, setting activeClient');
+        detectedClient = 'admin';
       } else if (teacherSess?.user?.id === userId) {
-        client = supabase;
-        setActiveClient('teacher');
-        console.log('Detected teacher session, setting activeClient');
+        client = supabaseTeacher;
+        detectedClient = 'teacher';
       } else if (studentSess?.user?.id === userId) {
         client = supabaseStudent;
-        setActiveClient('student');
-        console.log('Detected student session, setting activeClient');
-      } else {
-        console.log('No session found for user, using default client');
+        detectedClient = 'student';
+      }
+      console.log('One-time client detection for profile load:', detectedClient || 'default');
+    } else {
+      // Use the already-detected client from ref
+      if (detectedClient === 'student') {
+        client = supabaseStudent;
+      } else if (detectedClient === 'teacher') {
+        client = supabaseTeacher;
+      } else if (detectedClient === 'admin') {
+        client = supabaseAdmin;
       }
     }
 
-    console.log('Loading profile using client:', activeClient || 'detected');
+    console.log('Loading profile using client:', detectedClient || 'default');
 
     let profileData: Profile | null = null;
     try {
@@ -276,14 +287,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         .eq('id', userId)
         .maybeSingle();
 
+      console.log('Executing profile query for user:', userId);
+
       const result = await Promise.race([
         query,
         new Promise<{ data: null; error: { message: string } }>((resolve) =>
-          setTimeout(() => resolve({ data: null, error: { message: 'Profile load timed out' } }), 8_000)
+          setTimeout(() => {
+            console.error('Profile query timed out after 8s!');
+            resolve({ data: null, error: { message: 'Profile load timed out' } });
+          }, 8_000)
         ),
       ]);
 
+      console.log('Profile query result:', result);
+
       profileData = result.error ? null : result.data as Profile | null;
+      console.log('Profile data after query:', profileData);
+
+      if (result.error) {
+        console.error('Profile query error:', result.error);
+      }
+
       setProfile(profileData);
       setCachedProfile(profileData);
     } catch {

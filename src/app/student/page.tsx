@@ -3,8 +3,9 @@
 import { useEffect, useState } from 'react';
 import { useRoleGuard } from '@/hooks/useRoleGuard';
 import { useRouter } from 'next/navigation';
-import { supabase } from '@/lib/supabase';
+import { supabaseStudent } from '@/lib/supabase';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useStudentPresence } from '@/hooks/useStudentPresence';
 
 interface Class {
   id: string;
@@ -34,6 +35,8 @@ interface Assignment {
 }
 
 export default function StudentDashboardPage() {
+  console.log('StudentDashboard: Component rendering');
+
   const { user, profile, signOut, loading: guardLoading } = useRoleGuard('student', {
     loginRedirect: '/',
     unauthorizedRedirect: '/join',
@@ -44,16 +47,30 @@ export default function StudentDashboardPage() {
   const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // Track student presence (online status) when dashboard is loaded
+  // TODO: Temporarily disabled to debug assignment loading issue
+  // const classIds = classes.map(c => c.id);
+  // useStudentPresence(user?.id || '', classIds);
+
   useEffect(() => {
+    console.log('Student dashboard: useEffect triggered', { user: user?.id, profile: profile?.role, guardLoading });
+
+    // Wait for guard to finish loading
+    if (guardLoading) {
+      console.log('Student dashboard: Still loading auth...');
+      return;
+    }
+
     if (user && profile?.role === 'student') {
+      console.log('Student dashboard: Loading data...');
       loadData();
     }
-  }, [user, profile]);
+  }, [guardLoading, user?.id, profile?.id]);
 
   const loadData = async () => {
     try {
       // Query 1: Get enrolled classes with class details in one join
-      const { data: enrollments } = await supabase
+      const { data: enrollments } = await supabaseStudent
         .from('class_enrollments')
         .select('classes(id, name, class_code, grade_level)')
         .eq('student_id', user!.id);
@@ -68,8 +85,10 @@ export default function StudentDashboardPage() {
         .filter((c): c is Class => c !== null);
 
       setClasses(enrolledClasses);
+      console.log('Student enrolled in classes:', enrolledClasses.length, enrolledClasses.map(c => c.name));
 
       if (enrolledClasses.length === 0) {
+        console.log('Student not enrolled in any classes');
         setLoading(false);
         return;
       }
@@ -78,12 +97,23 @@ export default function StudentDashboardPage() {
       const classNameById = new Map(enrolledClasses.map(c => [c.id, c.name]));
 
       // Query 2: Get assignments with class mapping and student progress in one join
-      const { data: assignmentLinks } = await supabase
+      console.log('Fetching assignments for class IDs:', classIds);
+      const { data: assignmentLinks, error: assignError } = await supabaseStudent
         .from('assignment_classes')
         .select('class_id, assignments(id, title, description, total_words, deadline)')
         .in('class_id', classIds);
 
+      if (assignError) {
+        console.error('Error fetching assignments:', assignError);
+        alert('Error fetching assignments: ' + assignError.message);
+        setLoading(false);
+        return;
+      }
+
+      console.log('Assignment links found:', assignmentLinks?.length || 0);
+
       if (!assignmentLinks || assignmentLinks.length === 0) {
+        console.log('No assignments found for enrolled classes');
         setLoading(false);
         return;
       }
@@ -109,7 +139,7 @@ export default function StudentDashboardPage() {
       const assignmentIds = Array.from(assignmentMap.keys());
 
       // Query 3: Get overall progress for this student's assignments
-      const { data: allProgress } = await supabase
+      const { data: allProgress } = await supabaseStudent
         .from('student_assignment_progress')
         .select('assignment_id, status, words_learned, quiz_score')
         .eq('student_id', user!.id)
@@ -125,7 +155,7 @@ export default function StudentDashboardPage() {
       });
 
       // Query 4: Get per-mode progress for all assignments
-      const { data: modeProgressData } = await supabase
+      const { data: modeProgressData } = await supabaseStudent
         .from('student_mode_progress')
         .select('assignment_id, mode, words_studied, correct_answers, completed')
         .eq('student_id', user!.id)
@@ -156,6 +186,8 @@ export default function StudentDashboardPage() {
       setAssignments(finalAssignments);
     } catch (err) {
       console.error('Failed to load dashboard data:', err);
+      console.error('Error details:', JSON.stringify(err));
+      alert('Error loading dashboard: ' + (err instanceof Error ? err.message : JSON.stringify(err)));
     }
 
     setLoading(false);

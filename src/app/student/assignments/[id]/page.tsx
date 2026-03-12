@@ -3,7 +3,7 @@
 import { useEffect, useState, use } from 'react';
 import { useRoleGuard } from '@/hooks/useRoleGuard';
 import { useRouter } from 'next/navigation';
-import { supabase } from '@/lib/supabase';
+import { supabaseStudent } from '@/lib/supabase';
 import FlashcardMode from '@/components/FlashcardMode';
 import QuizMode from '@/components/QuizMode';
 import FillInBlankMode from '@/components/FillInBlankMode';
@@ -72,7 +72,7 @@ export default function AssignmentPage({ params }: { params: Promise<{ id: strin
   const loadData = async () => {
     try {
       // Load assignment with progress
-      const { data: assignmentData } = await supabase
+      const { data: assignmentData } = await supabaseStudent
         .from('assignments')
         .select('*')
         .eq('id', resolvedParams.id)
@@ -96,7 +96,7 @@ export default function AssignmentPage({ params }: { params: Promise<{ id: strin
       setAssignment(assignmentWithWords);
 
       // Load progress (use maybeSingle to handle new assignments without progress)
-      const { data: progressData } = await supabase
+      const { data: progressData } = await supabaseStudent
         .from('student_assignment_progress')
         .select('*')
         .eq('student_id', user!.id)
@@ -146,7 +146,7 @@ export default function AssignmentPage({ params }: { params: Promise<{ id: strin
     try {
       if (!progress) {
         // Create new progress record
-        const { error } = await supabase.from('student_assignment_progress').insert({
+        const { error } = await supabaseStudent.from('student_assignment_progress').insert({
           student_id: user!.id,
           assignment_id: resolvedParams.id,
           status,
@@ -157,7 +157,7 @@ export default function AssignmentPage({ params }: { params: Promise<{ id: strin
         if (error) console.error('Failed to create progress:', error);
       } else {
         // Update existing progress
-        const { error } = await supabase
+        const { error } = await supabaseStudent
           .from('student_assignment_progress')
           .update({
             status,
