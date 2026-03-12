@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { supabaseAdmin, supabase } from '@/lib/supabase';
 import { validateAdminEmail } from '@/lib/admin';
@@ -9,6 +9,72 @@ export default function AuthCallbackPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [error, setError] = useState<string | null>(null);
+
+  // Process successful authentication session
+  const processSuccessfulSession = useCallback(async (session: any) => {
+    try {
+      // Check if email is admin via server-side API
+      const { isAdmin: isAdminEmail } = await validateAdminEmail(session.user.email);
+
+      // Create/update profile with auto-grant admin for OAuth
+      try {
+        await fetch('/api/admin/setup-profile', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({
+            userId: session.user.id,
+            email: session.user.email,
+          }),
+        });
+      } catch (apiError) {
+        // Silently fail - will check profile below
+      }
+
+      // Wait for profile to be created/updated
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      // Check if user is admin from database
+      let isAdminFromDb = false;
+      try {
+        const { data: profile } = await supabaseAdmin
+          .from("profiles")
+          .select("is_admin")
+          .eq("id", session.user.id)
+          .maybeSingle();
+        isAdminFromDb = profile?.is_admin ?? false;
+      } catch (err) {
+        console.error("profiles query failed, falling back to API check:", err);
+        isAdminFromDb = false;
+      }
+
+      // Redirect based on admin status
+      isAdminFromDb || isAdminEmail
+        ? router.push("/admin/teachers")
+        : router.push("/?not-admin=true");
+    } catch (err: any) {
+      setError(err?.message || 'Session processing failed');
+    }
+  }, [router]);
+
+  // Handle existing session (page reload or direct access)
+  const handleExistingSession = useCallback(async () => {
+    try {
+      // Check supabaseAdmin first (for OAuth users), then fallback to default client
+      const { data: { session: adminSession } } = await supabaseAdmin.auth.getSession();
+      const session = adminSession || (await supabase.auth.getSession()).data.session;
+
+      if (session?.user && session.user.email) {
+        await processSuccessfulSession(session);
+      } else {
+        router.push('/admin/login');
+      }
+    } catch (err: any) {
+      setError(err?.message || 'Session check failed');
+    }
+  }, [router, processSuccessfulSession]);
 
   useEffect(() => {
     const handleCallback = async () => {
@@ -23,7 +89,20 @@ export default function AuthCallbackPage() {
 
       if (code) {
         try {
-          // Exchange the code for a session using supabaseAdmin (matching the OAuth sign-in)
+          // With detectSessionInUrl: true, Supabase auto-handles PKCE exchange
+          // Wait a moment for auto-exchange to complete
+          await new Promise(resolve => setTimeout(resolve, 500));
+
+          // Check if session was automatically established
+          const { data: { session: autoSession } } = await supabaseAdmin.auth.getSession();
+
+          if (autoSession && autoSession.user?.email) {
+            // Session was auto-exchanged successfully
+            await processSuccessfulSession(autoSession);
+            return;
+          }
+
+          // Fallback: manual exchange if auto-exchange didn't work
           const { data, error: sessionError } = await supabaseAdmin.auth.exchangeCodeForSession(code);
 
           if (sessionError) {
@@ -32,113 +111,20 @@ export default function AuthCallbackPage() {
           }
 
           if (data.session && data.session.user.email) {
-            // Check if email is admin via server-side API
-            const { isAdmin: isAdminEmail } = await validateAdminEmail(data.session.user.email);
-
-            // Create/update profile with auto-grant admin for OAuth
-            try {
-              await fetch('/api/admin/setup-profile', {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                  'Authorization': `Bearer ${data.session.access_token}`,
-                },
-                body: JSON.stringify({
-                  userId: data.session.user.id,
-                  email: data.session.user.email,
-                }),
-              });
-            } catch (apiError) {
-              // Silently fail - will check profile below
-            }
-
-            // Wait for profile to be created/updated
-            await new Promise(resolve => setTimeout(resolve, 1000));
-
-            // Check if user is admin from database
-            let isAdminFromDb = false;
-            try {
-              const { data: profile } = await supabaseAdmin
-                .from("profiles")
-                .select("is_admin")
-                .eq("id", data.session.user.id)
-                .maybeSingle();
-              isAdminFromDb = profile?.is_admin ?? false;
-            } catch (err) {
-              console.error("profiles query failed, falling back to API check:", err);
-              isAdminFromDb = false;
-            }
-
-            // NOTE: No longer syncing admin session to default client
-            // The AuthContext now watches all three clients directly
-
-            // Redirect based on admin status
-            isAdminFromDb || isAdminEmail
-              ? router.push("/admin/teachers")
-              : router.push("/?not-admin=true");
+            await processSuccessfulSession(data.session);
+            return;
           }
         } catch (err: any) {
           setError(err?.message || 'Authentication failed');
         }
       } else {
         // No code and no error - might be a page reload after auth
-        // Check supabaseAdmin first (for OAuth users), then fallback to default client
-        const { data: { session: adminSession } } = await supabaseAdmin.auth.getSession();
-        const session = adminSession || (await supabase.auth.getSession()).data.session;
-
-        if (session?.user && session.user.email) {
-          // Check if email is admin via server-side API
-          const { isAdmin: isAdminEmail } = await validateAdminEmail(session.user.email);
-
-          // Call setup-profile API with auto-grant admin for OAuth
-          try {
-            await fetch('/api/admin/setup-profile', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${session.access_token}`,
-              },
-              body: JSON.stringify({
-                userId: session.user.id,
-                email: session.user.email,
-              }),
-            });
-          } catch (apiError) {
-            // Silently fail - will check profile below
-          }
-
-          // Wait for profile to be created/updated
-          await new Promise(resolve => setTimeout(resolve, 1000));
-
-          // Check if user is admin from database
-          let isAdminFromDb = false;
-          try {
-            const { data: profile } = await supabaseAdmin
-              .from("profiles")
-              .select("is_admin")
-              .eq("id", session.user.id)
-              .maybeSingle();
-            isAdminFromDb = profile?.is_admin ?? false;
-          } catch (err) {
-            console.error("profiles query failed, falling back to API check:", err);
-            isAdminFromDb = false;
-          }
-
-          // NOTE: No longer syncing admin session to default client
-          // The AuthContext now watches all three clients directly
-
-          // Redirect based on admin status
-          isAdminFromDb || isAdminEmail
-            ? router.push("/admin/teachers")
-            : router.push("/");
-        } else {
-          router.push('/admin/login');
-        }
+        await handleExistingSession();
       }
     };
 
     handleCallback();
-  }, [searchParams, router]);
+  }, [searchParams, router, processSuccessfulSession, handleExistingSession]);
 
   if (error) {
     return (

@@ -13,8 +13,9 @@ const baseConfig = {
 
 // THREE SEPARATE CLIENTS with different storage keys
 // This allows multiple users to be logged in simultaneously (admin + teacher + student)
+// Admin uses detectSessionInUrl: true for OAuth PKCE flow to work properly
 export const supabaseAdmin = createClient(URL, KEY, {
-  auth: { ...baseConfig.auth, storageKey: "band2-admin-auth" }
+  auth: { ...baseConfig.auth, storageKey: "band2-admin-auth", detectSessionInUrl: true }
 });
 
 export const supabaseTeacher = createClient(URL, KEY, {
