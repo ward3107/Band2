@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { HelpDropdown } from '@/components/HelpDropdown';
 
@@ -10,6 +10,17 @@ export default function HomePage() {
   const { signIn } = useAuth();
   const { t } = useLanguage();
   const router = useRouter();
+  const searchParams = useSearchParams();
+
+  // Handle OAuth callback if it somehow lands on the home page
+  useEffect(() => {
+    const code = searchParams.get('code');
+    const error = searchParams.get('error');
+    if (code || error) {
+      // Forward to the proper callback handler
+      router.replace(`/auth/callback${window.location.search}`);
+    }
+  }, [searchParams, router]);
 
   const [role, setRole] = useState<'teacher' | 'student' | 'admin'>('student');
 
