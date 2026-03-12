@@ -153,7 +153,8 @@
       "Bash(git fetch origin)",
       "Bash(git show origin/master:src/app/student/assignments/[id]/page.tsx)",
       "Bash(git commit --allow-empty -m \"Trigger Vercel redeploy - pick up latest commit\")",
-      "Bash(git commit -m \"$\\(cat <<''EOF''\nFix: Add proper TypeScript types for usePollingPresence\n\n- Add PresenceResult interface to properly type Supabase query result\n- Fix TypeScript error accessing profiles.full_name\n\nCo-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>\nEOF\n\\)\")"
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nFix: Add proper TypeScript types for usePollingPresence\n\n- Add PresenceResult interface to properly type Supabase query result\n- Fix TypeScript error accessing profiles.full_name\n\nCo-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nFix: Remove duplicate code and fix Supabase type issue in usePollingPresence\n\n- Removed duplicate map creation and forEach loop\n- Fixed profiles access to use array index \\(profiles[0].full_name\\)\n- Removed incorrect type annotation that caused TypeScript error\n\nCo-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>\nEOF\n\\)\")"
     ]
   }
 }

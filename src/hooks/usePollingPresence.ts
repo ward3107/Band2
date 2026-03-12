@@ -36,12 +36,10 @@ export function usePollingPresence(classId: string, intervalSeconds: number = 30
 
         if (data) {
           const map = new Map<string, OnlineStudent>()
-          data.forEach((item: PresenceResult) => {
-          const map = new Map<string, OnlineStudent>()
           data.forEach(item => {
             map.set(item.student_id, {
               student_id: item.student_id,
-              full_name: item.profiles.full_name,
+              full_name: item.profiles[0].full_name,
               last_seen: item.last_seen
             })
           })
