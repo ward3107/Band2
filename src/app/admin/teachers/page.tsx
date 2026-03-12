@@ -244,7 +244,7 @@ export default function AdminTeachersPage() {
                 Back to Dashboard
               </button>
               <button
-                onClick={async () => { await signOut(); router.push('/admin/login'); }}
+                onClick={async () => { await signOut(); router.push('/'); }}
                 className="px-3 py-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 rounded-lg text-sm text-gray-700 dark:text-gray-300 font-medium"
               >
                 Sign Out
