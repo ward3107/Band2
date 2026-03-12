@@ -70,7 +70,12 @@ export default function AdminTeachersPage() {
   useEffect(() => {
     if (authLoading) return;
 
-    if (!profile) {
+    // If there's a session but no profile yet, wait for profile to load
+    if (session && !profile) {
+      return;
+    }
+
+    if (!session || !profile) {
       router.push('/admin/login');
       return;
     }
@@ -83,7 +88,7 @@ export default function AdminTeachersPage() {
     setIsAdmin(true);
     setLoading(false);
     loadTeachers();
-  }, [authLoading, profile, router]);
+  }, [authLoading, profile, session, router]);
 
   const loadTeachers = async () => {
     const token = session?.access_token;
