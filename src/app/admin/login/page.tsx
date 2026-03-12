@@ -1,14 +1,21 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 
 export default function AdminLoginPage() {
-  const { signInWithGoogle } = useAuth();
+  const { signInWithGoogle, profile, session, loading: authLoading } = useAuth();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  // Redirect already-authenticated admins so they don't restart the OAuth flow
+  useEffect(() => {
+    if (!authLoading && session && profile?.is_admin) {
+      router.replace('/admin/teachers');
+    }
+  }, [authLoading, session, profile, router]);
 
   const handleGoogleSignIn = async () => {
     setError('');

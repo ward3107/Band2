@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { supabaseAdmin, supabase } from '@/lib/supabase';
 import { validateAdminEmail } from '@/lib/admin';
@@ -11,8 +11,13 @@ export default function AuthCallbackPage() {
   const searchParams = useSearchParams();
   const [error, setError] = useState<string | null>(null);
   const { refreshProfile } = useAuth();
+  // Guard against the effect running twice (React StrictMode / Suspense re-renders)
+  const handledRef = useRef(false);
 
   useEffect(() => {
+    if (handledRef.current) return;
+    handledRef.current = true;
+
     const handleCallback = async () => {
       const code = searchParams.get('code');
       const error = searchParams.get('error');
@@ -25,17 +30,41 @@ export default function AuthCallbackPage() {
 
       if (code) {
         try {
-          // Exchange the code for a session using supabaseAdmin (matching the OAuth sign-in)
-          const { data, error: sessionError } = await supabaseAdmin.auth.exchangeCodeForSession(code);
+          // If the admin client already has a valid session (e.g. the user was already
+          // signed in, or the Supabase client initialised from localStorage before this
+          // effect ran), skip the code exchange.  Calling exchangeCodeForSession when
+          // an existing session is present causes Supabase to silently remove the PKCE
+          // code verifier during client initialisation, which would result in the
+          // "PKCE code verifier not found" error.
+          const { data: { session: existingSession } } = await supabaseAdmin.auth.getSession();
 
-          if (sessionError) {
-            setError(sessionError.message);
-            return;
+          let session = existingSession;
+
+          if (!session) {
+            // No existing session – perform the standard PKCE code exchange
+            const { data, error: sessionError } = await supabaseAdmin.auth.exchangeCodeForSession(code);
+
+            if (sessionError) {
+              // The PKCE verifier may have been cleaned up by Supabase during
+              // session recovery (_recoverAndRefresh removes orphaned verifiers).
+              // Try getSession one more time — the session may have been refreshed
+              // asynchronously after our first check completed.
+              const { data: { session: recoveredSession } } = await supabaseAdmin.auth.getSession();
+              if (recoveredSession) {
+                session = recoveredSession;
+              } else {
+                // No session at all — redirect to login for a fresh OAuth flow
+                router.push('/admin/login');
+                return;
+              }
+            } else {
+              session = data.session;
+            }
           }
 
-          if (data.session && data.session.user.email) {
+          if (session && session.user.email) {
             // Check if email is admin via server-side API
-            const { isAdmin: isAdminEmail } = await validateAdminEmail(data.session.user.email);
+            const { isAdmin: isAdminEmail } = await validateAdminEmail(session.user.email);
 
             // Create/update profile with auto-grant admin for OAuth
             try {
@@ -43,11 +72,11 @@ export default function AuthCallbackPage() {
                 method: 'POST',
                 headers: {
                   'Content-Type': 'application/json',
-                  'Authorization': `Bearer ${data.session.access_token}`,
+                  'Authorization': `Bearer ${session.access_token}`,
                 },
                 body: JSON.stringify({
-                  userId: data.session.user.id,
-                  email: data.session.user.email,
+                  userId: session.user.id,
+                  email: session.user.email,
                 }),
               });
             } catch (apiError) {
@@ -66,16 +95,13 @@ export default function AuthCallbackPage() {
               const { data: profile } = await supabaseAdmin
                 .from("profiles")
                 .select("is_admin")
-                .eq("id", data.session.user.id)
+                .eq("id", session.user.id)
                 .maybeSingle();
               isAdminFromDb = profile?.is_admin ?? false;
             } catch (err) {
               console.error("profiles query failed, falling back to API check:", err);
               isAdminFromDb = false;
             }
-
-            // NOTE: No longer syncing admin session to default client
-            // The AuthContext now watches all three clients directly
 
             // Redirect based on admin status
             isAdminFromDb || isAdminEmail
@@ -131,9 +157,6 @@ export default function AuthCallbackPage() {
             console.error("profiles query failed, falling back to API check:", err);
             isAdminFromDb = false;
           }
-
-          // NOTE: No longer syncing admin session to default client
-          // The AuthContext now watches all three clients directly
 
           // Redirect based on admin status
           isAdminFromDb || isAdminEmail

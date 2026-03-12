@@ -54,6 +54,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Ref to track the active client immediately (state updates are async)
   const activeClientRef = useRef<'admin' | 'teacher' | 'student' | null>(null);
+  // Ref to track the current user — lets refreshProfile work even when called
+  // from a stale closure (e.g. the auth/callback useEffect) where the user
+  // state captured at effect-creation time is still null.
+  const userRef = useRef<User | null>(null);
 
   useEffect(() => {
     // Safety timeout: if auth never resolves (e.g. Supabase unreachable),
@@ -107,11 +111,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // Set the state with the active session
         if (activeSession?.user) {
           setSessionState(activeSession);
+          userRef.current = activeSession.user;
           setUser(activeSession.user);
           setCachedProfile(null);
           loadProfile(activeSession.user.id);
         } else {
           setSessionState(null);
+          userRef.current = null;
           setUser(null);
           setProfile(null);
           setLoading(false);
@@ -145,6 +151,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         activeClientRef.current = newActiveClient;
         currentActiveClient = newActiveClient;
         setSessionState(session);
+        userRef.current = session?.user ?? null;
         setUser(session?.user ?? null);
         if (session?.user) {
           if (event === 'SIGNED_IN') setCachedProfile(null);
@@ -167,6 +174,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         activeClientRef.current = newActiveClient;
         currentActiveClient = newActiveClient;
         setSessionState(session);
+        userRef.current = session?.user ?? null;
         setUser(session?.user ?? null);
         if (session?.user) {
           if (event === 'SIGNED_IN') setCachedProfile(null);
@@ -189,6 +197,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         activeClientRef.current = newActiveClient;
         currentActiveClient = newActiveClient;
         setSessionState(session);
+        userRef.current = session?.user ?? null;
         setUser(session?.user ?? null);
         if (session?.user) {
           if (event === 'SIGNED_IN') setCachedProfile(null);
@@ -354,6 +363,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       // Set user and session immediately so guards don't see a null user
       // before onAuthStateChange fires asynchronously.
+      userRef.current = result.data.user;
       setUser(result.data.user);
       setSessionState(result.data.session);
       // Clear stale profile cache before loading fresh data
@@ -429,6 +439,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       supabaseAdmin.auth.signOut({ scope: 'local' }),
       supabaseStudent.auth.signOut({ scope: 'local' }),
     ]);
+    userRef.current = null;
     setUser(null);
     setProfile(null);
     setSessionState(null);
@@ -436,20 +447,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const refreshProfile = async () => {
-    if (user) {
+    // Use userRef instead of the `user` state variable so this function works
+    // correctly even when called from a stale closure (e.g. the auth/callback
+    // useEffect) where the captured `user` was still null.
+    const currentUser = userRef.current;
+    if (currentUser) {
       setCachedProfile(null);
-      await loadProfile(user.id);
+      await loadProfile(currentUser.id);
     }
   };
 
   const setSession = async (session: Session | null) => {
     setSessionState(session);
     if (session) {
+      userRef.current = session.user;
       setUser(session.user);
       if (session.user) {
         await loadProfile(session.user.id);
       }
     } else {
+      userRef.current = null;
       setUser(null);
       setProfile(null);
       setLoading(false);
