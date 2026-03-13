@@ -54,6 +54,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Ref to track the active client immediately (state updates are async)
   const activeClientRef = useRef<'admin' | 'teacher' | 'student' | null>(null);
+  // Ref to track pending sign-in - allows that client to take priority temporarily
+  const pendingSignInClientRef = useRef<'admin' | 'teacher' | 'student' | null>(null);
   // Ref to track the current user — lets refreshProfile work even when called
   // from a stale closure (e.g. the auth/callback useEffect) where the user
   // state captured at effect-creation time is still null.
@@ -132,14 +134,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     initializeAuth();
 
     // Helper to determine if a client should update state
-    // Allow any client that has a session to update state.
-    // Priority: admin > teacher > student (for UI display purposes),
-    // but explicit sign-ins should always work.
+    // Admin always takes priority, then teacher, then student
+    // BUT: if there's a pending sign-in, that client takes priority
     const shouldUpdateState = (client: 'admin' | 'teacher' | 'student', hasSession: boolean): boolean => {
       if (!hasSession) return currentActiveClient === client; // Only clear if this was the active client
-      // Allow any client with a session to update state
-      // This fixes student login being blocked by existing admin/teacher sessions
-      return true;
+
+      // If this client has a pending sign-in, let it take over
+      if (pendingSignInClientRef.current === client) {
+        return true;
+      }
+
+      if (client === 'admin') return true; // Admin always wins
+      if (client === 'teacher') return currentActiveClient !== 'admin'; // Teacher wins unless admin is active
+      if (client === 'student') return currentActiveClient === null; // Student only wins if no one else is active
+      return false;
     };
 
     // Set up listeners for ALL THREE clients
@@ -331,10 +339,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Extract code prefix for logging (first part of email)
     const codePrefix = email.split('@')[0] || '';
 
-    // Determine which client type this sign-in is for
+    // Determine which client type is signing in
     const clientType = email.endsWith('@student.band2.app') ? 'student'
       : email.endsWith('@teacher.band2.app') ? 'teacher'
       : 'admin';
+
+    // Set pending sign-in flag so onAuthStateChange allows this client to take over
+    pendingSignInClientRef.current = clientType;
 
     // Get IP and device info for logging
     const deviceHash = generateDeviceHash();
@@ -356,6 +367,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Check if account is locked BEFORE proceeding
       const lockCheck = await isAccountLocked(result.data.user.id);
       if (lockCheck.locked) {
+        pendingSignInClientRef.current = null; // Clear pending flag
         return {
           ...result,
           error: lockCheck.message || 'Account is locked. Please try again later.',
@@ -363,8 +375,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         };
       }
 
-      // CRITICAL: Set the active client BEFORE updating state
-      // This ensures onAuthStateChange doesn't ignore this sign-in
+      // Update active client immediately
       setActiveClient(clientType);
       activeClientRef.current = clientType;
 
@@ -380,6 +391,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Clear stale profile cache before loading fresh data
       setCachedProfile(null);
       const profile = await loadProfile(result.data.user.id);
+
+      // Clear pending sign-in flag after successful login
+      pendingSignInClientRef.current = null;
 
       // Reset failed attempts on successful login
       await resetFailedAttempts(result.data.user.id);
@@ -415,6 +429,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Note: We don't have user_id yet, so we track by IP/code prefix
     // The actual increment will happen server-side if we can identify the user
     if (result.error) {
+      pendingSignInClientRef.current = null; // Clear pending flag on failure
       // For code-based auth, try to find the user by email to increment attempts
       try {
         const { data: userProfile } = await supabase
