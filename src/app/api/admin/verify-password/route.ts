@@ -1,12 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { cookies } from 'next/headers';
 import { getServerAdminEmail } from '@/lib/admin';
 import { verifyRecaptchaToken } from '@/lib/captcha';
 import { isIPWhitelisted, isIPWhitelistEnabled } from '@/lib/ip-whitelist';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 const RECAPTCHA_SECRET_KEY = process.env.RECAPTCHA_SECRET_KEY || '';
 
 // Rate limiting for password verification (more restrictive)
@@ -158,32 +157,29 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Verify user is authenticated
-    const cookieStore = await cookies();
-    const supabaseAuth = createClient(supabaseUrl, supabaseAnonKey, {
-      auth: {
-        storage: {
-          getItem: async (key: string) => {
-            const cookie = cookieStore.get(key);
-            return cookie?.value ?? null;
-          },
-          setItem: () => {},
-          removeItem: () => {},
-        },
-      },
-    });
+    // Verify user is authenticated via Bearer token
+    const authHeader = request.headers.get('authorization');
+    const accessToken = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null;
 
-    const { data: { session }, error: sessionError } = await supabaseAuth.auth.getSession();
-
-    if (sessionError || !session || !session.user) {
+    if (!accessToken) {
       return NextResponse.json({
         error: 'Unauthorized',
         message: 'You must be logged in',
       }, { status: 401 });
     }
 
+    const supabaseAdminClient = createClient(supabaseUrl, supabaseServiceKey);
+    const { data: { user: tokenUser }, error: tokenError } = await supabaseAdminClient.auth.getUser(accessToken);
+
+    if (tokenError || !tokenUser) {
+      return NextResponse.json({
+        error: 'Unauthorized',
+        message: 'Invalid or expired token',
+      }, { status: 401 });
+    }
+
     // Verify this is the admin email
-    if (session.user.email?.toLowerCase() !== getServerAdminEmail().toLowerCase()) {
+    if (tokenUser.email?.toLowerCase() !== getServerAdminEmail().toLowerCase()) {
       return NextResponse.json({
         error: 'Forbidden',
         message: 'Only the administrator can perform this action',
@@ -191,7 +187,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Verify password by attempting to sign in with email and password
-    const { data: signInData, error: signInError } = await supabaseAuth.auth.signInWithPassword({
+    const verifyClient = createClient(supabaseUrl, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
+    const { data: signInData, error: signInError } = await verifyClient.auth.signInWithPassword({
       email: getServerAdminEmail(),
       password,
     });
@@ -208,13 +205,10 @@ export async function POST(request: NextRequest) {
     }
 
     // Password verified - now grant admin access via service role
-    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
-
-    const { error: updateError } = await supabaseAdmin
+    const { error: updateError } = await supabaseAdminClient
       .from('profiles')
       .update({ is_admin: true })
-      .eq('id', session.user.id);
+      .eq('id', tokenUser.id);
 
     if (updateError) {
       console.error('Failed to grant admin access:', updateError);

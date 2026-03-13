@@ -45,6 +45,8 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+const isDev = process.env.NODE_ENV === 'development';
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -81,7 +83,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const { data: { session: studentSession } } = await supabaseStudent.auth.getSession();
         const { data: { session: teacherSession } } = await supabase.auth.getSession(); // Default is teacher
 
-        console.log('Auth init - admin:', !!adminSession?.user, 'student:', !!studentSession?.user, 'teacher:', !!teacherSession?.user);
+        isDev && console.log('Auth init - admin:', !!adminSession?.user, 'student:', !!studentSession?.user, 'teacher:', !!teacherSession?.user);
 
         // Priority: admin > teacher > student
         let activeSession: Session | null = null;
@@ -90,17 +92,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (adminSession?.user) {
           activeSession = adminSession;
           newActiveClient = 'admin';
-          console.log('Using admin session:', adminSession.user.email);
+          isDev && console.log('Using admin session:', adminSession.user.email);
         } else if (teacherSession?.user) {
           activeSession = teacherSession;
           newActiveClient = 'teacher';
-          console.log('Using teacher session:', teacherSession.user.email);
+          isDev && console.log('Using teacher session:', teacherSession.user.email);
         } else if (studentSession?.user) {
           activeSession = studentSession;
           newActiveClient = 'student';
-          console.log('Using student session:', studentSession.user.email);
+          isDev && console.log('Using student session:', studentSession.user.email);
         } else {
-          console.log('No session found in any client');
+          isDev && console.log('No session found in any client');
         }
 
         // Update the active client state
@@ -143,7 +145,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     // Set up listeners for ALL THREE clients
     const { data: { subscription: adminSub } } = supabaseAdmin.auth.onAuthStateChange((event, session) => {
-      console.log('Admin auth state changed:', event, 'user:', session?.user?.email || 'none');
+      isDev && console.log('Admin auth state changed:', event, 'user:', session?.user?.email || 'none');
       const hasUser = !!session?.user;
       if (shouldUpdateState('admin', hasUser)) {
         const newActiveClient = hasUser ? 'admin' : null;
@@ -166,7 +168,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
 
     const { data: { subscription: teacherSub } } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log('Teacher auth state changed:', event, 'user:', session?.user?.email || 'none');
+      isDev && console.log('Teacher auth state changed:', event, 'user:', session?.user?.email || 'none');
       const hasUser = !!session?.user;
       if (shouldUpdateState('teacher', hasUser)) {
         const newActiveClient = hasUser ? 'teacher' : null;
@@ -189,7 +191,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
 
     const { data: { subscription: studentSub } } = supabaseStudent.auth.onAuthStateChange((event, session) => {
-      console.log('Student auth state changed:', event, 'user:', session?.user?.email || 'none');
+      isDev && console.log('Student auth state changed:', event, 'user:', session?.user?.email || 'none');
       const hasUser = !!session?.user;
       if (shouldUpdateState('student', hasUser)) {
         const newActiveClient = hasUser ? 'student' : null;
@@ -273,7 +275,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         client = supabaseStudent;
         detectedClient = 'student';
       }
-      console.log('One-time client detection for profile load:', detectedClient || 'default');
+      isDev && console.log('One-time client detection for profile load:', detectedClient || 'default');
     } else {
       // Use the already-detected client from ref
       if (detectedClient === 'student') {
@@ -285,7 +287,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     }
 
-    console.log('Loading profile using client:', detectedClient || 'default');
+    isDev && console.log('Loading profile using client:', detectedClient || 'default');
 
     let profileData: Profile | null = null;
     try {
@@ -296,7 +298,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         .eq('id', userId)
         .maybeSingle();
 
-      console.log('Executing profile query for user:', userId);
+      isDev && console.log('Executing profile query for user:', userId);
 
       let timeoutId: ReturnType<typeof setTimeout>;
       const result = await Promise.race([
@@ -309,10 +311,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }),
       ]);
 
-      console.log('Profile query result:', result);
+      isDev && console.log('Profile query result:', result);
 
       profileData = result.error ? null : result.data as Profile | null;
-      console.log('Profile data after query:', profileData);
+      isDev && console.log('Profile data after query:', profileData);
 
       if (result.error) {
         console.error('Profile query error:', result.error);

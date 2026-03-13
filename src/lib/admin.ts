@@ -11,11 +11,16 @@
  * Check if an email is the admin email
  * @returns Promise<{ isAdmin: boolean }>
  */
-export async function validateAdminEmail(email: string): Promise<{ isAdmin: boolean }> {
+export async function validateAdminEmail(email: string, accessToken?: string): Promise<{ isAdmin: boolean }> {
   try {
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (accessToken) {
+      headers['Authorization'] = `Bearer ${accessToken}`;
+    }
+
     const response = await fetch('/api/admin/validate-email', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers,
       body: JSON.stringify({ email }),
     });
 

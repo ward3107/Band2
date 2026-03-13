@@ -9,7 +9,7 @@ import { fetchWithCsrf } from '@/lib/csrf';
 export default function VerifyAdminPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { user, profile } = useAuth();
+  const { user, profile, session } = useAuth();
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -31,7 +31,7 @@ export default function VerifyAdminPage() {
 
       // Check if this is the admin email via server-side API
       if (user.email) {
-        const { isAdmin } = await validateAdminEmail(user.email);
+        const { isAdmin } = await validateAdminEmail(user.email, session?.access_token);
         if (!isAdmin) {
           router.push('/?not-admin=true');
           return;
@@ -42,7 +42,7 @@ export default function VerifyAdminPage() {
     };
 
     checkAdminStatus();
-  }, [user, profile, router]);
+  }, [user, profile, session, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -50,9 +50,13 @@ export default function VerifyAdminPage() {
     setLoading(true);
 
     try {
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (session?.access_token) {
+        headers['Authorization'] = `Bearer ${session.access_token}`;
+      }
       const response = await fetchWithCsrf('/api/admin/verify-password', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify({ password }),
       });
 
