@@ -298,14 +298,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       console.log('Executing profile query for user:', userId);
 
+      let timeoutId: ReturnType<typeof setTimeout>;
       const result = await Promise.race([
-        query,
-        new Promise<{ data: null; error: { message: string } }>((resolve) =>
-          setTimeout(() => {
+        query.then(r => { clearTimeout(timeoutId); return r; }),
+        new Promise<{ data: null; error: { message: string } }>((resolve) => {
+          timeoutId = setTimeout(() => {
             console.error('Profile query timed out after 8s!');
             resolve({ data: null, error: { message: 'Profile load timed out' } });
-          }, 8_000)
-        ),
+          }, 8_000);
+        }),
       ]);
 
       console.log('Profile query result:', result);

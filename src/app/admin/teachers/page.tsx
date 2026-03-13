@@ -81,7 +81,7 @@ export default function AdminTeachersPage() {
     }
 
     if (!profile.is_admin) {
-      router.push('/');
+      router.push('/admin/login');
       return;
     }
 
