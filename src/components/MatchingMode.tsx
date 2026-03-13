@@ -26,6 +26,12 @@ export default function MatchingMode({ words, onClose, onComplete, assignmentId 
   const { addMistake } = useDifficultWords();
   const { user } = useAuth();
 
+  // Local translation language toggle: 'he' or 'ar'
+  // Default based on global language; if Arabic UI → Arabic, otherwise Hebrew
+  const [translationLang, setTranslationLang] = useState<'he' | 'ar'>(
+    language === 'ar' ? 'ar' : 'he'
+  );
+
   const batches = useMemo(() => {
     const shuffled = [...words].sort(() => Math.random() - 0.5);
     const result: typeof words[] = [];
@@ -44,31 +50,28 @@ export default function MatchingMode({ words, onClose, onComplete, assignmentId 
   const [started, setStarted] = useState(false);
   const completionHandled = useRef(false);
 
-  // Helper to get translation based on current language
-  const getTranslation = (w: MatchingModeProps['words'][0]) => {
-    if (language === 'ar') return w.translations.arabic.split('،')[0].trim();
-    if (language === 'he') return w.translations.hebrew.split(',')[0].trim();
-    // Default to Hebrew for English
-    return w.translations.hebrew.split(',')[0].trim();
-  };
+  // Must be before any conditional returns to respect Rules of Hooks
+  const batch = batchIndex < batches.length ? batches[batchIndex] : [];
 
-  // Helper to get the translation language label
-  const getTranslationLabel = () => {
-    if (language === 'ar') return 'Arabic';
-    if (language === 'he') return 'Hebrew';
-    return 'Hebrew'; // Default for English
+  const shuffledTranslations = useMemo(() => {
+    return [...batch].sort(() => Math.random() - 0.5);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [batchIndex, batches]);
+
+  const getTranslation = (w: MatchingModeProps['words'][0]) => {
+    if (translationLang === 'ar') return w.translations.arabic.split('،')[0].trim();
+    return w.translations.hebrew.split(',')[0].trim();
   };
 
   useEffect(() => {
     if (started && batchIndex >= batches.length && !completionHandled.current) {
       completionHandled.current = true;
-      // Save mode progress
       if (user && assignmentId) {
         void saveModeProgress(user.id, assignmentId, 'matching', words.length, totalCorrect, true);
       }
       if (onComplete) onComplete(totalAttempted, totalCorrect);
     }
-  }, [batchIndex, batches.length, started, totalAttempted, totalCorrect, onComplete]);
+  }, [batchIndex, batches.length, started, totalAttempted, totalCorrect, onComplete, user, assignmentId, words.length]);
 
   if (words.length === 0) {
     return (
@@ -91,6 +94,30 @@ export default function MatchingMode({ words, onClose, onComplete, assignmentId 
           <p className="text-gray-600 dark:text-gray-400 mb-4">
             Tap an English word, then tap its translation to make a match. {words.length} words in batches of {BATCH_SIZE}.
           </p>
+          {/* Language toggle */}
+          <div className="flex items-center justify-center gap-2 mb-6">
+            <span className="text-sm text-gray-500 dark:text-gray-400">Translate to:</span>
+            <button
+              onClick={() => setTranslationLang('he')}
+              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
+                translationLang === 'he'
+                  ? 'bg-teal-600 text-white'
+                  : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+              }`}
+            >
+              עברית
+            </button>
+            <button
+              onClick={() => setTranslationLang('ar')}
+              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
+                translationLang === 'ar'
+                  ? 'bg-teal-600 text-white'
+                  : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+              }`}
+            >
+              عربي
+            </button>
+          </div>
           <button onClick={() => setStarted(true)} className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg">Start</button>
         </div>
       </div>
@@ -111,13 +138,6 @@ export default function MatchingMode({ words, onClose, onComplete, assignmentId 
       </div>
     );
   }
-
-  const batch = batches[batchIndex];
-
-  // Shuffled translations for the right column
-  const shuffledTranslations = useMemo(() => {
-    return [...batch].sort(() => Math.random() - 0.5);
-  }, [batchIndex]);
 
   const handleEnglishClick = (wordId: string) => {
     if (matched.has(wordId)) return;
@@ -208,9 +228,30 @@ export default function MatchingMode({ words, onClose, onComplete, assignmentId 
 
           {/* Translation column */}
           <div className="space-y-2 sm:space-y-3">
-            <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase text-center mb-1">
-              {getTranslationLabel()}
-            </p>
+            {/* Language toggle header */}
+            <div className="flex items-center justify-center gap-1 mb-1">
+              <button
+                onClick={() => setTranslationLang('he')}
+                className={`px-2 py-0.5 rounded text-xs font-semibold transition-all ${
+                  translationLang === 'he'
+                    ? 'bg-teal-600 text-white'
+                    : 'text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300'
+                }`}
+              >
+                עברית
+              </button>
+              <span className="text-gray-300 dark:text-gray-600 text-xs">|</span>
+              <button
+                onClick={() => setTranslationLang('ar')}
+                className={`px-2 py-0.5 rounded text-xs font-semibold transition-all ${
+                  translationLang === 'ar'
+                    ? 'bg-teal-600 text-white'
+                    : 'text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300'
+                }`}
+              >
+                عربي
+              </button>
+            </div>
             {shuffledTranslations.map(w => {
               const isMatched = matched.has(w.id);
               const isWrong = wrongPair === w.id;
@@ -219,6 +260,7 @@ export default function MatchingMode({ words, onClose, onComplete, assignmentId 
                   key={w.id}
                   onClick={() => handleTranslationClick(w.id)}
                   disabled={isMatched || !selectedEnglish}
+                  dir={translationLang === 'ar' || translationLang === 'he' ? 'rtl' : 'ltr'}
                   className={`w-full p-3 sm:p-4 rounded-xl text-sm sm:text-base font-medium transition-all ${
                     isMatched
                       ? 'bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300 opacity-60'
