@@ -440,6 +440,13 @@ export default function AuthCallbackPage() {
           <p className="text-center text-gray-400 text-xs mt-6">
             You'll need a code from your school to continue
           </p>
+
+          <a
+            href="/"
+            className="block text-center text-gray-500 hover:text-gray-700 text-sm mt-4"
+          >
+            ← Back to Home
+          </a>
         </div>
       </div>
     );
@@ -508,6 +515,13 @@ export default function AuthCallbackPage() {
           >
             ← Choose different role
           </button>
+
+          <a
+            href="/"
+            className="block text-center text-gray-400 hover:text-gray-600 text-xs mt-2"
+          >
+            Back to Home
+          </a>
         </div>
       </div>
     );
@@ -579,6 +593,13 @@ export default function AuthCallbackPage() {
           >
             ← Choose different role
           </button>
+
+          <a
+            href="/"
+            className="block text-center text-gray-400 hover:text-gray-600 text-xs mt-2"
+          >
+            Back to Home
+          </a>
         </div>
       </div>
     );
