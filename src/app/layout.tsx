@@ -82,8 +82,7 @@ export default async function RootLayout({
                     <header className="sticky top-0 z-40 bg-white/80 dark:bg-gray-900/80 backdrop-blur-md shadow-sm overflow-hidden">
                       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                         <div className="flex items-center h-16 min-w-0">
-                          <div className="flex items-center gap-2 min-w-0">
-                            <span className="text-2xl shrink-0">📚</span>
+                          <div className="flex items-center min-w-0">
                             <h1 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white truncate">
                               Vocaband
                             </h1>

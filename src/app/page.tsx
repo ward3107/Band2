@@ -87,7 +87,6 @@ export default function HomePage() {
 
         {/* Logo Section */}
         <div className="text-center mb-8">
-          <div className="text-6xl mb-4">📚</div>
           <h1 className="text-4xl font-bold text-white mb-2">{t('appTitle')}</h1>
           <p className="text-blue-100">{t('appSubtitle')}</p>
         </div>
