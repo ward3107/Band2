@@ -132,13 +132,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     initializeAuth();
 
     // Helper to determine if a client should update state
-    // Admin always takes priority, then teacher, then student
+    // Allow any client that has a session to update state.
+    // Priority: admin > teacher > student (for UI display purposes),
+    // but explicit sign-ins should always work.
     const shouldUpdateState = (client: 'admin' | 'teacher' | 'student', hasSession: boolean): boolean => {
       if (!hasSession) return currentActiveClient === client; // Only clear if this was the active client
-      if (client === 'admin') return true; // Admin always wins
-      if (client === 'teacher') return currentActiveClient !== 'admin'; // Teacher wins unless admin is active
-      if (client === 'student') return currentActiveClient === null; // Student only wins if no one else is active
-      return false;
+      // Allow any client with a session to update state
+      // This fixes student login being blocked by existing admin/teacher sessions
+      return true;
     };
 
     // Set up listeners for ALL THREE clients
@@ -330,6 +331,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Extract code prefix for logging (first part of email)
     const codePrefix = email.split('@')[0] || '';
 
+    // Determine which client type this sign-in is for
+    const clientType = email.endsWith('@student.band2.app') ? 'student'
+      : email.endsWith('@teacher.band2.app') ? 'teacher'
+      : 'admin';
+
     // Get IP and device info for logging
     const deviceHash = generateDeviceHash();
     const deviceInfo = getDeviceInfo();
@@ -356,6 +362,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           profile: null,
         };
       }
+
+      // CRITICAL: Set the active client BEFORE updating state
+      // This ensures onAuthStateChange doesn't ignore this sign-in
+      setActiveClient(clientType);
+      activeClientRef.current = clientType;
 
       // NOTE: We NO LONGER sync sessions between clients
       // Each user type (admin, teacher, student) has their own client
