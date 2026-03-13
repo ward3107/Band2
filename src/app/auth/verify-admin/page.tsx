@@ -28,7 +28,7 @@ export default function VerifyAdminPage() {
 
       // If user is already admin, redirect to admin dashboard
       if (profile?.is_admin) {
-        router.push('/admin/teachers');
+        router.push('/admin/invite-codes');
         return;
       }
 
@@ -77,7 +77,7 @@ export default function VerifyAdminPage() {
       }
 
       // Success - redirect to admin dashboard
-      router.push('/admin/teachers');
+      router.push('/admin/invite-codes');
     } catch (err: any) {
       setError(err?.message || 'An error occurred. Please try again.');
       setLoading(false);

@@ -13,7 +13,7 @@ export default function AdminLoginPage() {
   // Redirect already-authenticated admins so they don't restart the OAuth flow
   useEffect(() => {
     if (!authLoading && session && profile?.is_admin) {
-      router.replace('/admin/teachers');
+      router.replace('/admin/invite-codes');
     }
   }, [authLoading, session, profile, router]);
 

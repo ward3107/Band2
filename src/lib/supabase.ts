@@ -209,6 +209,11 @@ export async function signOut() {
   return await supabase.auth.signOut({ scope: 'local' });
 }
 
+/**
+ * Sign in with Google OAuth
+ * Used by ALL users (Admin, Teacher, Student)
+ * Role is determined after successful OAuth in the callback page
+ */
 export async function signInWithGoogle() {
   const redirectUrl = `${window.location.origin}/auth/callback`;
 
@@ -223,6 +228,7 @@ export async function signInWithGoogle() {
     },
   });
 
+  // Return the result (data contains the OAuth URL, error if something went wrong)
   return { data, error };
 }
 
