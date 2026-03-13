@@ -83,9 +83,6 @@ export default async function RootLayout({
                       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                         <div className="flex items-center h-16 min-w-0">
                           <div className="flex items-center min-w-0">
-                            <h1 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white truncate">
-                              Vocaband
-                            </h1>
                           </div>
                         </div>
                       </div>
