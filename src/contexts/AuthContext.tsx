@@ -39,7 +39,7 @@ interface AuthContextType {
   signInWithGoogle: () => Promise<SignInWithGoogleResult>;
   signUp: (email: string, password: string, fullName: string, role: 'teacher' | 'student') => Promise<SignUpResult>;
   signOut: () => Promise<void>;
-  refreshProfile: () => Promise<void>;
+  refreshProfile: (fallbackUserId?: string) => Promise<void>;
   setSession: (session: Session | null) => Promise<void>;
 }
 
@@ -449,14 +449,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setCachedProfile(null);
   };
 
-  const refreshProfile = async () => {
+  const refreshProfile = async (fallbackUserId?: string) => {
     // Use userRef instead of the `user` state variable so this function works
     // correctly even when called from a stale closure (e.g. the auth/callback
     // useEffect) where the captured `user` was still null.
-    const currentUser = userRef.current;
-    if (currentUser) {
+    // fallbackUserId is used in the PKCE recovery path where SIGNED_IN never
+    // fires and userRef.current is still null, but the caller has the userId
+    // from the session returned by exchangeCodeForSession / getSession.
+    const userId = userRef.current?.id ?? fallbackUserId;
+    if (userId) {
       setCachedProfile(null);
-      await loadProfile(currentUser.id);
+      await loadProfile(userId);
     }
   };
 

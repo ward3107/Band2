@@ -86,8 +86,10 @@ export default function AuthCallbackPage() {
             // Wait for profile to be created/updated
             await new Promise(resolve => setTimeout(resolve, 1000));
 
-            // Refresh the profile in AuthContext so it picks up the updated is_admin flag
-            await refreshProfile();
+            // Refresh the profile in AuthContext so it picks up the updated is_admin flag.
+            // Pass session.user.id as fallback: if SIGNED_IN never fired (PKCE recovery
+            // path), userRef.current is null and refreshProfile would be a no-op without it.
+            await refreshProfile(session.user.id);
 
             // Check if user is admin from database
             let isAdminFromDb = false;

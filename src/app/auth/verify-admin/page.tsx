@@ -9,7 +9,7 @@ import { fetchWithCsrf } from '@/lib/csrf';
 export default function VerifyAdminPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { user, profile, session } = useAuth();
+  const { user, profile, session, loading: authLoading } = useAuth();
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -17,6 +17,9 @@ export default function VerifyAdminPage() {
 
   useEffect(() => {
     const checkAdminStatus = async () => {
+      // Wait for auth context to finish loading before making any decisions
+      if (authLoading) return;
+
       // If user is not logged in, redirect to login
       if (!user) {
         router.push('/admin/login');
@@ -29,9 +32,14 @@ export default function VerifyAdminPage() {
         return;
       }
 
+      // Session must be present before calling validateAdminEmail – the API
+      // requires a Bearer token.  If session hasn't loaded yet, do nothing and
+      // wait for the next effect run (session is a dependency so it will re-run).
+      if (!session) return;
+
       // Check if this is the admin email via server-side API
       if (user.email) {
-        const { isAdmin } = await validateAdminEmail(user.email, session?.access_token);
+        const { isAdmin } = await validateAdminEmail(user.email, session.access_token);
         if (!isAdmin) {
           router.push('/?not-admin=true');
           return;
@@ -42,7 +50,7 @@ export default function VerifyAdminPage() {
     };
 
     checkAdminStatus();
-  }, [user, profile, session, router]);
+  }, [user, profile, session, authLoading, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
