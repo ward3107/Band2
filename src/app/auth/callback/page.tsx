@@ -64,7 +64,7 @@ export default function AuthCallbackPage() {
 
           if (session && session.user.email) {
             // Check if email is admin via server-side API
-            const { isAdmin: isAdminEmail } = await validateAdminEmail(session.user.email);
+            const { isAdmin: isAdminEmail } = await validateAdminEmail(session.user.email, session.access_token);
 
             // Create/update profile with auto-grant admin for OAuth
             try {
@@ -86,8 +86,10 @@ export default function AuthCallbackPage() {
             // Wait for profile to be created/updated
             await new Promise(resolve => setTimeout(resolve, 1000));
 
-            // Refresh the profile in AuthContext so it picks up the updated is_admin flag
-            await refreshProfile();
+            // Refresh the profile in AuthContext so it picks up the updated is_admin flag.
+            // Pass session.user.id as fallback: if SIGNED_IN never fired (PKCE recovery
+            // path), userRef.current is null and refreshProfile would be a no-op without it.
+            await refreshProfile(session.user.id);
 
             // Check if user is admin from database
             let isAdminFromDb = false;
@@ -119,7 +121,7 @@ export default function AuthCallbackPage() {
 
         if (session?.user && session.user.email) {
           // Check if email is admin via server-side API
-          const { isAdmin: isAdminEmail } = await validateAdminEmail(session.user.email);
+          const { isAdmin: isAdminEmail } = await validateAdminEmail(session.user.email, session.access_token);
 
           // Call setup-profile API with auto-grant admin for OAuth
           try {

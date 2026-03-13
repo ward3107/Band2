@@ -39,11 +39,13 @@ interface AuthContextType {
   signInWithGoogle: () => Promise<SignInWithGoogleResult>;
   signUp: (email: string, password: string, fullName: string, role: 'teacher' | 'student') => Promise<SignUpResult>;
   signOut: () => Promise<void>;
-  refreshProfile: () => Promise<void>;
+  refreshProfile: (fallbackUserId?: string) => Promise<void>;
   setSession: (session: Session | null) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+const isDev = process.env.NODE_ENV === 'development';
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
@@ -83,7 +85,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const { data: { session: studentSession } } = await supabaseStudent.auth.getSession();
         const { data: { session: teacherSession } } = await supabase.auth.getSession(); // Default is teacher
 
-        console.log('Auth init - admin:', !!adminSession?.user, 'student:', !!studentSession?.user, 'teacher:', !!teacherSession?.user);
+        isDev && console.log('Auth init - admin:', !!adminSession?.user, 'student:', !!studentSession?.user, 'teacher:', !!teacherSession?.user);
 
         // Priority: admin > teacher > student
         let activeSession: Session | null = null;
@@ -92,17 +94,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (adminSession?.user) {
           activeSession = adminSession;
           newActiveClient = 'admin';
-          console.log('Using admin session:', adminSession.user.email);
+          isDev && console.log('Using admin session:', adminSession.user.email);
         } else if (teacherSession?.user) {
           activeSession = teacherSession;
           newActiveClient = 'teacher';
-          console.log('Using teacher session:', teacherSession.user.email);
+          isDev && console.log('Using teacher session:', teacherSession.user.email);
         } else if (studentSession?.user) {
           activeSession = studentSession;
           newActiveClient = 'student';
-          console.log('Using student session:', studentSession.user.email);
+          isDev && console.log('Using student session:', studentSession.user.email);
         } else {
-          console.log('No session found in any client');
+          isDev && console.log('No session found in any client');
         }
 
         // Update the active client state
@@ -152,7 +154,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     // Set up listeners for ALL THREE clients
     const { data: { subscription: adminSub } } = supabaseAdmin.auth.onAuthStateChange((event, session) => {
-      console.log('Admin auth state changed:', event, 'user:', session?.user?.email || 'none');
+      isDev && console.log('Admin auth state changed:', event, 'user:', session?.user?.email || 'none');
       const hasUser = !!session?.user;
       if (shouldUpdateState('admin', hasUser)) {
         const newActiveClient = hasUser ? 'admin' : null;
@@ -175,7 +177,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
 
     const { data: { subscription: teacherSub } } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log('Teacher auth state changed:', event, 'user:', session?.user?.email || 'none');
+      isDev && console.log('Teacher auth state changed:', event, 'user:', session?.user?.email || 'none');
       const hasUser = !!session?.user;
       if (shouldUpdateState('teacher', hasUser)) {
         const newActiveClient = hasUser ? 'teacher' : null;
@@ -198,7 +200,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
 
     const { data: { subscription: studentSub } } = supabaseStudent.auth.onAuthStateChange((event, session) => {
-      console.log('Student auth state changed:', event, 'user:', session?.user?.email || 'none');
+      isDev && console.log('Student auth state changed:', event, 'user:', session?.user?.email || 'none');
       const hasUser = !!session?.user;
       if (shouldUpdateState('student', hasUser)) {
         const newActiveClient = hasUser ? 'student' : null;
@@ -282,7 +284,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         client = supabaseStudent;
         detectedClient = 'student';
       }
-      console.log('One-time client detection for profile load:', detectedClient || 'default');
+      isDev && console.log('One-time client detection for profile load:', detectedClient || 'default');
     } else {
       // Use the already-detected client from ref
       if (detectedClient === 'student') {
@@ -294,7 +296,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     }
 
-    console.log('Loading profile using client:', detectedClient || 'default');
+    isDev && console.log('Loading profile using client:', detectedClient || 'default');
 
     let profileData: Profile | null = null;
     try {
@@ -305,22 +307,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         .eq('id', userId)
         .maybeSingle();
 
-      console.log('Executing profile query for user:', userId);
+      isDev && console.log('Executing profile query for user:', userId);
 
+      let timeoutId: ReturnType<typeof setTimeout>;
       const result = await Promise.race([
-        query,
-        new Promise<{ data: null; error: { message: string } }>((resolve) =>
-          setTimeout(() => {
+        query.then(r => { clearTimeout(timeoutId); return r; }),
+        new Promise<{ data: null; error: { message: string } }>((resolve) => {
+          timeoutId = setTimeout(() => {
             console.error('Profile query timed out after 8s!');
             resolve({ data: null, error: { message: 'Profile load timed out' } });
-          }, 8_000)
-        ),
+          }, 8_000);
+        }),
       ]);
 
-      console.log('Profile query result:', result);
+      isDev && console.log('Profile query result:', result);
 
       profileData = result.error ? null : result.data as Profile | null;
-      console.log('Profile data after query:', profileData);
+      isDev && console.log('Profile data after query:', profileData);
 
       if (result.error) {
         console.error('Profile query error:', result.error);
@@ -472,14 +475,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setCachedProfile(null);
   };
 
-  const refreshProfile = async () => {
+  const refreshProfile = async (fallbackUserId?: string) => {
     // Use userRef instead of the `user` state variable so this function works
     // correctly even when called from a stale closure (e.g. the auth/callback
     // useEffect) where the captured `user` was still null.
-    const currentUser = userRef.current;
-    if (currentUser) {
+    // fallbackUserId is used in the PKCE recovery path where SIGNED_IN never
+    // fires and userRef.current is still null, but the caller has the userId
+    // from the session returned by exchangeCodeForSession / getSession.
+    const userId = userRef.current?.id ?? fallbackUserId;
+    if (userId) {
       setCachedProfile(null);
-      await loadProfile(currentUser.id);
+      await loadProfile(userId);
     }
   };
 
