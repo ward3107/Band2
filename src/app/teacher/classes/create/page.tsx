@@ -71,7 +71,7 @@ async function copyToClipboard(text: string): Promise<boolean> {
 
 export default function CreateClassPage() {
   const { profile, loading: guardLoading } = useRoleGuard('teacher', {
-    loginRedirect: '/teacher/login',
+    loginRedirect: '/',
   });
   const router = useRouter();
   const [className, setClassName] = useState('');

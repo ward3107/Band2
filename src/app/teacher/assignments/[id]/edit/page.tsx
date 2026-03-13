@@ -17,7 +17,7 @@ interface VocabularyWord {
 export default function EditAssignmentPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
   const { profile, loading: guardLoading } = useRoleGuard('teacher', {
-    loginRedirect: '/teacher/login',
+    loginRedirect: '/',
   });
   const router = useRouter();
 

@@ -86,7 +86,7 @@ interface StudentWithCode {
 
 export default function TeacherDashboardPage() {
   const { profile, signOut, loading: guardLoading } = useRoleGuard('teacher', {
-    loginRedirect: '/teacher/login',
+    loginRedirect: '/',
   });
   const router = useRouter();
   const [classes, setClasses] = useState<Class[]>([]);

@@ -16,7 +16,7 @@ interface VocabularyWord {
 
 export default function CreateAssignmentPage() {
   const { profile, loading: guardLoading } = useRoleGuard('teacher', {
-    loginRedirect: '/teacher/login',
+    loginRedirect: '/',
   });
   const router = useRouter();
 

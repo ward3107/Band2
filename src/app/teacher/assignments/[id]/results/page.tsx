@@ -30,7 +30,7 @@ interface Assignment {
 export default function AssignmentResultsPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
   const { profile, loading: guardLoading } = useRoleGuard('teacher', {
-    loginRedirect: '/teacher/login',
+    loginRedirect: '/',
   });
   const router = useRouter();
   const [assignment, setAssignment] = useState<Assignment | null>(null);
