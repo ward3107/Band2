@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/lib/supabase';
+import { supabaseAdmin } from '@/lib/supabase';
 
 // ============================================
 // TYPES
@@ -154,10 +154,10 @@ export default function AdminDashboardPage() {
       today.setHours(0, 0, 0, 0);
 
       const [teachersRes, studentsRes, classesRes, activeRes] = await Promise.all([
-        supabase.from('profiles').select('id', { count: 'exact', head: true }).eq('role', 'teacher'),
-        supabase.from('profiles').select('id', { count: 'exact', head: true }).eq('role', 'student'),
-        supabase.from('classes').select('id', { count: 'exact', head: true }),
-        supabase.from('profiles').select('id', { count: 'exact', head: true }).gte('last_login', today.toISOString()),
+        supabaseAdmin.from('profiles').select('id', { count: 'exact', head: true }).eq('role', 'teacher'),
+        supabaseAdmin.from('profiles').select('id', { count: 'exact', head: true }).eq('role', 'student'),
+        supabaseAdmin.from('classes').select('id', { count: 'exact', head: true }),
+        supabaseAdmin.from('profiles').select('id', { count: 'exact', head: true }).gte('last_login', today.toISOString()),
       ]);
 
       setStats({
@@ -173,22 +173,51 @@ export default function AdminDashboardPage() {
 
   const loadCodes = async () => {
     try {
-      const { data, error: fetchError } = await supabase
+      // Fetch codes without nested join to avoid PostgREST issues
+      const { data: codesData, error: fetchError } = await supabaseAdmin
         .from('teacher_invite_codes')
-        .select(`
-          id, code, is_claimed, claimed_by, claimed_at, intended_for, created_at,
-          profiles:claimed_by (full_name, email)
-        `)
+        .select('id, code, is_claimed, claimed_by, claimed_at, intended_for, created_at')
         .order('created_at', { ascending: false });
 
-      if (!fetchError && data) {
-        // Transform Supabase's array result to single object for foreign key join
-        const transformedData = data.map((item) => ({
-          ...item,
-          profiles: item.profiles?.[0] ?? null,
-        })) as TeacherInviteCode[];
-        setCodes(transformedData);
+      if (fetchError) {
+        console.error('Error loading codes:', fetchError);
+        return;
       }
+
+      if (!codesData) {
+        setCodes([]);
+        return;
+      }
+
+      // Collect unique claimed_by user IDs
+      const claimedByUserIds = [...new Set(
+        codesData
+          .map(c => c.claimed_by)
+          .filter((id): id is string => id !== null)
+      )];
+
+      // Fetch profiles for claimed codes separately
+      let profilesMap = new Map<string, { full_name: string | null; email: string }>();
+      if (claimedByUserIds.length > 0) {
+        const { data: profilesData } = await supabaseAdmin
+          .from('profiles')
+          .select('id, full_name, email')
+          .in('id', claimedByUserIds);
+
+        if (profilesData) {
+          profilesMap = new Map(
+            profilesData.map(p => [p.id, { full_name: p.full_name, email: p.email }])
+          );
+        }
+      }
+
+      // Merge codes with profile data
+      const transformedData = codesData.map((item) => ({
+        ...item,
+        profiles: item.claimed_by ? (profilesMap.get(item.claimed_by) ?? null) : null,
+      })) as TeacherInviteCode[];
+
+      setCodes(transformedData);
     } catch (err) {
       console.error('Error loading codes:', err);
     }
@@ -196,7 +225,7 @@ export default function AdminDashboardPage() {
 
   const loadTeachers = async () => {
     try {
-      const { data: teachersData, error: teachersError } = await supabase
+      const { data: teachersData, error: teachersError } = await supabaseAdmin
         .from('profiles')
         .select('id, email, full_name, created_at, last_login')
         .eq('role', 'teacher')
@@ -208,7 +237,7 @@ export default function AdminDashboardPage() {
       }
 
       // Get class count for each teacher
-      const { data: classCounts } = await supabase
+      const { data: classCounts } = await supabaseAdmin
         .from('classes')
         .select('teacher_id');
 
@@ -257,7 +286,7 @@ export default function AdminDashboardPage() {
         created_by: profile?.id,
       }));
 
-      const { error: insertError } = await supabase
+      const { error: insertError } = await supabaseAdmin
         .from('teacher_invite_codes')
         .insert(newCodes);
 
@@ -286,7 +315,7 @@ export default function AdminDashboardPage() {
     }
 
     try {
-      const { error: deleteError } = await supabase
+      const { error: deleteError } = await supabaseAdmin
         .from('teacher_invite_codes')
         .delete()
         .eq('id', codeId)
@@ -316,7 +345,7 @@ export default function AdminDashboardPage() {
     try {
       // Instead of deleting, we change their role to 'student' or set a flag
       // This is safer than deleting the teacher
-      const { error: updateError } = await supabase
+      const { error: updateError } = await supabaseAdmin
         .from('profiles')
         .update({ role: 'student' })
         .eq('id', teacherId);
