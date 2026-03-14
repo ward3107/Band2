@@ -474,21 +474,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       localStorage.removeItem('band2-admin-auth');
       localStorage.removeItem('band2-teacher-auth');
       localStorage.removeItem('band2-student-auth');
+      // Clear any other Supabase-related storage
+      localStorage.removeItem('supabase.auth.token');
     } catch {
       // Ignore localStorage errors
     }
 
-    // Reset all state
-    userRef.current = null;
-    setUser(null);
-    setProfile(null);
-    setSessionState(null);
-    setCachedProfile(null);
+    // Clear sessionStorage
+    try {
+      sessionStorage.removeItem('band2_profile_cache');
+      sessionStorage.clear();
+    } catch {
+      // Ignore sessionStorage errors
+    }
 
-    // Reset active client tracking
-    setActiveClient(null);
-    activeClientRef.current = null;
-    pendingSignInClientRef.current = null;
+    // Force a full page reload to clear ALL in-memory state
+    // This is the most reliable way to ensure clean state for next login
+    if (typeof window !== 'undefined') {
+      window.location.href = '/';
+    }
   };
 
   const refreshProfile = async (fallbackUserId?: string) => {

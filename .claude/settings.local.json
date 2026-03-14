@@ -160,7 +160,18 @@
       "Bash(git commit -m \"$\\(cat <<''EOF''\nFix: Add OAuth callback fallback to home page\n\nIf Supabase redirects to home page with auth code, forward it to\nthe proper /auth/callback handler. This fixes double-login issue\nwhen redirect URLs aren''t configured properly in Supabase.\n\nCo-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>\nEOF\n\\)\")",
       "Bash(git add:*)",
       "Bash(git push:*)",
-      "Bash(git checkout:*)"
+      "Bash(git checkout:*)",
+      "Bash(npm run:*)",
+      "Bash(npm install:*)",
+      "Bash(npx kill-port:*)",
+      "Bash(git commit:*)",
+      "Skill(commit-commands:commit)",
+      "Bash(vercel --version && vercel whoami)",
+      "Bash(vercel login:*)",
+      "Bash(vercel --prod --yes 2>&1)",
+      "Bash(npm audit:*)",
+      "Bash(git pull:*)",
+      "Bash(git stash:*)"
     ]
   }
 }

@@ -35,6 +35,10 @@ import { useAuth } from '@/contexts/AuthContext';
 // Type definitions for our state
 type Step = 'loading' | 'select-role' | 'teacher-code' | 'student-code' | 'error' | 'success';
 
+// Track processed OAuth states globally to prevent double processing
+// This persists across component remounts but resets on page reload
+const processedStates = new Set<string>();
+
 export default function AuthCallbackPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -52,15 +56,19 @@ export default function AuthCallbackPage() {
   const [userName, setUserName] = useState('');
   const [loading, setLoading] = useState(false);
 
-  // Prevent double execution (React StrictMode)
-  const handledRef = useRef(false);
+  // Get state parameter for cache busting
+  const stateParam = searchParams.get('state');
 
   useEffect(() => {
-    if (handledRef.current) return;
-    handledRef.current = true;
+    // Check if this OAuth flow was already processed
+    if (processedStates.has(stateParam || 'default')) {
+      console.log('OAuth state already processed, skipping');
+      return;
+    }
+    processedStates.add(stateParam || 'default');
 
     handleCallback();
-  }, []);
+  }, [stateParam]);
 
   /**
    * Main callback handler - runs when page loads after Google OAuth
