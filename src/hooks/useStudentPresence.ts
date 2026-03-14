@@ -13,11 +13,8 @@ export function useStudentPresence(studentId: string, classIds: string[]) {
 
   useEffect(() => {
     if (!studentId || classIds.length === 0) {
-      console.log('Presence hook: studentId or classIds empty, skipping', { studentId, classIds })
       return
     }
-
-    console.log('Presence hook: Starting for', { studentId, classIds })
 
     // Function to update presence for all enrolled classes
     const updatePresence = async () => {
@@ -42,7 +39,6 @@ export function useStudentPresence(studentId: string, classIds: string[]) {
               )
           )
         )
-        console.log('Presence hook: Updated successfully')
       } catch (err) {
         console.error('Failed to update presence:', err)
       }

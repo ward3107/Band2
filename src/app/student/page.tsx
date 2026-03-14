@@ -35,8 +35,6 @@ interface Assignment {
 }
 
 export default function StudentDashboardPage() {
-  console.log('StudentDashboard: Component rendering');
-
   const { user, profile, signOut, loading: guardLoading } = useRoleGuard('student', {
     loginRedirect: '/',
     unauthorizedRedirect: '/join',
@@ -53,16 +51,10 @@ export default function StudentDashboardPage() {
   // useStudentPresence(user?.id || '', classIds);
 
   useEffect(() => {
-    console.log('Student dashboard: useEffect triggered', { user: user?.id, profile: profile?.role, guardLoading });
-
     // Wait for guard to finish loading
-    if (guardLoading) {
-      console.log('Student dashboard: Still loading auth...');
-      return;
-    }
+    if (guardLoading) return;
 
     if (user && profile?.role === 'student') {
-      console.log('Student dashboard: Loading data...');
       loadData();
     }
   }, [guardLoading, user?.id, profile?.id]);
@@ -85,10 +77,8 @@ export default function StudentDashboardPage() {
         .filter((c): c is Class => c !== null);
 
       setClasses(enrolledClasses);
-      console.log('Student enrolled in classes:', enrolledClasses.length, enrolledClasses.map(c => c.name));
 
       if (enrolledClasses.length === 0) {
-        console.log('Student not enrolled in any classes');
         setLoading(false);
         return;
       }
@@ -97,23 +87,18 @@ export default function StudentDashboardPage() {
       const classNameById = new Map(enrolledClasses.map(c => [c.id, c.name]));
 
       // Query 2: Get assignments with class mapping and student progress in one join
-      console.log('Fetching assignments for class IDs:', classIds);
       const { data: assignmentLinks, error: assignError } = await supabaseStudent
         .from('assignment_classes')
         .select('class_id, assignments(id, title, description, total_words, deadline)')
         .in('class_id', classIds);
 
       if (assignError) {
-        console.error('Error fetching assignments:', assignError);
         alert('Error fetching assignments: ' + assignError.message);
         setLoading(false);
         return;
       }
 
-      console.log('Assignment links found:', assignmentLinks?.length || 0);
-
       if (!assignmentLinks || assignmentLinks.length === 0) {
-        console.log('No assignments found for enrolled classes');
         setLoading(false);
         return;
       }
