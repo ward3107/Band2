@@ -22,51 +22,35 @@ function sendClassViaWhatsApp(className: string, classCode: string) {
   window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank');
 }
 
-// Copy to clipboard with fallback
+// Copy to clipboard using Clipboard API with textarea fallback
 async function copyToClipboard(text: string): Promise<boolean> {
-  // Create textarea element
+  if (navigator.clipboard) {
+    try {
+      await navigator.clipboard.writeText(text);
+      return true;
+    } catch {
+      // fall through to legacy fallback
+    }
+  }
+
+  // Legacy fallback for older browsers
   const textarea = document.createElement('textarea');
   textarea.value = text;
-
-  // Style to be invisible but visible to the browser
   textarea.style.position = 'fixed';
   textarea.style.top = '-9999px';
   textarea.style.left = '-9999px';
-  textarea.style.width = '2em';
-  textarea.style.height = '2em';
-  textarea.style.padding = '0';
-  textarea.style.border = 'none';
-  textarea.style.outline = 'none';
-  textarea.style.boxShadow = 'none';
-  textarea.style.background = 'transparent';
-
   document.body.appendChild(textarea);
-
-  // Focus and select
   textarea.focus();
   textarea.select();
-  textarea.setSelectionRange(0, textarea.value.length);
-
   let successful = false;
   try {
+    // eslint-disable-next-line @typescript-eslint/no-deprecated
     successful = document.execCommand('copy');
-  } catch (err) {
-    console.error('execCommand copy failed:', err);
+  } catch {
+    // ignore
   }
-
-  // Remove from DOM
   document.body.removeChild(textarea);
-
-  // Return focus to body
-  (document.activeElement as HTMLElement)?.blur();
-
-  if (successful) {
-    console.log('✓ Copied successfully:', text.substring(0, 50) + '...');
-    return true;
-  }
-
-  console.error('✗ Copy failed');
-  return false;
+  return successful;
 }
 
 export default function CreateClassPage() {

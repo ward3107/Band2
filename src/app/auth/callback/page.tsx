@@ -62,7 +62,6 @@ export default function AuthCallbackPage() {
   useEffect(() => {
     // Check if this OAuth flow was already processed
     if (processedStates.has(stateParam || 'default')) {
-      console.log('OAuth state already processed, skipping');
       return;
     }
     processedStates.add(stateParam || 'default');
@@ -163,7 +162,6 @@ export default function AuthCallbackPage() {
             return;
           }
 
-          console.log('Admin profile setup successful');
         } catch (err) {
           console.error('Admin profile setup error:', err);
           setError('Failed to connect to admin setup service. Please try again.');

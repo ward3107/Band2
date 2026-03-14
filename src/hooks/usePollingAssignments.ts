@@ -23,7 +23,6 @@ export function usePollingAssignments(classId: string, intervalSeconds: number =
         if (data) {
           setAssignments(data)
           setLastUpdate(new Date())
-          console.log(`Updated assignments at ${new Date().toLocaleTimeString()}`)
         }
       } catch (err) {
         console.error('Failed to fetch assignments:', err)

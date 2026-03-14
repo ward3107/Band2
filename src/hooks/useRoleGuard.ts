@@ -25,13 +25,10 @@ export function useRoleGuard(
   const router = useRouter();
 
   useEffect(() => {
-    console.log('useRoleGuard:', { requiredRole, authLoading, hasUser: !!user, hasProfile: !!profile, profileRole: profile?.role });
-
     // Wait until auth has fully resolved (profile query included)
     if (authLoading) return;
 
     if (!user) {
-      console.log('useRoleGuard: No user, redirecting to', options?.loginRedirect ?? '/');
       router.push(options?.loginRedirect ?? '/');
       return;
     }
@@ -39,13 +36,11 @@ export function useRoleGuard(
     // Auth is done: if profile is still null the user has no row in the DB yet
     // (e.g. first OAuth login before completing profile setup).
     if (!profile) {
-      console.log('useRoleGuard: No profile, redirecting to /auth/complete-profile');
       router.push('/auth/complete-profile');
       return;
     }
 
     if (profile.role !== requiredRole) {
-      console.log('useRoleGuard: Wrong role, redirecting to', options?.unauthorizedRedirect ?? '/');
       router.push(options?.unauthorizedRedirect ?? '/');
     }
   }, [user, profile, authLoading, requiredRole, options?.loginRedirect, options?.unauthorizedRedirect, router]);

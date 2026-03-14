@@ -175,18 +175,27 @@ export default function AdminDashboardPage() {
     try {
       const { data, error: fetchError } = await supabase
         .from('teacher_invite_codes')
-        .select(`
-          id, code, is_claimed, claimed_by, claimed_at, intended_for, created_at,
-          profiles:claimed_by (full_name, email)
-        `)
+        .select('id, code, is_claimed, claimed_by, claimed_at, intended_for, created_at')
         .order('created_at', { ascending: false });
 
       if (!fetchError && data) {
-        // Transform Supabase's array result to single object for foreign key join
-        const transformedData = data.map((item) => ({
+        // Fetch profiles for claimed codes separately to avoid FK join issues
+        const claimedByIds = data.filter(c => c.claimed_by).map(c => c.claimed_by as string);
+        const profilesMap = new Map<string, { full_name: string | null; email: string }>();
+
+        if (claimedByIds.length > 0) {
+          const { data: profiles } = await supabase
+            .from('profiles')
+            .select('id, full_name, email')
+            .in('id', claimedByIds);
+
+          (profiles || []).forEach(p => profilesMap.set(p.id, { full_name: p.full_name, email: p.email }));
+        }
+
+        const transformedData: TeacherInviteCode[] = data.map((item) => ({
           ...item,
-          profiles: item.profiles?.[0] ?? null,
-        })) as TeacherInviteCode[];
+          profiles: item.claimed_by ? profilesMap.get(item.claimed_by) ?? null : null,
+        }));
         setCodes(transformedData);
       }
     } catch (err) {
