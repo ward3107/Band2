@@ -82,28 +82,28 @@ export default function AuthCallbackPage() {
 
       // If we have an OAuth code, exchange it for a session
       if (code) {
-        // First check if we already have a session
-        const { data: { session: existingSession } } = await supabaseAdmin.auth.getSession();
+        // Clear any stale profile cache before processing new login
+        try {
+          sessionStorage.removeItem('band2_profile_cache');
+        } catch {
+          // Ignore sessionStorage errors
+        }
 
-        if (existingSession) {
-          currentSession = existingSession;
-        } else {
-          // Exchange code for session
-          const { data, error: sessionError } = await supabaseAdmin.auth.exchangeCodeForSession(code);
+        // Exchange code for session - this creates a fresh session
+        const { data, error: sessionError } = await supabaseAdmin.auth.exchangeCodeForSession(code);
 
-          if (sessionError) {
-            // Try to recover session
-            const { data: { session: recoveredSession } } = await supabaseAdmin.auth.getSession();
-            if (recoveredSession) {
-              currentSession = recoveredSession;
-            } else {
-              setError('Failed to complete sign in. Please try again.');
-              setStep('error');
-              return;
-            }
+        if (sessionError) {
+          // Try to recover session
+          const { data: { session: recoveredSession } } = await supabaseAdmin.auth.getSession();
+          if (recoveredSession) {
+            currentSession = recoveredSession;
           } else {
-            currentSession = data.session;
+            setError('Failed to complete sign in. Please try again.');
+            setStep('error');
+            return;
           }
+        } else {
+          currentSession = data.session;
         }
       } else {
         // No code - check for existing session

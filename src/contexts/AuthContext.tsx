@@ -468,11 +468,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       supabaseAdmin.auth.signOut({ scope: 'local' }),
       supabaseStudent.auth.signOut({ scope: 'local' }),
     ]);
+
+    // Clear all localStorage auth tokens for all clients
+    try {
+      localStorage.removeItem('band2-admin-auth');
+      localStorage.removeItem('band2-teacher-auth');
+      localStorage.removeItem('band2-student-auth');
+    } catch {
+      // Ignore localStorage errors
+    }
+
+    // Reset all state
     userRef.current = null;
     setUser(null);
     setProfile(null);
     setSessionState(null);
     setCachedProfile(null);
+
+    // Reset active client tracking
+    setActiveClient(null);
+    activeClientRef.current = null;
+    pendingSignInClientRef.current = null;
   };
 
   const refreshProfile = async (fallbackUserId?: string) => {
