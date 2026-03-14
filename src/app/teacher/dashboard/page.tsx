@@ -106,7 +106,7 @@ export default function TeacherDashboardPage() {
         if (data) {
           const students: OnlineStudent[] = data.map(item => ({
             student_id: item.student_id,
-            full_name: (item.profiles as { full_name: string | null }).full_name ?? '',
+            full_name: (item.profiles as unknown as { full_name: string | null }).full_name ?? '',
             last_seen: item.last_seen,
             class_name: classNameById.get(item.class_id) || 'Unknown Class',
           }));
