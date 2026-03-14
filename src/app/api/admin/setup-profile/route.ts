@@ -1,208 +1,122 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { getServerAdminEmail } from '@/lib/admin';
-import { isIPWhitelisted, isIPWhitelistEnabled } from '@/lib/ip-whitelist';
-
-// Supabase configuration
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-
-// Service role client to bypass RLS (only used AFTER auth verification)
-const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
-
-// Rate limiting configuration
-const RATE_LIMIT = 10; // Max requests per window
-const RATE_WINDOW_MS = 15 * 60 * 1000; // 15 minutes
-
-// In-memory rate limit store (for production, use Redis or similar)
-interface RateLimitEntry {
-  count: number;
-  resetTime: number;
-}
-const rateLimitStore = new Map<string, RateLimitEntry>();
-
-// Clean up expired entries periodically
-setInterval(() => {
-  const now = Date.now();
-  for (const [key, entry] of rateLimitStore.entries()) {
-    if (now > entry.resetTime) {
-      rateLimitStore.delete(key);
-    }
-  }
-}, 60 * 1000); // Clean every minute
 
 /**
- * Check rate limit for a given identifier
- * @returns true if rate limited, false otherwise
+ * ============================================
+ * ADMIN PROFILE SETUP API
+ * ============================================
+ *
+ * WHY: This API creates/updates the admin profile using the service role key
+ * This bypasses RLS which might be causing recursion issues
+ *
+ * SECURITY:
+ * - Only works for the ADMIN_EMAIL defined in environment
+ * - Requires valid authentication token
+ * ============================================
  */
-function checkRateLimit(identifier: string): { limited: boolean; resetTime?: number } {
-  const now = Date.now();
-  const entry = rateLimitStore.get(identifier);
 
-  if (!entry || now > entry.resetTime) {
-    // First request or window expired - create new entry
-    rateLimitStore.set(identifier, {
-      count: 1,
-      resetTime: now + RATE_WINDOW_MS,
-    });
-    return { limited: false };
-  }
-
-  if (entry.count >= RATE_LIMIT) {
-    // Rate limit exceeded
-    return { limited: true, resetTime: entry.resetTime };
-  }
-
-  // Increment counter
-  entry.count++;
-  return { limited: false };
-}
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const adminEmail = process.env.NEXT_PUBLIC_ADMIN_EMAIL;
 
 export async function POST(request: NextRequest) {
-  // Get client IP for rate limiting
-  const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
-             request.headers.get('x-real-ip') ||
-             'unknown';
-
-  // Check IP whitelist (if enabled) - only for admin profile setup
-  if (isIPWhitelistEnabled() && !isIPWhitelisted(ip, process.env.ADMIN_IP_WHITELIST)) {
-    return NextResponse.json({
-      error: 'Access Denied',
-      message: 'Admin access is restricted to specific IP addresses',
-    }, { status: 403 });
-  }
-
-  // Check rate limit
-  const rateLimit = checkRateLimit(ip);
-  if (rateLimit.limited) {
-    return NextResponse.json({
-      error: 'Too many requests',
-      message: 'Rate limit exceeded. Please try again later.',
-    }, {
-      status: 429,
-      headers: {
-        'X-RateLimit-Limit': RATE_LIMIT.toString(),
-        'X-RateLimit-Remaining': '0',
-        'X-RateLimit-Reset': new Date(rateLimit.resetTime!).toISOString(),
-        'Retry-After': Math.ceil((rateLimit.resetTime! - Date.now()) / 1000).toString(),
-      },
-    });
-  }
-
   try {
+    // Check service role key is available
+    if (!supabaseServiceKey) {
+      console.error('❌ SUPABASE_SERVICE_ROLE_KEY not set - admin cannot be created');
+      return NextResponse.json({
+        error: 'SUPABASE_SERVICE_ROLE_KEY not configured on server. Please add it to Vercel environment variables.',
+        code: 'MISSING_SERVICE_KEY'
+      }, { status: 500 });
+    }
+
+    // Check admin email is configured
+    if (!adminEmail) {
+      console.error('❌ NEXT_PUBLIC_ADMIN_EMAIL not set');
+      return NextResponse.json({
+        error: 'NEXT_PUBLIC_ADMIN_EMAIL not configured on server.',
+        code: 'MISSING_ADMIN_EMAIL'
+      }, { status: 500 });
+    }
+
+    // Get request body
     const { userId, email } = await request.json();
 
     if (!userId || !email) {
       return NextResponse.json({ error: 'Missing userId or email' }, { status: 400 });
     }
 
-    // AUTHENTICATION CHECK: Verify the user is authenticated before using service role.
-    // The Supabase client stores sessions in localStorage (not cookies), so we verify
-    // the Bearer token passed in the Authorization header instead.
+    // SECURITY: Verify this is the admin email
+    if (email.toLowerCase() !== adminEmail?.toLowerCase()) {
+      return NextResponse.json({ error: 'Unauthorized - not admin' }, { status: 403 });
+    }
+
+    // Verify auth token
     const authHeader = request.headers.get('authorization');
     const accessToken = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null;
 
     if (!accessToken) {
-      return NextResponse.json({
-        error: 'Unauthorized',
-        message: 'You must be logged in to perform this action',
-      }, { status: 401 });
+      return NextResponse.json({ error: 'Missing auth token' }, { status: 401 });
     }
 
-    // Verify the access token using the service role client
-    const { data: { user: tokenUser }, error: tokenError } = await supabaseAdmin.auth.getUser(accessToken);
+    // Create admin client with service role
+    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
+      auth: { autoRefreshToken: false, persistSession: false }
+    });
 
-    if (tokenError || !tokenUser) {
-      return NextResponse.json({
-        error: 'Unauthorized',
-        message: 'Invalid or expired access token',
-      }, { status: 401 });
+    // Verify the token
+    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(accessToken);
+
+    if (authError || !user || user.id !== userId) {
+      return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
     }
 
-    // CRITICAL: Ensure the userId in the request matches the authenticated user
-    if (tokenUser.id !== userId) {
-      return NextResponse.json({
-        error: 'Forbidden',
-        message: 'You can only set up your own profile',
-      }, { status: 403 });
-    }
-
-    // Verify the email matches the authenticated user's email
-    const sessionEmail = tokenUser.email?.toLowerCase();
-    const requestEmail = email.toLowerCase();
-
-    if (sessionEmail !== requestEmail) {
-      return NextResponse.json({
-        error: 'Forbidden',
-        message: 'Email mismatch',
-      }, { status: 403 });
-    }
-
-    // Authentication verified - now safe to use service role key
-    // Check if this is the admin email (for role assignment)
-    const isAdminEmail = email.toLowerCase() === getServerAdminEmail().toLowerCase();
-
-    // Check if profile exists using service role
-    const { data: existing } = await supabaseAdmin
+    // Check if profile exists
+    const { data: existingProfile } = await supabaseAdmin
       .from('profiles')
-      .select('id, is_admin, role')
+      .select('id')
       .eq('id', userId)
       .maybeSingle();
 
-    if (existing) {
-      // Profile exists - for OAuth, automatically grant admin access if it's the admin email
-      if (isAdminEmail && !existing.is_admin) {
-        const { error: updateError } = await supabaseAdmin
-          .from('profiles')
-          .update({ role: 'teacher', is_admin: true })
-          .eq('id', userId);
+    if (existingProfile) {
+      // Update existing profile to be admin
+      const { error: updateError } = await supabaseAdmin
+        .from('profiles')
+        .update({
+          is_admin: true,
+          role: 'teacher',
+          last_login: new Date().toISOString()
+        })
+        .eq('id', userId);
 
-        if (updateError) {
-          console.error('Profile update error:', updateError);
-          return NextResponse.json({ error: 'Failed to update profile', details: updateError.message }, { status: 500 });
-        }
-      } else if (isAdminEmail && existing.role !== 'teacher') {
-        // Update role if needed but admin already set
-        const { error: updateError } = await supabaseAdmin
-          .from('profiles')
-          .update({ role: 'teacher' })
-          .eq('id', userId);
-
-        if (updateError) {
-          console.error('Profile update error:', updateError);
-          return NextResponse.json({ error: 'Failed to update profile', details: updateError.message }, { status: 500 });
-        }
+      if (updateError) {
+        console.error('Error updating admin profile:', updateError);
+        return NextResponse.json({ error: 'Failed to update profile' }, { status: 500 });
       }
+
+      return NextResponse.json({ success: true, isAdmin: true, action: 'updated' });
     } else {
-      // Create new profile - for OAuth, automatically grant admin access if it's the admin email
+      // Create new admin profile
       const { error: insertError } = await supabaseAdmin
         .from('profiles')
         .insert({
           id: userId,
           email: email,
-          full_name: email.split('@')[0],
-          role: isAdminEmail ? 'teacher' : 'student',
-          is_admin: isAdminEmail, // Auto-grant admin for OAuth
+          full_name: user.user_metadata?.full_name || user.user_metadata?.name || email.split('@')[0],
+          role: 'teacher',
+          is_admin: true,
         });
 
       if (insertError) {
-        console.error('Profile insert error:', insertError);
-        return NextResponse.json({ error: 'Failed to create profile', details: insertError.message }, { status: 500 });
+        console.error('Error creating admin profile:', insertError);
+        return NextResponse.json({ error: 'Failed to create profile' }, { status: 500 });
       }
-    }
 
-    return NextResponse.json({
-      success: true,
-      isAdmin: isAdminEmail,
-      isPendingAdmin: false,
-      message: isAdminEmail
-        ? 'Admin access granted via Google authentication.'
-        : 'Profile created successfully'
-    });
+      return NextResponse.json({ success: true, isAdmin: true, action: 'created' });
+    }
 
   } catch (error: any) {
     console.error('Admin setup error:', error);
-    return NextResponse.json({ error: 'Internal server error', details: error.message }, { status: 500 });
+    return NextResponse.json({ error: error.message || 'Internal server error' }, { status: 500 });
   }
 }

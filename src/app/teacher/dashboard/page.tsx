@@ -398,10 +398,10 @@ export default function TeacherDashboardPage() {
             <div className="flex items-center gap-2 flex-wrap">
               {isAdmin && (
                 <a
-                  href="/admin/teachers"
+                  href="/admin/invite-codes"
                   className="px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium"
                 >
-                  Admin Panel
+                  🔑 Invite Codes
                 </a>
               )}
               <a
