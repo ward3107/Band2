@@ -26,7 +26,7 @@ interface TeacherInviteCode {
 interface Teacher {
   id: string;
   email: string;
-  full_name: | null;
+  full_name: string | null;
   created_at: string;
   last_login: string | null;
   class_count: number;
@@ -181,8 +181,13 @@ export default function AdminDashboardPage() {
         `)
         .order('created_at', { ascending: false });
 
-      if (!fetchError) {
-        setCodes(data || []);
+      if (!fetchError && data) {
+        // Transform Supabase's array result to single object for foreign key join
+        const transformedData = data.map((item) => ({
+          ...item,
+          profiles: item.profiles?.[0] ?? null,
+        })) as TeacherInviteCode[];
+        setCodes(transformedData);
       }
     } catch (err) {
       console.error('Error loading codes:', err);
