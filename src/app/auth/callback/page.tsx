@@ -135,7 +135,7 @@ export default function AuthCallbackPage() {
         // This is the ADMIN - create/update profile with is_admin = true
         // Use server API to bypass RLS
         try {
-          await fetch('/api/admin/setup-profile', {
+          const response = await fetch('/api/admin/setup-profile', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -146,8 +146,21 @@ export default function AuthCallbackPage() {
               email: currentSession.user.email,
             }),
           });
+
+          if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            console.error('Admin profile setup failed:', response.status, errorData);
+            setError(`Failed to set up admin profile: ${errorData.error || 'Server error'}. Check if SUPABASE_SERVICE_ROLE_KEY is set on Vercel.`);
+            setStep('error');
+            return;
+          }
+
+          console.log('Admin profile setup successful');
         } catch (err) {
           console.error('Admin profile setup error:', err);
+          setError('Failed to connect to admin setup service. Please try again.');
+          setStep('error');
+          return;
         }
 
         // Refresh profile and redirect to admin dashboard

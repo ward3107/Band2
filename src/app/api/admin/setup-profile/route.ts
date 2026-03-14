@@ -23,8 +23,20 @@ export async function POST(request: NextRequest) {
   try {
     // Check service role key is available
     if (!supabaseServiceKey) {
-      console.error('SUPABASE_SERVICE_ROLE_KEY not set');
-      return NextResponse.json({ error: 'Server configuration error' }, { status: 500 });
+      console.error('❌ SUPABASE_SERVICE_ROLE_KEY not set - admin cannot be created');
+      return NextResponse.json({
+        error: 'SUPABASE_SERVICE_ROLE_KEY not configured on server. Please add it to Vercel environment variables.',
+        code: 'MISSING_SERVICE_KEY'
+      }, { status: 500 });
+    }
+
+    // Check admin email is configured
+    if (!adminEmail) {
+      console.error('❌ NEXT_PUBLIC_ADMIN_EMAIL not set');
+      return NextResponse.json({
+        error: 'NEXT_PUBLIC_ADMIN_EMAIL not configured on server.',
+        code: 'MISSING_ADMIN_EMAIL'
+      }, { status: 500 });
     }
 
     // Get request body
