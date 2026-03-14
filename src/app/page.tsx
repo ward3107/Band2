@@ -25,7 +25,7 @@ import { HelpDropdown } from '@/components/HelpDropdown';
 import { signInWithGoogle } from '@/lib/supabase';
 
 export default function HomePage() {
-  const { user, profile } = useAuth();
+  const { user, profile, loading: authLoading } = useAuth();
   const { t } = useLanguage();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -42,8 +42,9 @@ export default function HomePage() {
     }
   }, [searchParams, router]);
 
-  // Redirect logged-in users to their dashboard
+  // Redirect logged-in users to their dashboard (wait for auth to finish loading)
   useEffect(() => {
+    if (authLoading) return;
     if (user && profile) {
       if (profile.is_admin) {
         router.push('/admin/invite-codes');
@@ -53,7 +54,7 @@ export default function HomePage() {
         router.push('/student');
       }
     }
-  }, [user, profile, router]);
+  }, [authLoading, user, profile, router]);
 
   /**
    * Handle Google Sign In
@@ -79,6 +80,15 @@ export default function HomePage() {
       setLoading(false);
     }
   };
+
+  // While auth is resolving, show nothing (prevents login form flash for logged-in users)
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-600 via-purple-600 to-indigo-700 flex items-center justify-center">
+        <div className="animate-spin text-5xl">🔄</div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-600 via-purple-600 to-indigo-700 flex items-center justify-center p-4">
