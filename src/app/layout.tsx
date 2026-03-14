@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { cookies } from "next/headers";
-import { Geist, Geist_Mono, Inter } from "next/font/google";
+import { Geist, Geist_Mono, Heebo, Cairo } from "next/font/google";
 import "./globals.css";
 import { AccessibilityProvider } from "@/contexts/AccessibilityContext";
 import { LanguageProvider } from "@/contexts/LanguageContext";
@@ -22,10 +22,17 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-// Inter font for landing page
-const inter = Inter({
-  variable: "--font-inter",
-  subsets: ["latin"],
+// Hebrew font
+const heebo = Heebo({
+  variable: "--font-heebo",
+  subsets: ["hebrew", "latin"],
+  display: "swap",
+});
+
+// Arabic font
+const cairo = Cairo({
+  variable: "--font-cairo",
+  subsets: ["arabic", "latin"],
   display: "swap",
 });
 
@@ -56,10 +63,9 @@ export default async function RootLayout({
       <head>
         <link rel="icon" href="/favicon.ico" />
         <link rel="manifest" href="/manifest.webmanifest" />
-        <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
       </head>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} ${inter.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} ${heebo.variable} ${cairo.variable} antialiased`}
         suppressHydrationWarning
       >
         <SentryErrorBoundary>
